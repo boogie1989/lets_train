@@ -14,31 +14,33 @@ const ALL_EXERCISES = [
   { id: 8,  name: 'Bicep Curls',        muscle: 'Arms',  equipment: 'Dumbbell' },
 ]
 
+// Load defaults to RPE; weightUnit overrides per set/drop (kg / lbs / time).
+// restSet = rest between sets (sec, uniform per item); restAfter = rest before the next card.
 const DEMO_ITEMS = [
-  { id: 'a', type: 'solo', exerciseId: 1,
+  { id: 'a', type: 'solo', exerciseId: 1, restSet: 120, restAfter: 180,
     sets: [
-      { weight: 80, reps: 8 },
+      { weight: 7.5, reps: 8 },
       { weight: 175, reps: 8, weightUnit: 'lbs' },
-      { weight: 75, reps: 6, ds: [{ weight: 60, reps: 10 }, { weight: 45, reps: 30, repsUnit: 'time' }] },
-      { weight: 70, reps: 8 },
+      { weight: 9, reps: 6, ds: [{ weight: 9.5, reps: 10 }, { weight: 10, reps: 30, repsUnit: 'time' }] },
+      { weight: 8, reps: 8 },
     ] },
-  { id: 'b', type: 'superset', exerciseIds: [5, 8],
+  { id: 'b', type: 'superset', exerciseIds: [5, 8], restSet: 60, restAfter: 120,
     sets: [
-      { 5: { weight: 0, reps: 12 }, 8: { weight: 15, reps: 12, ds: [{ weight: 10, reps: 14 }] } },
-      { 5: { weight: 0, reps: 10 }, 8: { weight: 12, reps: 10 } },
-      { 5: { weight: 0, reps: 10 }, 8: { weight: 10, reps: 12 } },
+      { 5: { weight: 8, reps: 12 }, 8: { weight: 15, reps: 12, weightUnit: 'kg', ds: [{ weight: 10, reps: 14, weightUnit: 'kg' }] } },
+      { 5: { weight: 8.5, reps: 10 }, 8: { weight: 12, reps: 10, weightUnit: 'kg' } },
+      { 5: { weight: 9, reps: 10 }, 8: { weight: 10, reps: 12, weightUnit: 'kg' } },
     ] },
-  { id: 'c', type: 'solo', exerciseId: 7,
+  { id: 'c', type: 'solo', exerciseId: 7, restSet: 60, restAfter: 90,
     sets: [
-      { weight: 25, reps: 12, ds: [{ weight: 20, reps: 15 }] },
-      { weight: 25, reps: 10, ds: [{ weight: 15, reps: 12 }] },
-      { weight: 20, reps: 10 },
+      { weight: 25, reps: 12, weightUnit: 'kg', ds: [{ weight: 20, reps: 15, weightUnit: 'kg' }] },
+      { weight: 25, reps: 10, weightUnit: 'kg', ds: [{ weight: 15, reps: 12, weightUnit: 'kg' }] },
+      { weight: 20, reps: 10, weightUnit: 'kg' },
     ] },
-  { id: 'd', type: 'solo', exerciseId: 2,
+  { id: 'd', type: 'solo', exerciseId: 2, restSet: 120,
     sets: [
-      { weight: 70, reps: 10 },
-      { weight: 70, reps: 8 },
-      { weight: 65, reps: 10 },
+      { weight: 7, reps: 10 },
+      { weight: 8, reps: 8 },
+      { weight: 8, reps: 10 },
     ] },
 ]
 
@@ -98,25 +100,40 @@ const tagCreateRowSt = {
 
 function soloSummary(sets) {
   if (!sets.length) return '0 sets'
-  const weights = sets.map(s => s.weight).filter(w => w > 0)
+  // summarize load in the unit of the first set; ignore sets logged in other units
+  const unit = sets[0].weightUnit ?? 'rpe'
+  const weights = sets.filter(s => (s.weightUnit ?? 'rpe') === unit).map(s => s.weight).filter(w => w > 0)
   const reps = sets.map(s => s.reps)
+  const range = weights.length && Math.min(...weights) === Math.max(...weights)
+    ? `${weights[0]}`
+    : `${Math.min(...weights)}–${Math.max(...weights)}`
   const wStr = weights.length === 0
     ? 'Bodyweight'
-    : Math.min(...weights) === Math.max(...weights)
-      ? `${weights[0]} kg`
-      : `${Math.min(...weights)}–${Math.max(...weights)} kg`
+    : unit === 'rpe' ? `RPE ${range}` : `${range} ${unit}`
   const minR = Math.min(...reps), maxR = Math.max(...reps)
   const rStr = minR === maxR ? `${maxR}` : `${minR}–${maxR}`
   return `${wStr} · ${rStr} reps`
 }
 
 function calcStats(items) {
-  let exCount = 0, setCount = 0
-  items.forEach(item => {
-    exCount += item.type === 'solo' ? 1 : item.exerciseIds.length
+  let exCount = 0, setCount = 0, sec = 0
+  items.forEach((item, i) => {
+    const exN = item.type === 'solo' ? 1 : item.exerciseIds.length
+    exCount += exN
     setCount += item.sets.length
+    // rough duration: ~40s of work per exercise per set + rests
+    sec += item.sets.length * 40 * exN
+    sec += Math.max(0, item.sets.length - 1) * (item.restSet ?? 90)
+    if (i < items.length - 1) sec += item.restAfter ?? 120
   })
-  return { exCount, setCount }
+  return { exCount, setCount, estMin: Math.round(sec / 60) }
+}
+
+function fmtRest(s) {
+  if (!s) return 'No rest'
+  if (s < 60) return `${s}s`
+  const m = Math.floor(s / 60), r = s % 60
+  return r ? `${m}:${String(r).padStart(2, '0')}` : `${m} min`
 }
 
 // ─── Icons ─────────────────────────────────────────────────────────────────────
@@ -222,7 +239,7 @@ const stepBtnSt = {
   cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
 }
 
-function StepperInput({ value, onChange, step = 1, min = 0, dim = false }) {
+function StepperInput({ value, onChange, step = 1, min = 0, max = Infinity, dim = false }) {
   return (
     <div style={{
       display: 'flex', alignItems: 'center', height: 40,
@@ -236,7 +253,7 @@ function StepperInput({ value, onChange, step = 1, min = 0, dim = false }) {
       <input
         value={value === 0 ? '' : String(value)}
         placeholder="0"
-        onChange={e => onChange(parseFloat(e.target.value) || 0)}
+        onChange={e => onChange(Math.min(max, parseFloat(e.target.value) || 0))}
         inputMode={step < 1 ? 'decimal' : 'numeric'}
         style={{
           flex: 1, minWidth: 0, width: '100%', height: '100%',
@@ -245,7 +262,7 @@ function StepperInput({ value, onChange, step = 1, min = 0, dim = false }) {
           textAlign: 'center', padding: 0,
         }}
       />
-      <button onClick={() => onChange(+(value + step).toFixed(2))}
+      <button onClick={() => onChange(Math.min(max, +(value + step).toFixed(2)))}
         style={{ ...stepBtnSt, borderLeft: '1px solid rgba(var(--overlay-rgb),0.06)' }}>+</button>
     </div>
   )
@@ -266,9 +283,10 @@ const exNameSt = {
 // ─── Units (same options & steps as WorkoutRunner) ─────────────────────────────
 
 const MAX_DROPS = 3
-const WEIGHT_UNITS = ['kg', 'lbs', 'time']
+const WEIGHT_UNITS = ['rpe', 'kg', 'lbs', 'time']
 const REPS_UNITS   = ['reps', 'failure', 'time']
-const wStep = u => (u === 'lbs' || u === 'time' ? 5 : 2.5)
+const wStep = u => (u === 'rpe' ? 0.5 : u === 'lbs' || u === 'time' ? 5 : 2.5)
+const wMax  = u => (u === 'rpe' ? 10 : Infinity)
 const rStep = u => (u === 'time' ? 5 : 1)
 const LBL_H = 17  // reserved height for the unit-label row (keeps pills aligned)
 
@@ -309,10 +327,11 @@ function UnitDropdown({ value, options, onChange }) {
 // A stepper pill with its own unit dropdown directly above it
 function LabeledStepper({ value, onChange, unit, options, onUnitChange, min = 0, dim = false }) {
   const step = options === WEIGHT_UNITS ? wStep(unit) : rStep(unit)
+  const max  = options === WEIGHT_UNITS ? wMax(unit) : Infinity
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <UnitDropdown value={unit} options={options} onChange={onUnitChange} />
-      <StepperInput value={value} onChange={onChange} step={step} min={min} dim={dim} />
+      <StepperInput value={value} onChange={onChange} step={step} min={min} max={max} dim={dim} />
     </div>
   )
 }
@@ -324,6 +343,78 @@ function CtrlCell({ children }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div style={{ height: LBL_H }} />
       <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{children}</div>
+    </div>
+  )
+}
+
+// ─── Rest controls ─────────────────────────────────────────────────────────────
+
+function ClockIcon({ size = 11 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15.5 13.5" />
+    </svg>
+  )
+}
+
+const restStepBtnSt = {
+  ...TT, width: 34, height: '100%', padding: 0, flexShrink: 0,
+  background: 'transparent', border: 'none', cursor: 'pointer',
+  fontSize: 17, fontWeight: 300, color: 'var(--cs-primary)',
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+}
+
+// Rest chip — collapsed it reads `⏱ 1:30`; tap morphs it into the same compact
+// stepper language as the set pills: [− ⏱ 1:30 +], ±15s. Tap the time to close.
+// Sized + rounded to match the StepperInput pills (height 36/40, radius-xl).
+function RestChip({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+
+  if (!open) {
+    return (
+      <button onClick={() => setOpen(true)} style={{
+        ...TT, display: 'inline-flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px',
+        borderRadius: 'var(--radius-xl)', background: 'rgba(var(--overlay-rgb),0.04)', border: '1px solid rgba(var(--overlay-rgb),0.08)',
+        fontSize: 12, fontWeight: 500, color: 'var(--cs-on-surface-variant)', opacity: value ? 0.75 : 0.45, cursor: 'pointer',
+      }}>
+        <ClockIcon size={13} />{fmtRest(value)}
+      </button>
+    )
+  }
+  return (
+    <div style={{
+      display: 'inline-flex', alignItems: 'center', height: 40, overflow: 'hidden',
+      borderRadius: 'var(--radius-xl)', background: 'rgba(var(--cs-primary-rgb),0.07)', border: '1px solid rgba(var(--cs-primary-rgb),0.35)',
+    }}>
+      <button onClick={() => onChange(Math.max(0, value - 15))} style={{ ...restStepBtnSt, borderRight: '1px solid rgba(var(--cs-primary-rgb),0.12)' }}>−</button>
+      <button onClick={() => setOpen(false)} style={{
+        ...TT, display: 'inline-flex', alignItems: 'center', gap: 7, height: '100%', padding: '0 13px',
+        background: 'none', border: 'none', cursor: 'pointer',
+        fontSize: 13, fontWeight: 600, color: 'var(--cs-on-surface)',
+      }}>
+        <ClockIcon size={13} />{fmtRest(value)}
+      </button>
+      <button onClick={() => onChange(Math.min(600, value + 15))} style={{ ...restStepBtnSt, borderLeft: '1px solid rgba(var(--cs-primary-rgb),0.12)' }}>+</button>
+    </div>
+  )
+}
+
+// micro-label — same recipe as the SUPERSET card label, but muted (rest is secondary)
+const restLblSt = {
+  ...TT, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
+  color: 'var(--cs-on-surface-variant)', opacity: 0.45, flexShrink: 0,
+}
+
+// Divider row `REST ——— [⏱ 1:30]` — label left, hairline fills, chip flush right
+// (the screen's control column). The label shows on every divider so each rest
+// control is self-describing on its own.
+function RestDivider({ value, onChange, label }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      {label && <span style={restLblSt}>REST</span>}
+      <div style={{ flex: 1, height: 1, background: 'rgba(var(--overlay-rgb),0.05)' }} />
+      <RestChip value={value} onChange={onChange} />
     </div>
   )
 }
@@ -342,7 +433,9 @@ function SoloSetsEditor({ item, onChange }) {
     const ds = s.ds || []
     if (ds.length >= MAX_DROPS) return
     const last = ds[ds.length - 1] || s
-    updSet(i, { ...s, ds: [...ds, { weight: Math.max(0, last.weight - 5), reps: (last.reps || 8) + 2, weightUnit: last.weightUnit, repsUnit: last.repsUnit }] })
+    // drop = lighter weight pushed again; in RPE terms each drop lands closer to 10
+    const w = (last.weightUnit ?? 'rpe') === 'rpe' ? Math.min(10, (last.weight || 8) + 0.5) : Math.max(0, last.weight - 5)
+    updSet(i, { ...s, ds: [...ds, { weight: w, reps: (last.reps || 8) + 2, weightUnit: last.weightUnit, repsUnit: last.repsUnit }] })
   }
   function removeDrop(i, di) {
     const s = item.sets[i]
@@ -353,12 +446,17 @@ function SoloSetsEditor({ item, onChange }) {
 
   return (
     <div>
-      {/* set groups — wide gap between sets, tight within a set + its drops */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+      {/* set groups — rest chips live in the gaps between sets (uniform per exercise) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {item.sets.map((set, i) => (
-          <SetRowGroup key={i} idx={i} set={set} canDelete={item.sets.length > 1} maxDrops={MAX_DROPS}
-            onChange={s => updSet(i, s)} onDelete={() => delSet(i)}
-            onAddDrop={() => addDrop(i)} onRemoveDrop={di => removeDrop(i, di)} />
+          <Fragment key={i}>
+            <SetRowGroup idx={i} set={set} canDelete={item.sets.length > 1} maxDrops={MAX_DROPS}
+              onChange={s => updSet(i, s)} onDelete={() => delSet(i)}
+              onAddDrop={() => addDrop(i)} onRemoveDrop={di => removeDrop(i, di)} />
+            {i < item.sets.length - 1 && (
+              <RestDivider label value={item.restSet ?? 90} onChange={v => onChange({ ...item, restSet: v })} />
+            )}
+          </Fragment>
         ))}
       </div>
 
@@ -426,7 +524,7 @@ function SetRowGroup({ idx, set, canDelete, maxDrops, onChange, onDelete, onAddD
           {/* main set row */}
           <CtrlCell><SetNumber n={idx + 1} circled /></CtrlCell>
           <LabeledStepper value={set.weight} onChange={w => onChange({ ...set, weight: w })}
-            unit={set.weightUnit ?? 'kg'} options={WEIGHT_UNITS} onUnitChange={u => onChange({ ...set, weightUnit: u })} />
+            unit={set.weightUnit ?? 'rpe'} options={WEIGHT_UNITS} onUnitChange={u => onChange({ ...set, weightUnit: u })} />
           <CtrlCell><span style={xSepSt}>×</span></CtrlCell>
           <LabeledStepper value={set.reps} onChange={r => onChange({ ...set, reps: r })}
             unit={set.repsUnit ?? 'reps'} options={REPS_UNITS} onUnitChange={u => onChange({ ...set, repsUnit: u })} min={1} />
@@ -441,7 +539,7 @@ function SetRowGroup({ idx, set, canDelete, maxDrops, onChange, onDelete, onAddD
               <Fragment key={di}>
                 <CtrlCell><span style={dotNodeSt} /></CtrlCell>
                 <LabeledStepper dim value={d.weight} onChange={w => updDrop({ weight: w })}
-                  unit={d.weightUnit ?? 'kg'} options={WEIGHT_UNITS} onUnitChange={u => updDrop({ weightUnit: u })} />
+                  unit={d.weightUnit ?? 'rpe'} options={WEIGHT_UNITS} onUnitChange={u => updDrop({ weightUnit: u })} />
                 <CtrlCell><span style={xSepSt}>×</span></CtrlCell>
                 <LabeledStepper dim value={d.reps} onChange={r => updDrop({ reps: r })}
                   unit={d.repsUnit ?? 'reps'} options={REPS_UNITS} onUnitChange={u => updDrop({ repsUnit: u })} min={1} />
@@ -472,7 +570,7 @@ function SupersetSetsEditor({ item, onChange }) {
   function updSet(i, s) { onChange({ ...item, sets: item.sets.map((x, j) => j === i ? s : x) }) }
   function delSet(i) { onChange({ ...item, sets: item.sets.filter((_, j) => j !== i) }) }
   function addSet() {
-    const s = {}; exercises.forEach(ex => { s[ex.id] = { weight: 0, reps: 10 } })
+    const s = {}; exercises.forEach(ex => { s[ex.id] = { weight: 8, reps: 10 } })
     onChange({ ...item, sets: [...item.sets, s] })
   }
   function updEx(i, exId, patch) {
@@ -480,11 +578,12 @@ function SupersetSetsEditor({ item, onChange }) {
     updSet(i, { ...set, [exId]: { ...(set[exId] || { weight: 0, reps: 10 }), ...patch } })
   }
   function addDrop(i, exId) {
-    const cur = item.sets[i][exId] || { weight: 0, reps: 10 }
+    const cur = item.sets[i][exId] || { weight: 8, reps: 10 }
     const ds = cur.ds || []
     if (ds.length >= MAX_DROPS) return
     const last = ds[ds.length - 1] || cur
-    updEx(i, exId, { ds: [...ds, { weight: Math.max(0, last.weight - 5), reps: (last.reps || 8) + 2, weightUnit: last.weightUnit, repsUnit: last.repsUnit }] })
+    const w = (last.weightUnit ?? 'rpe') === 'rpe' ? Math.min(10, (last.weight || 8) + 0.5) : Math.max(0, last.weight - 5)
+    updEx(i, exId, { ds: [...ds, { weight: w, reps: (last.reps || 8) + 2, weightUnit: last.weightUnit, repsUnit: last.repsUnit }] })
   }
   function removeDrop(i, exId, di) {
     const cur = item.sets[i][exId] || {}
@@ -495,10 +594,12 @@ function SupersetSetsEditor({ item, onChange }) {
 
   return (
     <div>
-      {/* set groups — circled number + connector line bracket each set */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+      {/* set groups — circled number + connector line bracket each set; rest chips
+          between rounds (within a round the superset itself means no rest) */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {item.sets.map((set, i) => (
-          <div key={i} style={{ position: 'relative' }}>
+          <Fragment key={i}>
+          <div style={{ position: 'relative' }}>
             {/* connector line — anchored at the circled set number, runs to the bottom */}
             <div style={{ position: 'absolute', left: 15, top: 24, bottom: 14, width: 2, borderRadius: 1, background: 'rgba(var(--cs-primary-rgb),0.35)' }} />
 
@@ -522,7 +623,7 @@ function SupersetSetsEditor({ item, onChange }) {
                     {/* main stepper row — marked by a hollow ring on the connector */}
                     <CtrlCell><span style={mainNodeSt} /></CtrlCell>
                     <LabeledStepper value={exData.weight} onChange={w => updEx(i, ex.id, { weight: w })}
-                      unit={exData.weightUnit ?? 'kg'} options={WEIGHT_UNITS} onUnitChange={u => updEx(i, ex.id, { weightUnit: u })} />
+                      unit={exData.weightUnit ?? 'rpe'} options={WEIGHT_UNITS} onUnitChange={u => updEx(i, ex.id, { weightUnit: u })} />
                     <CtrlCell><span style={xSepSt}>×</span></CtrlCell>
                     <LabeledStepper value={exData.reps} onChange={r => updEx(i, ex.id, { reps: r })}
                       unit={exData.repsUnit ?? 'reps'} options={REPS_UNITS} onUnitChange={u => updEx(i, ex.id, { repsUnit: u })} min={1} />
@@ -535,7 +636,7 @@ function SupersetSetsEditor({ item, onChange }) {
                         <Fragment key={di}>
                           <CtrlCell><span style={dotNodeSt} /></CtrlCell>
                           <LabeledStepper dim value={d.weight} onChange={w => updDrop({ weight: w })}
-                            unit={d.weightUnit ?? 'kg'} options={WEIGHT_UNITS} onUnitChange={u => updDrop({ weightUnit: u })} />
+                            unit={d.weightUnit ?? 'rpe'} options={WEIGHT_UNITS} onUnitChange={u => updDrop({ weightUnit: u })} />
                           <CtrlCell><span style={xSepSt}>×</span></CtrlCell>
                           <LabeledStepper dim value={d.reps} onChange={r => updDrop({ reps: r })}
                             unit={d.repsUnit ?? 'reps'} options={REPS_UNITS} onUnitChange={u => updDrop({ repsUnit: u })} min={1} />
@@ -555,6 +656,10 @@ function SupersetSetsEditor({ item, onChange }) {
               })}
             </div>
           </div>
+          {i < item.sets.length - 1 && (
+            <RestDivider label value={item.restSet ?? 90} onChange={v => onChange({ ...item, restSet: v })} />
+          )}
+          </Fragment>
         ))}
       </div>
 
@@ -677,7 +782,7 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
   const [items, setItems] = useState(seedItems)
   const [expandedId, setExpandedId] = useState(seedExpanded)
 
-  const { exCount, setCount } = calcStats(items)
+  const { exCount, setCount, estMin } = calcStats(items)
 
   // tag dialog: search + create. List shows only NOT-yet-selected tags
   // (selected ones live as removable chips above the list).
@@ -739,15 +844,20 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
           </GlassCard>
 
           <p style={{ ...TT, fontSize: 'var(--tt-body-small-size)', letterSpacing: 'var(--tt-body-small-tracking)', color: 'var(--cs-on-surface-variant)', opacity: 0.40, margin: '0 2px 14px' }}>
-            {exCount} {exCount === 1 ? 'exercise' : 'exercises'} · {setCount} sets
+            {exCount} {exCount === 1 ? 'exercise' : 'exercises'} · {setCount} sets · ~{estMin} min
           </p>
 
-          {/* Cards */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {items.map(item => (
-              item.type === 'superset'
-                ? <SupersetCard key={item.id} item={item} open={expandedId === item.id} onToggle={() => toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} />
-                : <SoloCard key={item.id} item={item} open={expandedId === item.id} onToggle={() => toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} />
+          {/* Cards — rest chips between cards mark the pause before the next exercise */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {items.map((item, i) => (
+              <Fragment key={item.id}>
+                {item.type === 'superset'
+                  ? <SupersetCard item={item} open={expandedId === item.id} onToggle={() => toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} />
+                  : <SoloCard item={item} open={expandedId === item.id} onToggle={() => toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} />}
+                {i < items.length - 1 && (
+                  <RestDivider label value={item.restAfter ?? 120} onChange={v => updateItem({ ...item, restAfter: v })} />
+                )}
+              </Fragment>
             ))}
           </div>
 
