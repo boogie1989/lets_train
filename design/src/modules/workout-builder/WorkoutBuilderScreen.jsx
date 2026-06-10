@@ -1,4 +1,4 @@
-import { useState, Fragment } from 'react'
+import { useState, useRef, Fragment } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import NavBar from '../../components/NavBar.jsx'
@@ -16,22 +16,25 @@ const ALL_EXERCISES = [
 ]
 
 // Load defaults to RPE; weightUnit overrides per set/drop (kg / lbs / time).
-// restSet = rest between sets (sec, uniform per item); restAfter = rest before the next card.
+// restSet = rest between sets (sec, uniform per item). Rest between exercises
+// lives OUTSIDE the items in restGaps[i] (sec, the pause after position i) —
+// it belongs to the slot in the workout, not to the exercise, so reordering
+// cards never drags a pause along.
 const DEMO_ITEMS = [
-  { id: 'a', type: 'solo', exerciseId: 1, restSet: 120, restAfter: 180,
+  { id: 'a', type: 'solo', exerciseId: 1, restSet: 120,
     sets: [
       { weight: 7.5, reps: 8 },
       { weight: 175, reps: 8, weightUnit: 'lbs' },
       { weight: 9, reps: 6, ds: [{ weight: 9.5, reps: 10 }, { weight: 10, reps: 30, repsUnit: 'time' }] },
       { weight: 8, reps: 8 },
     ] },
-  { id: 'b', type: 'superset', exerciseIds: [5, 8], restSet: 60, restAfter: 120,
+  { id: 'b', type: 'superset', exerciseIds: [5, 8], restSet: 60,
     sets: [
       { 5: { weight: 8, reps: 12 }, 8: { weight: 15, reps: 12, weightUnit: 'kg', ds: [{ weight: 10, reps: 14, weightUnit: 'kg' }] } },
       { 5: { weight: 8.5, reps: 10 }, 8: { weight: 12, reps: 10, weightUnit: 'kg' } },
       { 5: { weight: 9, reps: 10 }, 8: { weight: 10, reps: 12, weightUnit: 'kg' } },
     ] },
-  { id: 'c', type: 'solo', exerciseId: 7, restSet: 60, restAfter: 90,
+  { id: 'c', type: 'solo', exerciseId: 7, restSet: 60,
     sets: [
       { weight: 25, reps: 12, weightUnit: 'kg', ds: [{ weight: 20, reps: 15, weightUnit: 'kg' }] },
       { weight: 25, reps: 10, weightUnit: 'kg', ds: [{ weight: 15, reps: 12, weightUnit: 'kg' }] },
@@ -44,6 +47,8 @@ const DEMO_ITEMS = [
       { weight: 8, reps: 10 },
     ] },
 ]
+
+const DEMO_GAPS = [180, 120, 90]
 
 // ─── Tokens ────────────────────────────────────────────────────────────────────
 
@@ -116,7 +121,7 @@ function soloSummary(sets) {
   return `${wStr} · ${rStr} reps`
 }
 
-function calcStats(items) {
+function calcStats(items, restGaps = []) {
   let exCount = 0, setCount = 0, sec = 0
   items.forEach((item, i) => {
     const exN = item.type === 'solo' ? 1 : item.exerciseIds.length
@@ -125,7 +130,7 @@ function calcStats(items) {
     // rough duration: ~40s of work per exercise per set + rests
     sec += item.sets.length * 40 * exN
     sec += Math.max(0, item.sets.length - 1) * (item.restSet ?? 90)
-    if (i < items.length - 1) sec += item.restAfter ?? 120
+    if (i < items.length - 1) sec += restGaps[i] ?? 120
   })
   return { exCount, setCount, estMin: Math.round(sec / 60) }
 }
@@ -641,6 +646,27 @@ const kebabTriggerSt = open => ({
   color: 'var(--cs-on-surface-variant)', opacity: open ? 0.85 : 0.45,
 })
 
+// ─── Reorder mode ──────────────────────────────────────────────────────────────
+
+function GripIcon() {
+  return (
+    <svg width="14" height="18" viewBox="0 0 14 18" fill="currentColor">
+      <circle cx="4.5" cy="3" r="1.5" /><circle cx="9.5" cy="3" r="1.5" />
+      <circle cx="4.5" cy="9" r="1.5" /><circle cx="9.5" cy="9" r="1.5" />
+      <circle cx="4.5" cy="15" r="1.5" /><circle cx="9.5" cy="15" r="1.5" />
+    </svg>
+  )
+}
+
+function ReorderIcon({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="8" y1="5" x2="8" y2="19" /><polyline points="4 9 8 5 12 9" />
+      <line x1="16" y1="5" x2="16" y2="19" /><polyline points="12 15 16 19 20 15" />
+    </svg>
+  )
+}
+
 function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit }) {
   const ex = ALL_EXERCISES.find(e => e.id === item.exerciseId)
   // card drops overflow:hidden while the menu is open so it can escape the clip
@@ -740,8 +766,17 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
   const [tagQuery, setTagQuery] = useState('')
   const [items, setItems] = useState(seedItems)
   const [expandedId, setExpandedId] = useState(seedExpanded)
+  // rest between exercises is keyed by GAP POSITION, not by item (see DEMO_GAPS note)
+  const [restGaps, setRestGaps] = useState(() => DEMO_GAPS.slice(0, seedItems.length - 1))
 
-  const { exCount, setCount, estMin } = calcStats(items)
+  // reorder mode — cards collapse, rest dividers hide, grips appear on the left
+  const [reorderMode, setReorderMode] = useState(false)
+  const [dragIdx, setDragIdx] = useState(null)
+  const [dragY, setDragY] = useState(0)
+  const rowRefs = useRef([])
+  const dragState = useRef(null)
+
+  const { exCount, setCount, estMin } = calcStats(items, restGaps)
 
   // tag dialog: search + create. List shows only NOT-yet-selected tags
   // (selected ones live as removable chips above the list).
@@ -751,8 +786,53 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
 
   function toggle(id) { setExpandedId(cur => cur === id ? null : id) }
   function updateItem(updated) { setItems(p => p.map(it => it.id === updated.id ? updated : it)) }
-  function deleteItem(id) { setItems(p => p.filter(it => it.id !== id)); setExpandedId(null) }
+  function deleteItem(id) {
+    const i = items.findIndex(it => it.id === id)
+    // drop the gap after the removed card (or the last gap when removing the last card)
+    if (i >= 0) setRestGaps(g => g.filter((_, j) => j !== Math.min(i, g.length - 1)))
+    setItems(p => p.filter(it => it.id !== id))
+    setExpandedId(null)
+  }
   function editItem() { /* stub — wire to the Exercises search/picker when connected */ }
+  function moveItem(from, to) {
+    setItems(p => { const n = [...p]; const [it] = n.splice(from, 1); n.splice(to, 0, it); return n })
+  }
+
+  // drag — grip-handle pointer drag; swaps with a neighbour once the dragged row's
+  // offset crosses half of that neighbour's height (uniform-free: heights measured)
+  const ROW_GAP = 10
+  function dragStart(e, i) {
+    e.preventDefault()
+    e.currentTarget.setPointerCapture(e.pointerId)
+    dragState.current = { startY: e.clientY, idx: i, heights: rowRefs.current.map(el => el?.offsetHeight ?? 0) }
+    setDragIdx(i); setDragY(0)
+  }
+  function dragMove(e) {
+    const s = dragState.current
+    if (!s) return
+    let dy = e.clientY - s.startY
+    while (s.idx < s.heights.length - 1 && dy > (s.heights[s.idx + 1] + ROW_GAP) / 2) {
+      const next = s.idx + 1
+      moveItem(s.idx, next)
+      s.startY += s.heights[next] + ROW_GAP
+      ;[s.heights[s.idx], s.heights[next]] = [s.heights[next], s.heights[s.idx]]
+      s.idx = next
+      dy = e.clientY - s.startY
+    }
+    while (s.idx > 0 && dy < -(s.heights[s.idx - 1] + ROW_GAP) / 2) {
+      const prev = s.idx - 1
+      moveItem(s.idx, prev)
+      s.startY -= s.heights[prev] + ROW_GAP
+      ;[s.heights[s.idx], s.heights[prev]] = [s.heights[prev], s.heights[s.idx]]
+      s.idx = prev
+      dy = e.clientY - s.startY
+    }
+    setDragIdx(s.idx); setDragY(dy)
+  }
+  function dragEnd() {
+    dragState.current = null
+    setDragIdx(null); setDragY(0)
+  }
   function toggleTag(t) { setTags(p => p.includes(t) ? p.filter(x => x !== t) : [...p, t]) }
   function createTag(name) {
     const t = name.trim()
@@ -803,28 +883,68 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
             </button>
           </GlassCard>
 
-          <p style={{ ...TT, fontSize: 'var(--tt-body-small-size)', letterSpacing: 'var(--tt-body-small-tracking)', color: 'var(--cs-on-surface-variant)', opacity: 0.40, margin: '0 2px 14px' }}>
-            {exCount} {exCount === 1 ? 'exercise' : 'exercises'} · {setCount} sets · ~{estMin} min
-          </p>
-
-          {/* Cards — rest dividers between cards mark the pause before the next exercise */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            {items.map((item, i) => (
-              <Fragment key={item.id}>
-                {item.type === 'superset'
-                  ? <SupersetCard item={item} open={expandedId === item.id} onToggle={() => toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} />
-                  : <SoloCard item={item} open={expandedId === item.id} onToggle={() => toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} />}
-                {i < items.length - 1 && (
-                  <RestDivider value={item.restAfter ?? 120} />
-                )}
-              </Fragment>
-            ))}
+          <div style={{ display: 'flex', alignItems: 'center', margin: '0 2px 14px', minHeight: 26 }}>
+            <p style={{ ...TT, flex: 1, fontSize: 'var(--tt-body-small-size)', letterSpacing: 'var(--tt-body-small-tracking)', color: 'var(--cs-on-surface-variant)', opacity: 0.40, margin: 0 }}>
+              {exCount} {exCount === 1 ? 'exercise' : 'exercises'} · {setCount} sets · ~{estMin} min
+            </p>
+            {/* reorder-mode toggle — ghost icon; becomes a primary Done chip while active */}
+            {reorderMode ? (
+              <button onClick={() => setReorderMode(false)} style={{
+                ...TT, height: 26, padding: '0 12px', borderRadius: 'var(--radius-2xl)', cursor: 'pointer',
+                background: 'rgba(var(--cs-primary-rgb),0.14)', border: '1px solid rgba(var(--cs-primary-rgb),0.28)',
+                fontSize: 12, fontWeight: 600, color: 'var(--cs-primary)',
+              }}>Done</button>
+            ) : (
+              <button onClick={() => { setReorderMode(true); setExpandedId(null) }} style={{
+                width: 26, height: 26, padding: 0, borderRadius: 'var(--radius-lg)', cursor: 'pointer',
+                background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--cs-on-surface-variant)', opacity: 0.45,
+              }}><ReorderIcon /></button>
+            )}
           </div>
 
-          {/* Add exercise */}
-          <button style={{ ...TT, width: '100%', height: 46, borderRadius: 'var(--radius-xl)', border: '1.5px dashed rgba(var(--overlay-rgb),0.12)', background: 'rgba(var(--overlay-rgb),0.02)', color: 'var(--cs-on-surface-variant)', opacity: 0.50, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 12 }}>
-            <PlusIcon size={13} /> Add Exercise
-          </button>
+          {/* Cards — rest dividers between cards mark the pause before the next exercise.
+              In reorder mode: dividers hide, cards collapse + shrink, grips appear. */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: reorderMode ? ROW_GAP : 16 }}>
+            {items.map((item, i) => {
+              const card = item.type === 'superset'
+                ? <SupersetCard item={item} open={!reorderMode && expandedId === item.id} onToggle={() => !reorderMode && toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} />
+                : <SoloCard item={item} open={!reorderMode && expandedId === item.id} onToggle={() => !reorderMode && toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} />
+              return (
+                <Fragment key={item.id}>
+                  <div ref={el => { rowRefs.current[i] = el }} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    position: 'relative',
+                    transform: dragIdx === i ? `translateY(${dragY}px)` : 'none',
+                    zIndex: dragIdx === i ? 20 : 'auto',
+                  }}>
+                    {reorderMode && (
+                      <span
+                        onPointerDown={e => dragStart(e, i)} onPointerMove={dragMove} onPointerUp={dragEnd} onPointerCancel={dragEnd}
+                        style={{
+                          width: 24, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          color: 'var(--cs-on-surface-variant)', opacity: dragIdx === i ? 0.9 : 0.45,
+                          cursor: dragIdx === i ? 'grabbing' : 'grab', touchAction: 'none',
+                        }}><GripIcon /></span>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0, filter: dragIdx === i ? 'brightness(1.15)' : 'none' }}>
+                      {card}
+                    </div>
+                  </div>
+                  {!reorderMode && i < items.length - 1 && (
+                    <RestDivider value={restGaps[i] ?? 120} />
+                  )}
+                </Fragment>
+              )
+            })}
+          </div>
+
+          {/* Add exercise — hidden in reorder mode */}
+          {!reorderMode && (
+            <button style={{ ...TT, width: '100%', height: 46, borderRadius: 'var(--radius-xl)', border: '1.5px dashed rgba(var(--overlay-rgb),0.12)', background: 'rgba(var(--overlay-rgb),0.02)', color: 'var(--cs-on-surface-variant)', opacity: 0.50, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 12 }}>
+              <PlusIcon size={13} /> Add Exercise
+            </button>
+          )}
         </div>
 
         {/* Save footer */}

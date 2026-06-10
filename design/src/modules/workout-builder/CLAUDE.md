@@ -23,7 +23,13 @@ Create / edit a workout — name it, add exercises (solo or superset), and edit 
 ## Rest (display-only for now)
 - **`RestDivider`** — a quiet centered divider: hairline · `⏱ 1:30` · hairline. A small clock icon (11px, opacity 0.40) replaces the text label; value = 11/600 at 0.70, gap 5; hairlines at overlay 0.05. **Not editable yet** — editing UX is TBD; rest stays a divider so it never competes with the set inputs. `fmtRest`: `45s` / `1:30` / `2 min`; `0` → `No rest`.
 - **Between sets** — a `RestDivider` in each gap between set groups (`item.restSet`, sec, uniform per exercise, default 90). In supersets it sits between **rounds**; within a round there is no rest by definition.
-- **Between exercise cards** — the same `RestDivider` (`item.restAfter` on the card above, default 120s). Nothing after the last card.
+- **Between exercise cards** — the same `RestDivider`, but the value lives in **`restGaps[i]`** (screen-level state, sec, default 120) — the pause after slot `i`, keyed by **gap position, NOT by item**, so reordering cards never drags a pause along. `deleteItem` removes the gap after the removed card (or the last gap for the last card). Nothing after the last card.
+
+## Reorder mode (exercise level only — nothing inside a card changes)
+- Toggle = ghost ⇅ icon right of the stats line; while active it becomes a primary **Done** chip.
+- Entering: collapses all cards (`expandedId=null`, expand/tap disabled), hides rest dividers AND the `Add Exercise` button, shows a **⠿ grip** (24px) left of each card — the card visually narrows.
+- Drag: pointer-capture on the grip; the dragged row follows via `translateY` and swaps with a neighbour once its offset crosses half that neighbour's measured height (`heights` measured at dragStart, swapped on each move — handles non-uniform card heights). List gap in mode = `ROW_GAP` (10).
+- Reordering only permutes `items`; `restGaps` is untouched by design (pauses belong to slots).
 
 ## Set / drop markers (connector line, left column)
 - **① circled number** — the set (always circled, even without drops).
@@ -38,7 +44,7 @@ Up to **3 per set** (`MAX_DROPS`); the `+ drop set` link hides at 3. Stored as `
 Outer grid `32px 1fr`: col1 = circled number + connector line bracketing the round; col2 = one labelled stepper block per exercise (name centred-ish, own steppers, own drops). Exercises are grouped under one set number.
 
 ## Data shape
-`item = { id, type:'solo'|'superset', exerciseId | exerciseIds, restSet?, restAfter?, sets:[…] }`. Solo set `{weight, reps, weightUnit?, repsUnit?, ds?}`; superset set `{ [exId]: {weight, reps, …, ds?} }`. `weight` holds the load value in whatever `weightUnit` says (RPE score when unit is `rpe`); missing `weightUnit` means `rpe`. `restSet`/`restAfter` are seconds.
+`item = { id, type:'solo'|'superset', exerciseId | exerciseIds, restSet?, sets:[…] }`. Solo set `{weight, reps, weightUnit?, repsUnit?, ds?}`; superset set `{ [exId]: {weight, reps, …, ds?} }`. `weight` holds the load value in whatever `weightUnit` says (RPE score when unit is `rpe`); missing `weightUnit` means `rpe`. `restSet` is seconds. Rest between exercises is NOT on the item — it's `restGaps[i]` (screen state, seconds, gap after slot `i`).
 
 ## Open threads
 `onEdit` (Change exercise) is a stub (`editItem`) — wire it to the Exercises search/picker when connected.
