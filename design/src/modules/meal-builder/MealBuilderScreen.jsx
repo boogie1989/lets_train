@@ -1,0 +1,287 @@
+import { useState } from 'react'
+import PhoneFrame from '../../components/PhoneFrame.jsx'
+import StatusBar from '../../components/StatusBar.jsx'
+import NavBar from '../../components/NavBar.jsx'
+import GlassCard from '../../components/GlassCard.jsx'
+import Segmented from '../../components/Segmented.jsx'
+import MultiSelectDialog from '../../components/MultiSelectDialog.jsx'
+import ConfirmDialog from '../../components/ConfirmDialog.jsx'
+import * as M from './mealModel.js'
+import { ChevLeftIcon, CheckIcon, PlusIcon, MinusIcon, XIcon, ChevDownIcon, GripIcon, CameraIcon, TagIcon } from './icons.jsx'
+
+const TT = { fontFamily: 'var(--tt-font-family)' }
+const MACROS = [
+  { key: 'p', label: 'Protein', ch: '--cat-blue-rgb' },
+  { key: 'c', label: 'Carbs', ch: '--cat-amber-rgb' },
+  { key: 'f', label: 'Fat', ch: '--cat-pink-rgb' },
+]
+
+const iconBtnSt = { width: 44, height: 44, borderRadius: 'var(--radius-2xl)', flexShrink: 0, background: 'var(--glass-control)', border: '1px solid rgba(var(--cs-outline-rgb),0.50)', boxShadow: 'var(--shadow-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 }
+const primaryBtnSt = { ...TT, fontWeight: 500, color: 'var(--cs-on-primary)', cursor: 'pointer', background: 'linear-gradient(180deg, rgba(var(--raise-rgb),0.09) 0%, rgba(var(--cs-shadow-rgb),0.08) 100%), var(--cs-primary)', border: '1px solid rgba(var(--overlay-rgb),0.18)', boxShadow: 'inset 0 1px 0 rgba(var(--raise-rgb),0.22), 0 8px 24px rgba(var(--cs-primary-rgb),0.22)' }
+const labelSt = { ...TT, display: 'block', marginBottom: 8, fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.45 }
+const stepBtnSt = { width: 30, height: 30, borderRadius: 'var(--radius-lg)', flexShrink: 0, padding: 0, cursor: 'pointer', background: 'rgba(var(--overlay-rgb),0.06)', border: '1px solid rgba(var(--overlay-rgb),0.09)', color: 'var(--cs-on-surface-variant)', display: 'flex', alignItems: 'center', justifyContent: 'center' }
+const addBtnSt = { ...TT, width: '100%', height: 44, borderRadius: 'var(--radius-2xl)', border: '1.5px dashed rgba(var(--overlay-rgb),0.14)', background: 'rgba(var(--overlay-rgb),0.02)', color: 'var(--cs-on-surface-variant)', opacity: 0.75, fontSize: 13, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }
+const fieldBoxSt = { display: 'flex', alignItems: 'baseline', gap: 4, padding: '9px 11px', borderRadius: 'var(--radius-lg)', background: 'rgba(var(--overlay-rgb),0.05)', border: '1px solid rgba(var(--overlay-rgb),0.08)' }
+const bareInputSt = { ...TT, width: '100%', minWidth: 0, fontSize: 14, fontWeight: 600, color: 'var(--cs-on-surface)', background: 'none', border: 'none', outline: 'none', padding: 0 }
+const num = v => (v === '' || v == null ? 0 : Math.max(0, +v))
+
+const sectionLabel = (text, count) => (
+  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, margin: '0 2px 10px' }}>
+    <span style={{ ...labelSt, margin: 0 }}>{text}</span>
+    {count != null && <span style={{ ...TT, fontSize: 11, fontWeight: 600, color: 'var(--cs-primary)' }}>{count}</span>}
+  </div>
+)
+
+export default function MealBuilderScreen({ initialStep = 'edit' }) {
+  const [meal, setMeal] = useState(() => (initialStep === 'empty' ? M.emptyMeal() : M.demoMeal()))
+  const [expanded, setExpanded] = useState(initialStep === 'ingredient' ? -1 : null) // ingredient id, or -1 = last
+  const [tagOpen, setTagOpen] = useState(false)
+  const [removeAsk, setRemoveAsk] = useState(null) // { kind:'ingredient'|'step', id|idx, name }
+  const [perServing, setPerServing] = useState(true)
+  const [dragIng, setDragIng] = useState(null)
+  const [dragStep, setDragStep] = useState(null)
+
+  const nut = M.computeNutrition(meal)
+  const shown = perServing ? nut.per : nut.total
+  const macroTotal = shown.p + shown.c + shown.f
+  const expandedId = expanded === -1 ? meal.ingredients[meal.ingredients.length - 1]?.id : expanded
+
+  const up = patch => setMeal(m => ({ ...m, ...patch }))
+  const upIng = (id, patch) => setMeal(m => M.updateIngredient(m, id, patch))
+
+  return (
+    <PhoneFrame smokeVariant="minimal">
+      <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
+        <NavBar>
+          <StatusBar />
+          <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 12px', gap: 8 }}>
+            <button style={iconBtnSt}><ChevLeftIcon /></button>
+            <span style={{ ...TT, flex: 1, fontSize: 16, fontWeight: 600, color: 'var(--cs-on-surface)', textAlign: 'center' }}>{initialStep === 'empty' ? 'New Meal' : 'Edit Meal'}</span>
+            <button style={{ ...iconBtnSt, background: 'var(--cs-primary)', border: 'none', color: 'var(--cs-on-primary)', opacity: M.validateMeal(meal) ? 1 : 0.4 }}><CheckIcon /></button>
+          </div>
+        </NavBar>
+
+        <div style={{ flex: 1, overflowY: 'auto', padding: '0 16px 92px' }}>
+
+          {/* ── Cover photo (stub) ── */}
+          <button style={{
+            width: '100%', height: 138, marginTop: 12, borderRadius: 'var(--radius-3xl)', cursor: 'pointer', overflow: 'hidden',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 7,
+            background: 'linear-gradient(150deg, rgba(var(--cs-tertiary-rgb),0.20) 0%, rgba(var(--cs-tertiary-rgb),0.04) 100%), var(--cs-surface-container)',
+            border: '1px dashed rgba(var(--cs-outline-rgb),0.30)', color: 'var(--cs-on-surface-variant)',
+          }}>
+            <CameraIcon />
+            <span style={{ ...TT, fontSize: 12.5, fontWeight: 500 }}>Add cover photo</span>
+          </button>
+
+          {/* ── Details ── */}
+          <GlassCard level="Low" style={{ padding: '14px 16px', margin: '14px 0' }}>
+            <input value={meal.name} onChange={e => up({ name: e.target.value })} placeholder="Meal name"
+              style={{ ...TT, fontSize: 'var(--tt-title-medium-size)', fontWeight: 500, color: 'var(--cs-on-surface)', background: 'none', border: 'none', outline: 'none', padding: 0, width: '100%' }} />
+            <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '11px 0' }} />
+            <textarea value={meal.description} onChange={e => up({ description: e.target.value })} placeholder="Add a short description…" rows={2}
+              style={{ ...TT, fontSize: 'var(--tt-body-small-size)', lineHeight: 'var(--tt-body-small-height)', color: 'var(--cs-on-surface-variant)', background: 'none', border: 'none', outline: 'none', resize: 'none', padding: 0, width: '100%', display: 'block' }} />
+            <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '11px 0 14px' }} />
+
+            <span style={labelSt}>Meal type</span>
+            <div style={{ marginBottom: 16 }}>
+              <Segmented options={M.MEAL_TYPES.map(t => ({ id: t, label: t }))} value={meal.mealType} onChange={t => up({ mealType: t })} />
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+              <MetaStepper label="Servings" value={meal.servings} onChange={n => setMeal(m => M.setServings(m, n))} />
+              <MetaStepper label="Prep" value={meal.prepMin} suffix="m" step={5} onChange={n => setMeal(m => M.setMinutes(m, 'prepMin', n))} />
+              <MetaStepper label="Cook" value={meal.cookMin} suffix="m" step={5} onChange={n => setMeal(m => M.setMinutes(m, 'cookMin', n))} />
+            </div>
+
+            <span style={labelSt}>Tags</span>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
+              {meal.tags.map(t => (
+                <span key={t} style={{ ...TT, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 6px 5px 11px', borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.14)', border: '1px solid rgba(var(--cs-primary-rgb),0.30)', fontSize: 12, fontWeight: 500, color: 'var(--cs-primary)' }}>
+                  {t}
+                  <button onClick={() => up({ tags: meal.tags.filter(x => x !== t) })} style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cs-primary)', padding: 2, opacity: 0.7 }}><XIcon size={10} /></button>
+                </span>
+              ))}
+              <button onClick={() => setTagOpen(true)} style={{ ...TT, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--overlay-rgb),0.04)', border: '1px dashed rgba(var(--overlay-rgb),0.16)', fontSize: 12, fontWeight: 500, color: 'var(--cs-on-surface-variant)', cursor: 'pointer' }}>
+                <TagIcon size={12} /> Add tags
+              </button>
+            </div>
+          </GlassCard>
+
+          {/* ── Nutrition (auto) ── */}
+          <GlassCard level="Low" style={{ padding: 16, marginBottom: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <span style={{ ...TT, fontSize: 13, fontWeight: 600, color: 'var(--cs-on-surface)' }}>Nutrition</span>
+              <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--overlay-rgb),0.05)', border: '1px solid rgba(var(--overlay-rgb),0.08)' }}>
+                {[['per', 'Per serving'], ['total', 'Total']].map(([k, lbl]) => {
+                  const on = (k === 'per') === perServing
+                  return <button key={k} onClick={() => setPerServing(k === 'per')} style={{ ...TT, padding: '4px 10px', borderRadius: 'calc(var(--radius-2xl) - 2px)', border: 'none', cursor: 'pointer', fontSize: 11, fontWeight: on ? 600 : 500, background: on ? 'rgba(var(--cs-primary-rgb),0.16)' : 'transparent', color: on ? 'var(--cs-primary)' : 'var(--cs-on-surface-variant)' }}>{lbl}</button>
+                })}
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
+              <span style={{ ...TT, fontSize: 30, fontWeight: 600, lineHeight: 1, color: 'var(--cs-on-surface)' }}>{shown.kcal.toLocaleString()}</span>
+              <span style={{ ...TT, fontSize: 13, color: 'var(--cs-on-surface-variant)', opacity: 0.6 }}>kcal{perServing ? ' / serving' : ''}</span>
+            </div>
+            <div style={{ display: 'flex', gap: 16 }}>
+              {MACROS.map(mc => {
+                const g = shown[mc.key]
+                const pct = macroTotal ? Math.round((g / macroTotal) * 100) : 0
+                return (
+                  <div key={mc.key} style={{ flex: 1 }}>
+                    <span style={{ ...TT, display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--cs-on-surface)', marginBottom: 6 }}>{g}<span style={{ fontSize: 11, fontWeight: 400, color: 'var(--cs-on-surface-variant)' }}>g</span></span>
+                    <div style={{ height: 4, borderRadius: 2, background: 'rgba(var(--overlay-rgb),0.06)', overflow: 'hidden', marginBottom: 6 }}>
+                      <div style={{ width: `${pct}%`, height: '100%', background: `rgba(var(${mc.ch}),1)`, opacity: 0.85 }} />
+                    </div>
+                    <span style={{ ...TT, fontSize: 10, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.5 }}>{mc.label}</span>
+                  </div>
+                )
+              })}
+            </div>
+          </GlassCard>
+
+          {/* ── Ingredients ── */}
+          {sectionLabel('Ingredients', meal.ingredients.length)}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12 }}>
+            {meal.ingredients.map((ing, i) => (
+              <IngredientRow key={ing.id} ing={ing} open={expandedId === ing.id}
+                onToggle={() => setExpanded(expandedId === ing.id ? null : ing.id)}
+                onChange={patch => upIng(ing.id, patch)}
+                onRemove={() => setRemoveAsk({ kind: 'ingredient', id: ing.id, name: ing.name || 'this ingredient' })}
+                draggable onDragStart={() => setDragIng(i)} onDragEnter={() => { if (dragIng != null && dragIng !== i) { setMeal(m => M.moveIngredient(m, dragIng, i)); setDragIng(i) } }} onDrop={() => setDragIng(null)} />
+            ))}
+          </div>
+          <button onClick={() => { setMeal(m => M.addIngredient(m)); setExpanded(-1) }} style={addBtnSt}><PlusIcon size={12} /> Add ingredient</button>
+
+          {/* ── Recipe ── */}
+          <div style={{ marginTop: 22 }}>{sectionLabel('Recipe', meal.steps.length ? `${meal.steps.length} steps` : null)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12 }}>
+            {meal.steps.map((s, i) => (
+              <div key={i} draggable onDragStart={() => setDragStep(i)} onDragEnter={() => { if (dragStep != null && dragStep !== i) { setMeal(m => M.moveStep(m, dragStep, i)); setDragStep(i) } }} onDragOver={e => e.preventDefault()} onDrop={() => setDragStep(null)}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '11px 10px 11px 8px', borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--overlay-rgb),0.03)', border: '1px solid rgba(var(--overlay-rgb),0.07)' }}>
+                <span style={{ color: 'rgba(var(--cs-primary-rgb),0.4)', flexShrink: 0, marginTop: 4 }}><GripIcon /></span>
+                <span style={{ width: 24, height: 24, flexShrink: 0, marginTop: 1, borderRadius: '50%', border: '1.5px solid rgba(var(--cs-primary-rgb),0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', ...TT, fontSize: 11, fontWeight: 600, color: 'var(--cs-primary)' }}>{i + 1}</span>
+                <textarea value={s} onChange={e => setMeal(m => M.updateStep(m, i, e.target.value))} placeholder="Describe this step…" rows={2}
+                  style={{ ...TT, flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--cs-on-surface)', background: 'none', border: 'none', outline: 'none', resize: 'none', padding: '2px 0' }} />
+                <button onClick={() => setMeal(m => M.removeStep(m, i))} style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, padding: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(var(--cs-primary-rgb),0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><XIcon size={12} /></button>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => setMeal(m => M.addStep(m))} style={addBtnSt}><PlusIcon size={12} /> Add step</button>
+        </div>
+
+        {/* save footer */}
+        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 16px 28px', background: 'linear-gradient(0deg, rgba(var(--cs-surface-rgb),0.94) 60%, transparent)' }}>
+          <button style={{ ...primaryBtnSt, width: '100%', height: 50, borderRadius: 'var(--radius-2xl)', fontSize: 15, opacity: M.validateMeal(meal) ? 1 : 0.5 }}>Save Meal</button>
+        </div>
+
+        {/* tag dialog */}
+        {tagOpen && (
+          <div style={{ position: 'absolute', inset: 0, zIndex: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(var(--cs-shadow-rgb),0.55)' }}>
+            <MultiSelectDialog title="Diet & tags" subtitle="Tap to toggle" options={M.DIETS} values={meal.tags}
+              onToggle={t => up({ tags: meal.tags.includes(t) ? meal.tags.filter(x => x !== t) : [...meal.tags, t] })}
+              onCancel={() => setTagOpen(false)} onConfirm={() => setTagOpen(false)} confirmLabel="Done" />
+          </div>
+        )}
+
+        {/* remove confirm */}
+        {removeAsk && (
+          <div onClick={() => setRemoveAsk(null)} style={{ position: 'absolute', inset: 0, zIndex: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(var(--cs-shadow-rgb),0.55)' }}>
+            <div onClick={e => e.stopPropagation()} style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+              <ConfirmDialog title="Remove ingredient?" message={`Remove ${removeAsk.name} from this meal.`} confirmLabel="Remove" cancelLabel="Cancel" destructive
+                onCancel={() => setRemoveAsk(null)}
+                onConfirm={() => { setMeal(m => M.removeIngredient(m, removeAsk.id)); setRemoveAsk(null) }} />
+            </div>
+          </div>
+        )}
+      </div>
+    </PhoneFrame>
+  )
+}
+
+// ── meta stepper (servings / prep / cook) ──
+function MetaStepper({ label, value, onChange, step = 1, suffix }) {
+  return (
+    <div style={{ flex: 1, minWidth: 0 }}>
+      <span style={labelSt}>{label}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <button onClick={() => onChange(value - step)} style={stepBtnSt}><MinusIcon size={14} /></button>
+        <span style={{ ...TT, flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--cs-on-surface)', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{value}{suffix || ''}</span>
+        <button onClick={() => onChange(value + step)} style={stepBtnSt}><PlusIcon size={12} /></button>
+      </div>
+    </div>
+  )
+}
+
+// ── ingredient row (collapsed summary → expandable editor) ──
+function IngredientRow({ ing, open, onToggle, onChange, onRemove, ...drag }) {
+  return (
+    <div {...drag} onDragOver={e => e.preventDefault()} style={{ borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--overlay-rgb),0.03)', border: `1px solid rgba(var(--overlay-rgb),${open ? '0.11' : '0.07'})`, overflow: 'hidden', transition: 'border-color 0.2s' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 8px 11px 8px' }}>
+        <span style={{ color: 'rgba(var(--cs-primary-rgb),0.4)', flexShrink: 0, padding: '0 2px' }}><GripIcon /></span>
+        <button onClick={onToggle} style={{ flex: 1, minWidth: 0, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ flex: 1, minWidth: 0 }}>
+            <span style={{ ...TT, display: 'block', fontSize: 14, fontWeight: 500, color: ing.name ? 'var(--cs-on-surface)' : 'var(--cs-on-surface-variant)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ing.name || 'New ingredient'}</span>
+            <span style={{ ...TT, display: 'block', fontSize: 11, color: 'var(--cs-on-surface-variant)', opacity: 0.6, marginTop: 1 }}>{ing.qty} {ing.unit}{ing.kcal ? ` · ${ing.kcal} kcal` : ''}</span>
+          </span>
+          <span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)', opacity: 0.4, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><ChevDownIcon /></span>
+        </button>
+        <button onClick={onRemove} style={{ width: 26, height: 26, borderRadius: 8, flexShrink: 0, padding: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(var(--cs-primary-rgb),0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><XIcon size={12} /></button>
+      </div>
+      <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 0.25s ease' }}>
+        <div style={{ overflow: 'hidden' }}>
+          <div style={{ padding: '2px 12px 14px', display: 'flex', flexDirection: 'column', gap: 11 }}>
+            <Field label="Name"><input value={ing.name} onChange={e => onChange({ name: e.target.value })} placeholder="e.g. Chicken breast" style={{ ...bareInputSt, padding: '9px 11px', borderRadius: 'var(--radius-lg)', background: 'rgba(var(--overlay-rgb),0.05)', border: '1px solid rgba(var(--overlay-rgb),0.08)', fontWeight: 500 }} /></Field>
+            <div style={{ display: 'flex', gap: 10 }}>
+              <Field label="Amount" style={{ flex: 1 }}>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <div style={{ ...fieldBoxSt, flex: 1 }}><input type="number" value={ing.qty} onChange={e => onChange({ qty: num(e.target.value) })} style={bareInputSt} /></div>
+                  <UnitField value={ing.unit} onChange={u => onChange({ unit: u })} />
+                </div>
+              </Field>
+              <Field label="Calories" style={{ width: 120 }}>
+                <div style={fieldBoxSt}><input type="number" value={ing.kcal} onChange={e => onChange({ kcal: num(e.target.value) })} style={bareInputSt} /><span style={{ ...TT, fontSize: 11, color: 'var(--cs-on-surface-variant)', opacity: 0.6 }}>kcal</span></div>
+              </Field>
+            </div>
+            <div style={{ display: 'flex', gap: 10 }}>
+              {MACROS.map(mc => (
+                <Field key={mc.key} label={mc.label} style={{ flex: 1 }}>
+                  <div style={fieldBoxSt}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: `rgba(var(${mc.ch}),1)`, flexShrink: 0, alignSelf: 'center' }} />
+                    <input type="number" value={ing[mc.key]} onChange={e => onChange({ [mc.key]: num(e.target.value) })} style={bareInputSt} />
+                    <span style={{ ...TT, fontSize: 11, color: 'var(--cs-on-surface-variant)', opacity: 0.6 }}>g</span>
+                  </div>
+                </Field>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function Field({ label, children, style }) {
+  return <div style={{ minWidth: 0, ...style }}><span style={labelSt}>{label}</span>{children}</div>
+}
+
+function UnitField({ value, onChange }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ position: 'relative', flexShrink: 0 }}>
+      <button onClick={() => setOpen(o => !o)} style={{ ...TT, ...fieldBoxSt, alignItems: 'center', gap: 6, cursor: 'pointer', fontSize: 13, fontWeight: 500, color: 'var(--cs-on-surface)' }}>
+        {value} <span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)' }}><ChevDownIcon size={13} /></span>
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 60 }} />
+          <div style={{ position: 'absolute', top: '100%', left: 0, marginTop: 4, zIndex: 61, minWidth: 78, background: 'var(--glass-popover)', border: '1px solid rgba(var(--overlay-rgb),0.10)', borderRadius: 'var(--radius-lg)', boxShadow: '0 10px 28px rgba(var(--cs-shadow-rgb),0.5)', padding: 4, backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)' }}>
+            {M.UNITS.map(u => (
+              <button key={u} onClick={() => { onChange(u); setOpen(false) }} style={{ ...TT, width: '100%', textAlign: 'left', padding: '7px 10px', borderRadius: 'var(--radius-md)', background: u === value ? 'rgba(var(--cs-primary-rgb),0.14)' : 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: u === value ? 600 : 400, color: u === value ? 'var(--cs-primary)' : 'var(--cs-on-surface)' }}>{u}</button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}

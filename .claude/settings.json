@@ -1,0 +1,53 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cp /tmp/screenshot_workout.mjs /Users/boogie1989/work/lets_train/design/screenshot_workout.mjs)",
+      "Bash(node screenshot_workout.mjs)",
+      "Read(//tmp/**)",
+      "Read(//private/tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" http://localhost:5175/)",
+      "Bash(git checkout *)",
+      "Bash(npm pkg *)",
+      "Bash(cat)",
+      "Bash(node _shot2.mjs)",
+      "Bash(rm -f _shot.mjs _shot2.mjs)",
+      "Bash(node _shot.mjs)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5175/)",
+      "Bash(sed -i '' 's|'\\\\''\\\\.\\\\./components/|'\\\\''../../components/|g' modules/calendar/CalendarScreen.jsx modules/workout-runner/WorkoutRunnerScreen.jsx modules/workout-builder/WorkoutBuilderScreen.jsx modules/exercises/ExercisePreviewScreen.jsx modules/exercises/ExerciseSearchScreen.jsx)",
+      "Bash(sed -i '' 's|'\\\\''\\\\.\\\\./screens/|'\\\\''./|g' modules/calendar/CalendarPage.jsx modules/workout-runner/WorkoutRunnerPage.jsx modules/workout-builder/WorkoutBuilderPage.jsx modules/exercises/ExercisesPage.jsx)",
+      "Bash(git -C /Users/boogie1989/work/lets_train status --short -- design/src/modules/plan-builder design/src/components/Segmented.jsx)",
+      "Bash(sed -i '' \"s|var\\(--radius-xl\\)|var\\(--radius-2xl\\)|g\" modules/libraries/LibrariesScreen.jsx)",
+      "Bash(sed -i '' \"s|var\\(--radius-xl\\)|var\\(--radius-2xl\\)|g; s|var\\(--radius-pill\\)|var\\(--radius-2xl\\)|g\" modules/exercises/ExerciseSearchScreen.jsx)",
+      "Bash(sed -i '' \"s|var\\(--radius-pill\\)|var\\(--radius-2xl\\)|g\" modules/workout-builder/WorkoutBuilderScreen.jsx)",
+      "Bash(git rm *)",
+      "Bash(bc)",
+      "Bash(git -C /Users/boogie1989/work/lets_train diff --stat -- design/src)",
+      "Bash(xargs -0 perl -0777 -i -p /tmp/sweep.pl)",
+      "Bash(grep -rEo \"rgba\\\\\\([0-9]|#[0-9A-Fa-f]{3,8}|[^a-z]rgb\\\\\\([0-9]\" src --include=\"*.jsx\" --include=\"*.js\")",
+      "Bash(grep -rnE \"rgba\\\\\\([0-9]|#[0-9A-Fa-f]{3,8}|[^a-z]rgb\\\\\\([0-9]\" src --include=\"*.jsx\" --include=\"*.js\")",
+      "Bash(grep -rnE \"\\\\}[0-9A-Fa-f]{2}[^0-9A-Fa-f]|\\\\}[0-9A-Fa-f]{2}\\\\$\" src --include=\"*.jsx\" --include=\"*.js\")",
+      "Bash(grep -iE \"color|accent|gradient|focus|\\\\\\\\\\\\$\\\\{\")",
+      "Bash(grep -rnE \"color.{0,12}\\\\+ ?['\\\\\"][0-9A-Fa-f]{2}['\\\\\"]\" src --include=\"*.jsx\" --include=\"*.js\")",
+      "Bash(grep -rnE \"FOCUS_COLORS|DIFF_COLORS|const color =|const ACCENT|const color=|focusColor|\\\\\\\\\\\\$\\\\{color\\\\}|\\\\\\\\\\\\$\\\\{ACCENT\\\\}|\\\\\\\\\\\\$\\\\{c\\\\}|\\\\\\\\\\\\$\\\\{tint\\\\}\" src --include=\"*.jsx\" --include=\"*.js\")",
+      "Bash(grep -cE \"rgba\\\\\\([0-9]|#[0-9A-Fa-f]{3,8}\" src/pages/ThemePage.jsx)",
+      "Bash(node /tmp/shot.mjs)",
+      "Bash(xargs -0 perl -0777 -i -pe ' *)",
+      "Bash(rm -f _shot*.mjs)",
+      "Bash(git -C /Users/boogie1989/work/lets_train status --porcelain)",
+      "Bash(grep -v \":0$\")",
+      "Bash(git -C /Users/boogie1989/work/lets_train diff --stat -- design/src/modules/libraries/WorkoutPreviewScreen.jsx design/src/modules/libraries/MealPreviewScreen.jsx design/src/modules/exercises/ExerciseSearchScreen.jsx design/src/modules/exercises/ExercisePreviewScreen.jsx)",
+      "Bash(git -C /Users/boogie1989/work/lets_train log --oneline -3)",
+      "Bash(git -C /Users/boogie1989/work/lets_train status --short)",
+      "Bash(grep -rnE \"rgba\\\\\\([0-9]|#[0-9A-Fa-f]{3,8}|[^a-zA-Z]rgb\\\\\\([0-9]\" src --include=\"*.jsx\" --include=\"*.js\")",
+      "Bash(grep -rnoE \"rgba\\\\\\([0-9][0-9,.[:space:]]*\\\\\\)|#[0-9A-Fa-f]{3,8}|[^a-zA-Z]rgb\\\\\\([0-9][0-9,.[:space:]]*\\\\\\)\" src --include=\"*.jsx\" --include=\"*.js\")",
+      "Bash(perl -0777 -i -pe ' *)",
+      "Bash(node _shot8.mjs)",
+      "Bash(lsof -ti:5175)",
+      "Bash(git restore *)"
+    ],
+    "additionalDirectories": [
+      "/tmp",
+      "/private/tmp"
+    ]
+  }
+}

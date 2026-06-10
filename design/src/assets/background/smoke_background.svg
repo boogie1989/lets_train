@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 932" width="430" height="932">
+  <defs>
+    <!--
+      Static smoke layer — visual equivalent of AnimatedSmokeLayer.jsx.
+      6 blurred ellipses, slate palette, identical positions to the "slate" variant in SmokeLayer.jsx.
+      No animation: zero CPU/GPU cost at runtime.
+
+      Blur radius == CSS filter: blur() stdDeviation (both are Gaussian sigma in px).
+      Filter regions are oversized to prevent edge clipping on elements near screen borders.
+    -->
+
+    <filter id="b80" filterUnits="userSpaceOnUse" x="-300" y="-300" width="1030" height="1532">
+      <feGaussianBlur stdDeviation="80"/>
+    </filter>
+    <filter id="b90" filterUnits="userSpaceOnUse" x="-300" y="-300" width="1030" height="1532">
+      <feGaussianBlur stdDeviation="90"/>
+    </filter>
+    <filter id="b100" filterUnits="userSpaceOnUse" x="-300" y="-300" width="1030" height="1532">
+      <feGaussianBlur stdDeviation="100"/>
+    </filter>
+    <filter id="b110" filterUnits="userSpaceOnUse" x="-300" y="-300" width="1030" height="1532">
+      <feGaussianBlur stdDeviation="110"/>
+    </filter>
+    <filter id="b120" filterUnits="userSpaceOnUse" x="-300" y="-300" width="1030" height="1532">
+      <feGaussianBlur stdDeviation="120"/>
+    </filter>
+    <filter id="b140" filterUnits="userSpaceOnUse" x="-300" y="-300" width="1030" height="1532">
+      <feGaussianBlur stdDeviation="140"/>
+    </filter>
+  </defs>
+
+  <rect width="430" height="932" fill="#000000"/>
+
+  <!-- Sphere 4 — slate-500 #64748B, blur 140, largest / deepest — drawn first -->
+  <ellipse cx="213" cy="464" rx="210" ry="210"
+    fill="#64748B" opacity="0.10" filter="url(#b140)"/>
+
+  <!-- Sphere 0 — slate-600 #475569, blur 120 -->
+  <ellipse cx="254" cy="298" rx="210" ry="210"
+    fill="#475569" opacity="0.10" filter="url(#b120)"/>
+
+  <!-- Sphere 1 — gray-600 #4B5563, blur 100 -->
+  <ellipse cx="252" cy="351" rx="175" ry="175"
+    fill="#4B5563" opacity="0.10" filter="url(#b100)"/>
+
+  <!-- Sphere 2 — zinc-600 #52525B, blur 90 -->
+  <ellipse cx="246" cy="630" rx="158" ry="158"
+    fill="#52525B" opacity="0.10" filter="url(#b90)"/>
+
+  <!-- Sphere 3 — neutral-600 #525252, blur 110 -->
+  <ellipse cx="244" cy="744" rx="140" ry="140"
+    fill="#525252" opacity="0.10" filter="url(#b110)"/>
+
+  <!-- Sphere 5 — slate-400 #94A3B8, blur 80, lightest accent — drawn last -->
+  <ellipse cx="235" cy="149" rx="105" ry="105"
+    fill="#94A3B8" opacity="0.10" filter="url(#b80)"/>
+</svg>
