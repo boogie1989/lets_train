@@ -25,9 +25,15 @@ Create / edit a workout — name it, add exercises (solo or superset), and edit 
 - **Between sets** — a `RestDivider` in each gap between set groups (`item.restSet`, sec, uniform per exercise, default 90). In supersets it sits between **rounds**; within a round there is no rest by definition.
 - **Between exercise cards** — the same `RestDivider`, but the value lives in **`restGaps[i]`** (screen-level state, sec, default 120) — the pause after slot `i`, keyed by **gap position, NOT by item**, so reordering cards never drags a pause along. `deleteItem` removes the gap after the removed card (or the last gap for the last card). Nothing after the last card.
 
+## FAB menu (page-level actions)
+- A 50×50 glass square (**`radius-xl`, like every control on the screen — NOT a circle**) is the only thing in the footer, flush right. There is NO separate Save button — saving lives in this menu. The whole footer hides in reorder mode.
+- Tap = **container transform**: the FAB itself morphs into a 264×252 glass panel (width/height/radius/background animate, 0.32s cubic-bezier(0.4,0,0.2,1)); radius goes `xl → 2xl` (card radius); the `+` rotates 45° into `×` and stays pinned to the FAB corner; items (15px, padding 12) stagger-fade in (delay 0.1s + 40ms·i). Backdrop click or × closes (reverse morph).
+- Items: `Add exercise` (stub), `Add superset` (stub), `Reorder` (enters reorder mode), divider, `Save workout` (**primary-colored, 600 weight, check icon** — the screen's submit). This menu is the ONLY entry point for all four — the dashed "Add Exercise" button, the ⇅ stats-line toggle and the footer Save button were all removed when it landed.
+- FAB visual follows the Calendar rule: glass-control style, no primary gradient.
+
 ## Reorder mode (exercise level only — nothing inside a card changes)
-- Toggle = ghost ⇅ icon right of the stats line; while active it becomes a primary **Done** chip.
-- Entering: collapses all cards (`expandedId=null`, expand/tap disabled), hides rest dividers AND the `Add Exercise` button, shows a **⠿ grip** (24px) left of each card — the card visually narrows.
+- Entered from the FAB menu → `Reorder`; exited via the primary **Done** chip on the stats line.
+- Entering: collapses all cards (`expandedId=null`, expand/tap disabled), hides rest dividers AND the FAB, shows a **⠿ grip** (24px) left of each card — the card visually narrows.
 - Drag: pointer-capture on the grip; the dragged row follows via `translateY` and swaps with a neighbour once its offset crosses half that neighbour's measured height (`heights` measured at dragStart, swapped on each move — handles non-uniform card heights). List gap in mode = `ROW_GAP` (10).
 - Reordering only permutes `items`; `restGaps` is untouched by design (pauses belong to slots).
 

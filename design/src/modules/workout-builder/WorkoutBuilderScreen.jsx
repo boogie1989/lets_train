@@ -667,6 +667,81 @@ function ReorderIcon({ size = 15 }) {
   )
 }
 
+function SupersetIcon({ size = 15 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="13" height="7" rx="2" />
+      <rect x="8" y="13" width="13" height="7" rx="2" />
+    </svg>
+  )
+}
+
+// ─── FAB menu (container transform) ────────────────────────────────────────────
+// The 50×50 circle in the save footer morphs into a glass panel: width/height/
+// radius/background animate on one container, the + icon rotates into ×, and
+// the menu items stagger-fade in. The icon button is pinned to the FAB corner
+// so it never moves during the morph.
+
+const FAB_MENU_W = 264
+const FAB_MENU_H = 252
+
+function FabMenu({ open, setOpen, actions }) {
+  const ease = 'cubic-bezier(0.4, 0, 0.2, 1)'
+  return (
+    <>
+      {open && <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 44 }} />}
+      <div style={{ position: 'relative', width: 50, height: 50, flexShrink: 0 }}>
+        <div style={{
+          position: 'absolute', right: 0, bottom: 0, zIndex: 45,
+          width: open ? FAB_MENU_W : 50, height: open ? FAB_MENU_H : 50,
+          // closed = radius-xl like every control on the screen; open = radius-2xl like the cards
+          borderRadius: open ? 'var(--radius-2xl)' : 'var(--radius-xl)',
+          background: open ? 'var(--glass-popover)' : 'var(--glass-control)',
+          border: '1px solid rgba(var(--cs-outline-rgb),0.50)',
+          boxShadow: open ? '0 12px 32px rgba(var(--cs-shadow-rgb),0.6)' : 'var(--shadow-card)',
+          backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+          overflow: 'hidden',
+          transition: `width 0.32s ${ease}, height 0.32s ${ease}, border-radius 0.32s ${ease}, background 0.32s ${ease}, box-shadow 0.32s ${ease}`,
+        }}>
+          {/* menu items — stagger in once the panel has begun to open */}
+          <div style={{ position: 'absolute', top: 10, left: 10, right: 10, display: 'flex', flexDirection: 'column' }}>
+            {actions.map((a, i) => (
+              <Fragment key={a.label}>
+                {a.dividerAbove && <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.07)', margin: '5px 8px' }} />}
+                <button onClick={() => { setOpen(false); a.onClick?.() }} style={{
+                  ...TT, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 12px',
+                  background: 'none', border: 'none', borderRadius: 'var(--radius-lg)', cursor: 'pointer',
+                  fontSize: 15, fontWeight: a.primary ? 600 : 500,
+                  color: a.primary ? 'var(--cs-primary)' : 'var(--cs-on-surface)',
+                  textAlign: 'left', whiteSpace: 'nowrap',
+                  opacity: open ? 1 : 0,
+                  transform: open ? 'translateY(0)' : 'translateY(6px)',
+                  transition: `opacity 0.2s ease ${open ? 0.1 + i * 0.04 : 0}s, transform 0.2s ease ${open ? 0.1 + i * 0.04 : 0}s`,
+                  pointerEvents: open ? 'auto' : 'none',
+                }}>
+                  <span style={{ display: 'flex', color: a.primary ? 'var(--cs-primary)' : 'var(--cs-on-surface-variant)', opacity: a.primary ? 1 : 0.7 }}>{a.icon}</span>
+                  {a.label}
+                </button>
+              </Fragment>
+            ))}
+          </div>
+          {/* + / × — persists through the morph, pinned where the FAB was */}
+          <button onClick={() => setOpen(o => !o)} style={{
+            position: 'absolute', right: 0, bottom: 0, width: 50, height: 50,
+            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: 'var(--cs-on-surface)',
+            transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
+            transition: `transform 0.32s ${ease}`,
+          }}>
+            <PlusIcon size={18} />
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
 function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit }) {
   const ex = ALL_EXERCISES.find(e => e.id === item.exerciseId)
   // card drops overflow:hidden while the menu is open so it can escape the clip
@@ -768,6 +843,9 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
   const [expandedId, setExpandedId] = useState(seedExpanded)
   // rest between exercises is keyed by GAP POSITION, not by item (see DEMO_GAPS note)
   const [restGaps, setRestGaps] = useState(() => DEMO_GAPS.slice(0, seedItems.length - 1))
+
+  // FAB menu — the page-level actions live here (add exercise / superset / reorder)
+  const [fabOpen, setFabOpen] = useState(false)
 
   // reorder mode — cards collapse, rest dividers hide, grips appear on the left
   const [reorderMode, setReorderMode] = useState(false)
@@ -887,19 +965,13 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
             <p style={{ ...TT, flex: 1, fontSize: 'var(--tt-body-small-size)', letterSpacing: 'var(--tt-body-small-tracking)', color: 'var(--cs-on-surface-variant)', opacity: 0.40, margin: 0 }}>
               {exCount} {exCount === 1 ? 'exercise' : 'exercises'} · {setCount} sets · ~{estMin} min
             </p>
-            {/* reorder-mode toggle — ghost icon; becomes a primary Done chip while active */}
-            {reorderMode ? (
+            {/* reorder mode is entered from the FAB menu; Done exits it */}
+            {reorderMode && (
               <button onClick={() => setReorderMode(false)} style={{
                 ...TT, height: 26, padding: '0 12px', borderRadius: 'var(--radius-2xl)', cursor: 'pointer',
                 background: 'rgba(var(--cs-primary-rgb),0.14)', border: '1px solid rgba(var(--cs-primary-rgb),0.28)',
                 fontSize: 12, fontWeight: 600, color: 'var(--cs-primary)',
               }}>Done</button>
-            ) : (
-              <button onClick={() => { setReorderMode(true); setExpandedId(null) }} style={{
-                width: 26, height: 26, padding: 0, borderRadius: 'var(--radius-lg)', cursor: 'pointer',
-                background: 'none', border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                color: 'var(--cs-on-surface-variant)', opacity: 0.45,
-              }}><ReorderIcon /></button>
             )}
           </div>
 
@@ -939,26 +1011,21 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
             })}
           </div>
 
-          {/* Add exercise — hidden in reorder mode */}
-          {!reorderMode && (
-            <button style={{ ...TT, width: '100%', height: 46, borderRadius: 'var(--radius-xl)', border: '1.5px dashed rgba(var(--overlay-rgb),0.12)', background: 'rgba(var(--overlay-rgb),0.02)', color: 'var(--cs-on-surface-variant)', opacity: 0.50, fontSize: 13, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, marginTop: 12 }}>
-              <PlusIcon size={13} /> Add Exercise
-            </button>
-          )}
         </div>
 
-        {/* Save footer */}
-        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 16px 28px', background: 'linear-gradient(0deg, rgba(var(--cs-surface-rgb),0.92) 55%, transparent)' }}>
-          <button style={{
-            ...TT, width: '100%', height: 50, borderRadius: 'var(--radius-xl)', cursor: 'pointer',
-            background: 'linear-gradient(180deg, rgba(var(--raise-rgb),0.09) 0%, rgba(var(--cs-shadow-rgb),0.08) 100%), var(--cs-primary)',
-            border: '1px solid rgba(var(--overlay-rgb),0.18)',
-            color: 'var(--cs-on-primary)', fontSize: 15, fontWeight: 500,
-            boxShadow: 'inset 0 1px 0 rgba(var(--raise-rgb),0.22), 0 8px 24px rgba(var(--cs-primary-rgb),0.22)',
-          }}>
-            Save Workout
-          </button>
-        </div>
+        {/* Footer — only the FAB menu lives here (Save moved into it); hidden in reorder mode */}
+        {!reorderMode && (
+          <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '12px 16px 28px', background: 'linear-gradient(0deg, rgba(var(--cs-surface-rgb),0.92) 55%, transparent)' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <FabMenu open={fabOpen} setOpen={setFabOpen} actions={[
+                { label: 'Add exercise', icon: <PlusIcon size={15} />, onClick: () => { /* stub — exercise picker */ } },
+                { label: 'Add superset', icon: <SupersetIcon />, onClick: () => { /* stub — superset picker */ } },
+                { label: 'Reorder', icon: <ReorderIcon />, onClick: () => { setReorderMode(true); setExpandedId(null) } },
+                { label: 'Save workout', icon: <CheckIcon />, primary: true, dividerAbove: true, onClick: () => { /* stub — save */ } },
+              ]} />
+            </div>
+          </div>
+        )}
 
         {/* ── Tag dialog — search · create · multi-select ── */}
         {tagDialogOpen && (
