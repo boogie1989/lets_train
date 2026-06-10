@@ -3,6 +3,7 @@ import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import NavBar from '../../components/NavBar.jsx'
 import GlassCard from '../../components/GlassCard.jsx'
+import DropdownMenu from '../../components/DropdownMenu.jsx'
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -159,15 +160,6 @@ function PlusIcon({ size = 13 }) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  )
-}
-
-function TrashIcon({ size = 15 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="3 6 5 6 21 6" />
-      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
     </svg>
   )
 }
@@ -358,63 +350,17 @@ function ClockIcon({ size = 11 }) {
   )
 }
 
-const restStepBtnSt = {
-  ...TT, width: 34, height: '100%', padding: 0, flexShrink: 0,
-  background: 'transparent', border: 'none', cursor: 'pointer',
-  fontSize: 17, fontWeight: 300, color: 'var(--cs-primary)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-}
-
-// Rest chip — collapsed it reads `⏱ 1:30`; tap morphs it into the same compact
-// stepper language as the set pills: [− ⏱ 1:30 +], ±15s. Tap the time to close.
-// Sized + rounded to match the StepperInput pills (height 36/40, radius-xl).
-function RestChip({ value, onChange }) {
-  const [open, setOpen] = useState(false)
-
-  if (!open) {
-    return (
-      <button onClick={() => setOpen(true)} style={{
-        ...TT, display: 'inline-flex', alignItems: 'center', gap: 7, height: 36, padding: '0 14px',
-        borderRadius: 'var(--radius-xl)', background: 'rgba(var(--overlay-rgb),0.04)', border: '1px solid rgba(var(--overlay-rgb),0.08)',
-        fontSize: 12, fontWeight: 500, color: 'var(--cs-on-surface-variant)', opacity: value ? 0.75 : 0.45, cursor: 'pointer',
-      }}>
-        <ClockIcon size={13} />{fmtRest(value)}
-      </button>
-    )
-  }
+// Rest divider — a quiet hairline with `⏱ 1:30` in the middle. Display-only
+// for now (editing TBD); rest stays a divider, never competing with set inputs.
+function RestDivider({ value }) {
   return (
-    <div style={{
-      display: 'inline-flex', alignItems: 'center', height: 40, overflow: 'hidden',
-      borderRadius: 'var(--radius-xl)', background: 'rgba(var(--cs-primary-rgb),0.07)', border: '1px solid rgba(var(--cs-primary-rgb),0.35)',
-    }}>
-      <button onClick={() => onChange(Math.max(0, value - 15))} style={{ ...restStepBtnSt, borderRight: '1px solid rgba(var(--cs-primary-rgb),0.12)' }}>−</button>
-      <button onClick={() => setOpen(false)} style={{
-        ...TT, display: 'inline-flex', alignItems: 'center', gap: 7, height: '100%', padding: '0 13px',
-        background: 'none', border: 'none', cursor: 'pointer',
-        fontSize: 13, fontWeight: 600, color: 'var(--cs-on-surface)',
-      }}>
-        <ClockIcon size={13} />{fmtRest(value)}
-      </button>
-      <button onClick={() => onChange(Math.min(600, value + 15))} style={{ ...restStepBtnSt, borderLeft: '1px solid rgba(var(--cs-primary-rgb),0.12)' }}>+</button>
-    </div>
-  )
-}
-
-// micro-label — same recipe as the SUPERSET card label, but muted (rest is secondary)
-const restLblSt = {
-  ...TT, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em',
-  color: 'var(--cs-on-surface-variant)', opacity: 0.45, flexShrink: 0,
-}
-
-// Divider row `REST ——— [⏱ 1:30]` — label left, hairline fills, chip flush right
-// (the screen's control column). The label shows on every divider so each rest
-// control is self-describing on its own.
-function RestDivider({ value, onChange, label }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      {label && <span style={restLblSt}>REST</span>}
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '2px 0' }}>
       <div style={{ flex: 1, height: 1, background: 'rgba(var(--overlay-rgb),0.05)' }} />
-      <RestChip value={value} onChange={onChange} />
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+        <span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)', opacity: 0.40 }}><ClockIcon size={11} /></span>
+        <span style={{ ...TT, fontSize: 11, fontWeight: 600, color: 'var(--cs-on-surface-variant)', opacity: 0.70 }}>{fmtRest(value)}</span>
+      </span>
+      <div style={{ flex: 1, height: 1, background: 'rgba(var(--overlay-rgb),0.05)' }} />
     </div>
   )
 }
@@ -454,7 +400,7 @@ function SoloSetsEditor({ item, onChange }) {
               onChange={s => updSet(i, s)} onDelete={() => delSet(i)}
               onAddDrop={() => addDrop(i)} onRemoveDrop={di => removeDrop(i, di)} />
             {i < item.sets.length - 1 && (
-              <RestDivider label value={item.restSet ?? 90} onChange={v => onChange({ ...item, restSet: v })} />
+              <RestDivider value={item.restSet ?? 90} />
             )}
           </Fragment>
         ))}
@@ -657,7 +603,7 @@ function SupersetSetsEditor({ item, onChange }) {
             </div>
           </div>
           {i < item.sets.length - 1 && (
-            <RestDivider label value={item.restSet ?? 90} onChange={v => onChange({ ...item, restSet: v })} />
+            <RestDivider value={item.restSet ?? 90} />
           )}
           </Fragment>
         ))}
@@ -682,16 +628,31 @@ function Expandable({ open, children }) {
 
 // ─── Exercise cards ────────────────────────────────────────────────────────────
 
-function SoloCard({ item, open, onToggle, onChange, onDelete }) {
+// kebab menu items shared by both card types
+const cardMenu = (onEdit, onDelete) => [
+  { label: 'Change exercise', onClick: onEdit },
+  { label: 'Delete', danger: true, onClick: onDelete },
+]
+
+// ghost kebab — same visual weight as the chevron beside it, no box until tapped
+const kebabTriggerSt = open => ({
+  width: 28, height: 28, borderRadius: 'var(--radius-lg)',
+  background: open ? 'rgba(var(--overlay-rgb),0.06)' : 'none', border: 'none',
+  color: 'var(--cs-on-surface-variant)', opacity: open ? 0.85 : 0.45,
+})
+
+function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit }) {
   const ex = ALL_EXERCISES.find(e => e.id === item.exerciseId)
+  // card drops overflow:hidden while the menu is open so it can escape the clip
+  const [menuOpen, setMenuOpen] = useState(false)
   if (!ex) return null
 
   return (
-    <GlassCard level="Low" style={{ display: 'flex', overflow: 'hidden' }}>
-      <div style={{ width: 4, flexShrink: 0, background: 'var(--cs-primary)', opacity: 0.55 }} />
+    <GlassCard level="Low" style={{ display: 'flex', overflow: menuOpen ? 'visible' : 'hidden', position: 'relative', zIndex: menuOpen ? 30 : 'auto' }}>
+      <div style={{ width: 4, flexShrink: 0, background: 'var(--cs-primary)', opacity: 0.55, borderRadius: 'var(--radius-2xl) 0 0 var(--radius-2xl)' }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* Header (tap to expand) */}
-        <button onClick={onToggle} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 12px 12px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
+        <div onClick={onToggle} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 12px 12px 14px', cursor: 'pointer' }}>
           <Thumb muscle={ex.muscle} size={40} />
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ ...TT, fontSize: 14, fontWeight: 500, color: 'var(--cs-on-surface)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.name}</div>
@@ -701,17 +662,15 @@ function SoloCard({ item, open, onToggle, onChange, onDelete }) {
           </div>
           <span style={{ ...TT, fontSize: 12, color: 'var(--cs-on-surface-variant)', opacity: 0.45, flexShrink: 0 }}>{item.sets.length} sets</span>
           <span style={{ color: 'var(--cs-on-surface-variant)', opacity: 0.45, display: 'flex', flexShrink: 0 }}><ChevDownIcon open={open} /></span>
-        </button>
+          <span onClick={e => e.stopPropagation()} style={{ display: 'flex', flexShrink: 0 }}>
+            <DropdownMenu onOpenChange={setMenuOpen} items={cardMenu(onEdit, onDelete)} triggerStyle={kebabTriggerSt(menuOpen)} />
+          </span>
+        </div>
 
         <Expandable open={open}>
           <div style={{ padding: '4px 14px 14px' }}>
             <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '0 0 16px' }} />
             <SoloSetsEditor item={item} onChange={onChange} />
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-              <button onClick={onDelete} style={{ ...linkBtnSt, color: 'rgba(var(--cs-error-rgb),0.70)', fontSize: 12 }}>
-                <TrashIcon size={13} /> Remove exercise
-              </button>
-            </div>
           </div>
         </Expandable>
       </div>
@@ -719,20 +678,25 @@ function SoloCard({ item, open, onToggle, onChange, onDelete }) {
   )
 }
 
-function SupersetCard({ item, open, onToggle, onChange, onDelete }) {
+function SupersetCard({ item, open, onToggle, onChange, onDelete, onEdit }) {
   const exercises = item.exerciseIds.map(id => ALL_EXERCISES.find(e => e.id === id)).filter(Boolean)
+  // card drops overflow:hidden while the menu is open so it can escape the clip
+  const [menuOpen, setMenuOpen] = useState(false)
 
   return (
-    <div style={{ borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.05)', border: '1px solid rgba(var(--cs-primary-rgb),0.18)', overflow: 'hidden', position: 'relative', boxShadow: 'var(--shadow-card)' }}>
-      <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 3, background: 'var(--cs-primary)' }} />
+    <div style={{ borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.05)', border: '1px solid rgba(var(--cs-primary-rgb),0.18)', overflow: menuOpen ? 'visible' : 'hidden', position: 'relative', zIndex: menuOpen ? 30 : 'auto', boxShadow: 'var(--shadow-card)' }}>
+      <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 3, background: 'var(--cs-primary)', borderRadius: 'var(--radius-2xl) 0 0 var(--radius-2xl)' }} />
 
       {/* Header (tap to expand) */}
-      <button onClick={onToggle} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', padding: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', padding: '8px 12px 6px 14px' }}>
+      <div onClick={onToggle} style={{ cursor: 'pointer' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px 6px 14px' }}>
           <span style={{ ...TT, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--cs-primary)', opacity: 0.80, flex: 1 }}>
             SUPERSET · {item.sets.length} sets each
           </span>
           <span style={{ color: 'var(--cs-on-surface-variant)', opacity: 0.45, display: 'flex' }}><ChevDownIcon open={open} /></span>
+          <span onClick={e => e.stopPropagation()} style={{ display: 'flex', flexShrink: 0 }}>
+            <DropdownMenu onOpenChange={setMenuOpen} items={cardMenu(onEdit, onDelete)} triggerStyle={kebabTriggerSt(menuOpen)} />
+          </span>
         </div>
         {exercises.map((ex, i) => (
           <div key={ex.id}>
@@ -746,17 +710,12 @@ function SupersetCard({ item, open, onToggle, onChange, onDelete }) {
             </div>
           </div>
         ))}
-      </button>
+      </div>
 
       <Expandable open={open}>
         <div style={{ padding: '6px 14px 14px' }}>
           <div style={{ height: 1, background: 'rgba(var(--cs-primary-rgb),0.12)', margin: '0 0 14px' }} />
           <SupersetSetsEditor item={item} onChange={onChange} />
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 14 }}>
-            <button onClick={onDelete} style={{ ...linkBtnSt, color: 'rgba(var(--cs-error-rgb),0.70)', fontSize: 12 }}>
-              <TrashIcon size={13} /> Remove superset
-            </button>
-          </div>
         </div>
       </Expandable>
     </div>
@@ -793,6 +752,7 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
   function toggle(id) { setExpandedId(cur => cur === id ? null : id) }
   function updateItem(updated) { setItems(p => p.map(it => it.id === updated.id ? updated : it)) }
   function deleteItem(id) { setItems(p => p.filter(it => it.id !== id)); setExpandedId(null) }
+  function editItem() { /* stub — wire to the Exercises search/picker when connected */ }
   function toggleTag(t) { setTags(p => p.includes(t) ? p.filter(x => x !== t) : [...p, t]) }
   function createTag(name) {
     const t = name.trim()
@@ -847,15 +807,15 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
             {exCount} {exCount === 1 ? 'exercise' : 'exercises'} · {setCount} sets · ~{estMin} min
           </p>
 
-          {/* Cards — rest chips between cards mark the pause before the next exercise */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Cards — rest dividers between cards mark the pause before the next exercise */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             {items.map((item, i) => (
               <Fragment key={item.id}>
                 {item.type === 'superset'
-                  ? <SupersetCard item={item} open={expandedId === item.id} onToggle={() => toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} />
-                  : <SoloCard item={item} open={expandedId === item.id} onToggle={() => toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} />}
+                  ? <SupersetCard item={item} open={expandedId === item.id} onToggle={() => toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} />
+                  : <SoloCard item={item} open={expandedId === item.id} onToggle={() => toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} />}
                 {i < items.length - 1 && (
-                  <RestDivider label value={item.restAfter ?? 120} onChange={v => updateItem({ ...item, restAfter: v })} />
+                  <RestDivider value={item.restAfter ?? 120} />
                 )}
               </Fragment>
             ))}

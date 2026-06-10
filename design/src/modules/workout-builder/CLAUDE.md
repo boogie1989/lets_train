@@ -9,8 +9,9 @@ Create / edit a workout — name it, add exercises (solo or superset), and edit 
 
 ## Structure
 - **Header** (`NavBar`): back + primary check (save). Workout name = editable `headline-small` (24/500); stats line `N exercises · N sets · ~N min` (duration estimate: ~40s work per exercise per set + all rests).
-- **Exercise cards** — match the Workout Runner preview cards (`GlassCard` + accent strip + thumb + name + `muscle · equipment`). Tap to **expand inline** (animated `grid-template-rows 0fr→1fr`) — no bottom sheet.
-  - Header has a **kebab menu (⋮)** → "Change exercise" / "Delete" (red). Card drops `overflow:hidden` while the menu is open so it can escape the clip.
+- **Exercise cards** — match the Workout Runner preview cards (`GlassCard` + accent strip + thumb + name + `muscle · equipment`). Tap to **expand inline** (animated `grid-template-rows 0fr→1fr`) — no bottom sheet. Card list gap 16.
+  - Header has a **kebab menu (⋮)** (shared `DropdownMenu` with `onOpenChange` + `triggerStyle`) → "Change exercise" / "Delete" (red). The trigger is a **ghost** (`kebabTriggerSt`): no box/border, chevron-weight opacity 0.45, subtle bg only while open. While the menu is open the card drops `overflow:hidden` AND raises `zIndex:30` — glass cards each create a stacking context (backdrop-filter), so without the raise the next card in DOM paints OVER the open menu ("transparent menu" bug). The accent strip carries its own left border-radius so corners stay clean. The menu is the ONLY home for destructive actions — there is no "Remove exercise" link in the expanded editor.
+  - Headers are `div`s with `onClick` (not `<button>`) so the kebab isn't a nested button; the kebab wrapper stops propagation.
 - **Sets editor** (expanded): grid `32px 1fr 10px 1fr 24px` of compact stepper pills `[− value +]`. Each input has its **own unit dropdown above it** (per set AND per drop). Units + step stored per set / per drop (`set.weightUnit`, `d.repsUnit`, …).
 
 ## Load units — RPE by default
@@ -19,12 +20,10 @@ Create / edit a workout — name it, add exercises (solo or superset), and edit 
 - Collapsed-card summary is unit-aware: `RPE 7.5–9 · 6–8 reps` or `20–25 kg · 10–12 reps`; uses the first set's unit, ignores sets logged in other units. `Bodyweight` only for zero weight-unit sets.
 - New drop inherits the parent unit; in rpe a drop goes **up** toward 10 (`min(10, last+0.5)`), in weight units it goes down (`last−5`).
 
-## Rest controls
-- **`RestChip`** — chip `⏱ 1:30`; tap morphs it in place into the stepper language of the screen: `[− ⏱ 1:30 +]`, ±15s, range 0–600s. Tap the time to collapse. `0` renders as `No rest` (dimmed). `fmtRest`: `45s` / `1:30` / `2 min`. Geometry matches the `StepperInput` pills: `radius-xl` (NOT a 999 pill), height 36 collapsed / 40 expanded, same 34px step buttons.
-- **`RestDivider`** — the row `REST ——— [⏱ 1:30]`: micro-label (10/700/0.06em, same recipe as the SUPERSET label but muted 0.45) left, hairline fills, chip flush **right** (the screen's control column).
-- The `REST` label shows on **every** divider (between sets AND between cards) — each control is self-describing on its own.
-- **Between sets** — a `RestDivider` in each gap between set groups. One value per exercise (`item.restSet`, default 90s) — editing any divider updates all of them. In supersets the divider sits between **rounds**; within a round there is no rest by definition.
-- **Between exercises** — `RestDivider`; `item.restAfter` on the card above, default 120s. No divider after the last card.
+## Rest (display-only for now)
+- **`RestDivider`** — a quiet centered divider: hairline · `⏱ 1:30` · hairline. A small clock icon (11px, opacity 0.40) replaces the text label; value = 11/600 at 0.70, gap 5; hairlines at overlay 0.05. **Not editable yet** — editing UX is TBD; rest stays a divider so it never competes with the set inputs. `fmtRest`: `45s` / `1:30` / `2 min`; `0` → `No rest`.
+- **Between sets** — a `RestDivider` in each gap between set groups (`item.restSet`, sec, uniform per exercise, default 90). In supersets it sits between **rounds**; within a round there is no rest by definition.
+- **Between exercise cards** — the same `RestDivider` (`item.restAfter` on the card above, default 120s). Nothing after the last card.
 
 ## Set / drop markers (connector line, left column)
 - **① circled number** — the set (always circled, even without drops).
@@ -45,4 +44,4 @@ Outer grid `32px 1fr`: col1 = circled number + connector line bracketing the rou
 `onEdit` (Change exercise) is a stub (`editItem`) — wire it to the Exercises search/picker when connected.
 
 ## Shared deps
-`../../components`: `PhoneFrame`, `StatusBar`, `NavBar`, `GlassCard`. Icons + steppers are local.
+`../../components`: `PhoneFrame`, `StatusBar`, `NavBar`, `GlassCard`, `DropdownMenu`. Icons + steppers are local.

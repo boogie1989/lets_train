@@ -12,8 +12,13 @@ function KebabIcon() {
   )
 }
 
-export default function DropdownMenu({ items = [], trigger, align = 'right', defaultOpen = false, minWidth = 180, backdrop = true }) {
-  const [open, setOpen] = useState(defaultOpen)
+export default function DropdownMenu({ items = [], trigger, align = 'right', defaultOpen = false, minWidth = 180, backdrop = true, onOpenChange, triggerStyle }) {
+  const [open, setOpenRaw] = useState(defaultOpen)
+  const setOpen = next => setOpenRaw(prev => {
+    const v = typeof next === 'function' ? next(prev) : next
+    if (v !== prev) onOpenChange?.(v)
+    return v
+  })
   return (
     <div style={{ position: 'relative', display: 'inline-flex' }}>
       <button onClick={() => setOpen(o => !o)} style={{
@@ -21,6 +26,7 @@ export default function DropdownMenu({ items = [], trigger, align = 'right', def
         background: open ? 'rgba(var(--overlay-rgb),0.06)' : 'var(--glass-control)',
         border: '1px solid rgba(var(--cs-outline-rgb),0.45)', cursor: 'pointer',
         color: 'var(--cs-on-surface-variant)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        ...triggerStyle,
       }}>
         {trigger ?? <KebabIcon />}
       </button>
