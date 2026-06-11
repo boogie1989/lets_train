@@ -22,7 +22,7 @@ export default function DateCell({ day, weekday, state = 'default', completed = 
       cursor: 'pointer',
       flexShrink: 0,
       boxShadow: isSelected
-        ? '0 6px 18px rgba(var(--cs-primary-rgb),0.45), inset 0 1px 0 rgba(var(--raise-rgb),0.20)'
+        ? '0 3px 10px rgba(var(--cs-primary-rgb),0.25), inset 0 1px 0 rgba(var(--raise-rgb),0.20)'
         : 'none',
     }}>
       {/* Weekday — labelSmall; white for today/selected, onSurfaceVariant for others */}

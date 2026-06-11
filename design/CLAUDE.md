@@ -324,12 +324,13 @@ Polish principles applied to the Calendar screen (use these as defaults):
 - **Unified glass slab** for header + calendar — single container, `bg-zinc-900/30`, backdrop-blur-xl, shadow-xl black @60%, white-5 border, **no border radius** (matches the source `CalendarScreen.tsx`).
 - **Tight rhythm in date rows** — `itemSpacing=6` + `CENTER` alignment, not `SPACE_BETWEEN` (which spreads too widely on Pro Max).
 - **Today indicator = subtle ring** (slate-600 @ 35%, 1 px). Not a glowing border. Not a dot.
-- **Selected indicator = refined glow** (`slate-600 @ 45%` Y6 blur18 + 1 px inner white highlight @ 20%). Avoid heavy shadows on small elements.
+- **Selected indicator = refined glow** — reduced to `slate @ 25%` Y3 blur10 + 1 px inner white highlight @ 20% (the earlier Y6 blur18 @ 45% read too heavy on date cells; the Figma file still carries the old value — update on next sync). Avoid heavy shadows on small elements.
 - **TaskItem volume** = ambient + key drop shadows + inner highlight. NOT a single big drop shadow (looks like a sticker).
 - **Status via accent strip**, not pills. 5 px solid color on the left edge: `emerald-500` for completed, `slate-500` for planned.
 - **Typographic hierarchy in cards** — title `Inter Medium 17 / 24`, meta `13 / 18`. Bigger size delta than the M3 default (which can feel flat on a glass card).
 - **Time vs count weight asymmetry** — time `Medium`, count `Regular @ 70%`. Time is the primary information; count is secondary.
 - **FAB matches header button style** (`zinc-800/60`, `rounded-xl 14`, drop shadow). 52 × 52 — slightly larger than the 48 × 48 header buttons. Do not use the slate gradient on the FAB — it competes with the selected date cell.
+- **FabMenu is THE page-level action menu, app-wide** (`src/components/FabMenu.jsx`). Every screen that needs add/page actions uses this one pattern — do not invent per-screen FABs, bottom sheets, or button rows for it. Recipe: a right-flush **50×50 glass square** (`radius-xl`, glass-control — never a circle, never the slate gradient) sitting in a footer with a surface gradient fade; tap = **container transform** — the square morphs into a glass panel (`radius-2xl`, `--glass-popover`, 0.32s `cubic-bezier(0.4,0,0.2,1)`), the `+` rotates 45° into `×` pinned to the corner, items (15px/500, padding 12) stagger-fade in (0.1s + 40ms·i); backdrop click or `×` reverses the morph. API: `actions = [{ label, icon, onClick, primary?, dividerAbove? }]` — panel height derives from the action count; `primary: true` = the screen's submit (primary color, 600); `dividerAbove` separates action groups. In use: Workout Builder (Add exercise / Add superset / Reorder / **Save workout**), Calendar (Schedule workout / Schedule meal / **Log meal** — logged = created already-Completed).
 
 ## 11. Quick reference — node IDs (snapshot at end of build)
 

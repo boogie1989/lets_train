@@ -2,10 +2,11 @@ import GlassCard from './GlassCard.jsx'
 
 // 398×88, r=16, accent strip 5px left, content pad 20/18 gap 10
 // kind: 'workout' (meta = N exercises) | 'meal' (meta = N kcal)
-// onToggle (optional): tapping the card flips Completed/Planned; completed cards show a
-// quiet emerald "Done" label on the right (status language: strip + label, no controls).
+// onClick (optional): tapping the card flips Completed/Planned.
+// plan (optional): name of the training plan that scheduled this item — shown as a
+// quiet third meta segment; ad-hoc items simply omit it.
 // missed: the item's day is in the past — uncompleted items get a muted "Missed" label.
-export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'workout', status = 'Planned', onToggle, missed = false }) {
+export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'workout', status = 'Planned', onClick, plan, missed = false }) {
   const completed = status === 'Completed'
   const label = completed
     ? { text: 'Done', color: 'var(--cs-tertiary)', opacity: 1 }
@@ -17,13 +18,13 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
     : 'var(--cs-status-planned)'
 
   return (
-    <GlassCard level="Low" onClick={onToggle} style={{
+    <GlassCard level="Low" onClick={onClick} style={{
       width: 398,
       height: 88,
       display: 'flex',
       overflow: 'hidden',
       flexShrink: 0,
-      cursor: onToggle ? 'pointer' : 'default',
+      cursor: onClick ? 'pointer' : 'default',
     }}>
       {/* 5px accent strip */}
       <div style={{ width: 5, background: accentColor, flexShrink: 0 }}/>
@@ -42,12 +43,13 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
           fontWeight: 500,
           lineHeight: '24px',
           color: 'var(--cs-on-surface)',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {title}
         </span>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             <ClockIcon />
             <span style={{
               fontFamily: 'var(--tt-font-family)',
@@ -59,14 +61,9 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
             </span>
           </div>
 
-          <div style={{
-            width: 3, height: 3,
-            borderRadius: '50%',
-            background: 'var(--cs-on-surface)',
-            opacity: 0.4,
-          }}/>
+          <Dot />
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             {kind === 'meal' ? <MealIcon /> : <ActivityIcon />}
             <span style={{
               fontFamily: 'var(--tt-font-family)',
@@ -77,6 +74,26 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
               {kind === 'meal' ? `${kcal} kcal` : `${exerciseCount} exercises`}
             </span>
           </div>
+
+          {/* plan tag — only on items scheduled by a training plan */}
+          {plan && (
+            <>
+              <Dot />
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+                <PlanIcon />
+                <span style={{
+                  fontFamily: 'var(--tt-font-family)',
+                  fontSize: 12,
+                  fontWeight: 500,
+                  color: 'var(--cs-primary)',
+                  opacity: 0.85,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {plan}
+                </span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -95,6 +112,18 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
         </div>
       )}
     </GlassCard>
+  )
+}
+
+function Dot() {
+  return (
+    <div style={{
+      width: 3, height: 3,
+      borderRadius: '50%',
+      background: 'var(--cs-on-surface)',
+      opacity: 0.4,
+      flexShrink: 0,
+    }}/>
   )
 }
 
@@ -127,6 +156,19 @@ function ActivityIcon() {
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
       stroke="var(--cs-on-surface-variant)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+    </svg>
+  )
+}
+
+// Mini plan/calendar glyph — plan tag
+function PlanIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+      stroke="var(--cs-primary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.85, flexShrink: 0 }}>
+      <rect x="3" y="4" width="18" height="17" rx="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="16" y1="2" x2="16" y2="6" />
     </svg>
   )
 }

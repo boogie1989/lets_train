@@ -4,6 +4,7 @@ import StatusBar from '../../components/StatusBar.jsx'
 import NavBar from '../../components/NavBar.jsx'
 import GlassCard from '../../components/GlassCard.jsx'
 import DropdownMenu from '../../components/DropdownMenu.jsx'
+import FabMenu from '../../components/FabMenu.jsx'
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -23,10 +24,11 @@ const ALL_EXERCISES = [
 const DEMO_ITEMS = [
   { id: 'a', type: 'solo', exerciseId: 1, restSet: 120, note: 'Pause 2s at the bottom, no bouncing.',
     sets: [
+      { weight: 5, reps: 10, type: 'warmup' },
       { weight: 7.5, reps: 8 },
-      { weight: 175, reps: 8, weightUnit: 'lbs' },
-      { weight: 9, reps: 6, note: 'Top set — belt on.', ds: [{ weight: 9.5, reps: 10 }, { weight: 10, reps: 30, repsUnit: 'time' }] },
-      { weight: 8, reps: 8 },
+      { weight: 175, reps: 8, weightUnit: 'lbs', restAfter: 180 },
+      { weight: 9, reps: 6, note: 'Top set — belt on.', tempo: '3-1-1-0', ds: [{ weight: 9.5, reps: 10 }, { weight: 10, reps: 30, repsUnit: 'time' }] },
+      { weight: 8, reps: 8, repsMax: 10, type: 'backoff' },
     ] },
   { id: 'b', type: 'superset', exerciseIds: [5, 8], restSet: 60,
     sets: [
@@ -43,8 +45,8 @@ const DEMO_ITEMS = [
   { id: 'd', type: 'solo', exerciseId: 2,
     sets: [
       { weight: 7, reps: 10 },
-      { weight: 8, reps: 8 },
-      { weight: 8, reps: 10 },
+      { weight: 75, reps: 8, weightUnit: '%1RM' },
+      { weight: 8, reps: 10, repsMax: 12 },
     ] },
 ]
 
@@ -105,11 +107,13 @@ const tagCreateRowSt = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function soloSummary(sets, d = { weightUnit: 'rpe' }) {
-  if (!sets.length) return '0 sets'
+  // warm-ups don't speak for the exercise — ranges come from working/backoff sets
+  const work = sets.filter(s => s.type !== 'warmup')
+  if (!work.length) return sets.length ? `${sets.length} warm-up` : '0 sets'
   // summarize load in the unit of the first set; ignore sets logged in other units
-  const unit = sets[0].weightUnit ?? d.weightUnit
-  const weights = sets.filter(s => (s.weightUnit ?? d.weightUnit) === unit).map(s => s.weight).filter(w => w > 0)
-  const reps = sets.map(s => s.reps)
+  const unit = work[0].weightUnit ?? d.weightUnit
+  const weights = work.filter(s => (s.weightUnit ?? d.weightUnit) === unit).map(s => s.weight).filter(w => w > 0)
+  const reps = work.flatMap(s => s.repsMax != null ? [s.reps, s.repsMax] : [s.reps])
   const range = weights.length && Math.min(...weights) === Math.max(...weights)
     ? `${weights[0]}`
     : `${Math.min(...weights)}–${Math.max(...weights)}`
@@ -126,10 +130,11 @@ function calcStats(items, restGaps = [], d = { restSet: 90, restGap: 120 }) {
   items.forEach((item, i) => {
     const exN = item.type === 'solo' ? 1 : item.exerciseIds.length
     exCount += exN
-    setCount += item.sets.length
+    // warm-up sets don't count toward the prescription (duration still does)
+    setCount += item.sets.filter(x => x.type !== 'warmup').length
     // rough duration: ~40s of work per exercise per set + rests
     sec += item.sets.length * 40 * exN
-    sec += Math.max(0, item.sets.length - 1) * (item.restSet ?? d.restSet)
+    item.sets.slice(0, -1).forEach(x => { sec += x.restAfter ?? item.restSet ?? d.restSet })
     if (i < items.length - 1) sec += restGaps[i] ?? d.restGap
   })
   return { exCount, setCount, estMin: Math.round(sec / 60) }
@@ -259,9 +264,9 @@ function RpeField({ value, dim = false, onChange, onMenuLift }) {
   const setOpen = v => { setOpenRaw(v); onMenuLift?.(v) }
   return (
     <div style={{ position: 'relative' }}>
-      <button onClick={() => setOpen(!open)} style={{ ...fieldBoxSt(dim, open), width: '100%', padding: 0, cursor: 'pointer' }}>
+      <button onClick={() => setOpen(!open)} style={{ ...fieldBoxSt(dim, open), position: 'relative', width: '100%', padding: 0, cursor: 'pointer' }}>
         <span style={{ ...TT, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)' }}>{value || 0}</span>
-        <span style={suffixSt(dim)}>rpe</span>
+        <span style={suffixAbsSt(dim)}>rpe</span>
       </button>
       {open && (
         <>
@@ -288,34 +293,63 @@ function RpeField({ value, dim = false, onChange, onMenuLift }) {
   )
 }
 
-function ValueField({ value, unit, kind, dim = false, onChange, onMenuLift }) {
-  const [focused, setFocused] = useState(false)
-  const inputRef = useRef(null)
+// Unit labels are pinned to the RIGHT EDGE of the box (not glued to the value);
+// values stay centered. valueMax/onChangeMax turn the reps field into a RANGE:
+// visually ONE control, internally two inputs split by an inset hairline.
+const suffixAbsSt = dim => ({
+  ...suffixSt(dim), position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)',
+  pointerEvents: 'none',
+})
+
+function ValueField({ value, unit, kind, dim = false, onChange, valueMax, onChangeMax, onMenuLift }) {
+  const [focusMin, setFocusMin] = useState(false)
+  const [focusMax, setFocusMax] = useState(false)
+  const refMin = useRef(null)
+  const refMax = useRef(null)
 
   if (kind === 'weight' && unit === 'rpe') {
     return <RpeField value={value} dim={dim} onChange={onChange} onMenuLift={onMenuLift} />
   }
 
-  const chars = Math.max(1, String(value === 0 ? '0' : value).length)
-  return (
-    <div onClick={() => inputRef.current?.focus()} style={{ ...fieldBoxSt(dim, focused), cursor: 'text' }}>
-      <input
-        ref={inputRef}
-        value={value === 0 ? '' : String(value)}
-        placeholder="0"
-        onChange={e => onChange(parseFloat(e.target.value) || 0)}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        inputMode="numeric"
-        style={{
-          width: `${chars + 0.5}ch`, maxWidth: 56, padding: 0,
-          background: 'transparent', border: 'none', outline: 'none',
-          ...TT, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)', textAlign: 'right',
-        }}
-      />
-      <span style={suffixSt(dim)}>{unitSuffix(kind, unit)}</span>
+  const max = unit === '%1RM' ? 100 : Infinity
+  const numInput = (v, set, ref, setFocus) => (
+    <input
+      ref={ref}
+      value={v === 0 ? '' : String(v)}
+      placeholder="0"
+      onChange={e => set(Math.min(max, parseFloat(e.target.value) || 0))}
+      onFocus={() => setFocus(true)}
+      onBlur={() => setFocus(false)}
+      inputMode="numeric"
+      style={{
+        flex: 1, width: '100%', minWidth: 0, padding: 0,
+        background: 'transparent', border: 'none', outline: 'none',
+        ...TT, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)', textAlign: 'center',
+      }}
+    />
+  )
+
+  const singleBox = (v, set, ref, focused, setFocus, leftLabel) => (
+    <div onClick={() => ref.current?.focus()} style={{ ...fieldBoxSt(dim, focused), position: 'relative', cursor: 'text' }}>
+      {leftLabel && (
+        <span style={{ ...suffixAbsSt(dim), right: 'auto', left: 10 }}>{leftLabel}</span>
+      )}
+      {numInput(v, set, ref, setFocus)}
+      <span style={suffixAbsSt(dim)}>{unitSuffix(kind, unit)}</span>
     </div>
   )
+
+  // range = two ordinary controls stacked in a column, labelled min / max on the left
+  if (valueMax !== undefined) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
+        {singleBox(value, onChange, refMin, focusMin, setFocusMin, 'min')}
+        {singleBox(valueMax, onChangeMax, refMax, focusMax, setFocusMax, 'max')}
+      </div>
+    )
+  }
+
+  return singleBox(value, onChange, refMin, focusMin, setFocusMin)
 }
 
 const xSepSt = { ...TT, fontSize: 14, color: 'var(--cs-on-surface-variant)', opacity: 0.18, textAlign: 'center' }
@@ -333,7 +367,7 @@ const exNameSt = {
 // ─── Units (same options & steps as WorkoutRunner) ─────────────────────────────
 
 const MAX_DROPS = 3
-const WEIGHT_UNITS = ['rpe', 'kg', 'lbs', 'time']
+const WEIGHT_UNITS = ['rpe', 'kg', 'lbs', '%1RM', 'time']
 const REPS_UNITS   = ['reps', 'failure', 'time']
 
 // non-input cell (marker, × separator) centered against the 40px fields
@@ -355,9 +389,22 @@ function RowKebabIcon() {
   )
 }
 
-function RowMenu({ weightUnit, repsUnit, onWeightUnit, onRepsUnit, onAddDrop, canAddDrop = true, onAddNote, onDelete, deleteDisabled = false, onOpenChange }) {
+const SET_TYPES = [
+  { v: 'working', label: 'working', hint: 'counted' },
+  { v: 'warmup',  label: 'warm-up', hint: 'not counted' },
+  { v: 'backoff', label: 'backoff', hint: 'lighter work' },
+]
+
+function RowMenu({
+  weightUnit, repsUnit, onWeightUnit, onRepsUnit,
+  rangeOn, onToggleRange,
+  setType, onSetType,
+  onAddDrop, canAddDrop = true, onAddNote, onAddTempo,
+  onDuplicate, onMoveUp, onMoveDown, canMoveUp = true, canMoveDown = true,
+  onDelete, deleteDisabled = false, onOpenChange,
+}) {
   const [open, setOpenRaw] = useState(false)
-  const [page, setPage] = useState(null) // null | 'w' | 'r'
+  const [page, setPage] = useState(null) // null | 'w' | 'r' | 't'
   const setOpen = v => { setOpenRaw(v); setPage(null); onOpenChange?.(v) }
 
   const itemSt = (disabled = false, danger = false) => ({
@@ -370,23 +417,28 @@ function RowMenu({ weightUnit, repsUnit, onWeightUnit, onRepsUnit, onAddDrop, ca
   const valSt = { ...TT, marginLeft: 'auto', paddingLeft: 14, fontSize: 12, fontWeight: 400, color: 'var(--cs-on-surface-variant)', opacity: 0.6 }
   const hairline = <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.07)', margin: '4px 6px' }} />
 
-  const unitPage = page && (
-    <>
-      <button onClick={() => setPage(null)} style={{ ...itemSt(), fontWeight: 600 }}>
-        <span style={{ fontSize: 14, opacity: 0.6 }}>‹</span>{page === 'w' ? 'Load unit' : 'Reps unit'}
-      </button>
-      {hairline}
-      {(page === 'w' ? WEIGHT_UNITS : REPS_UNITS).map(u => {
-        const cur = page === 'w' ? weightUnit : repsUnit
-        return (
-          <button key={u} onClick={() => { (page === 'w' ? onWeightUnit : onRepsUnit)(u); setOpen(false) }} style={itemSt()}>
-            <span style={{ width: 12, fontSize: 10, color: 'var(--cs-primary)', visibility: cur === u ? 'visible' : 'hidden' }}>✓</span>
-            {u}
+  const subPage = page && (() => {
+    const cfg = page === 'w'
+      ? { title: 'Load unit', opts: WEIGHT_UNITS.map(u => ({ v: u, label: u })), cur: weightUnit, pick: onWeightUnit }
+      : page === 'r'
+        ? { title: 'Reps unit', opts: REPS_UNITS.map(u => ({ v: u, label: u })), cur: repsUnit, pick: onRepsUnit }
+        : { title: 'Set type', opts: SET_TYPES, cur: setType ?? 'working', pick: onSetType }
+    return (
+      <>
+        <button onClick={() => setPage(null)} style={{ ...itemSt(), fontWeight: 600 }}>
+          <span style={{ fontSize: 14, opacity: 0.6 }}>‹</span>{cfg.title}
+        </button>
+        {hairline}
+        {cfg.opts.map(o => (
+          <button key={o.v} onClick={() => { cfg.pick(o.v); setOpen(false) }} style={itemSt()}>
+            <span style={{ width: 12, fontSize: 10, color: 'var(--cs-primary)', visibility: cfg.cur === o.v ? 'visible' : 'hidden' }}>✓</span>
+            {o.label}
+            {o.hint && <span style={valSt}>{o.hint}</span>}
           </button>
-        )
-      })}
-    </>
-  )
+        ))}
+      </>
+    )
+  })()
 
   return (
     <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
@@ -404,10 +456,22 @@ function RowMenu({ weightUnit, repsUnit, onWeightUnit, onRepsUnit, onAddDrop, ca
             borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
             boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)', padding: 4,
           }}>
-            {page ? unitPage : (
+            {page ? subPage : (
               <>
                 <button onClick={() => setPage('w')} style={itemSt()}>Load unit<span style={valSt}>{weightUnit} ›</span></button>
                 <button onClick={() => setPage('r')} style={itemSt()}>Reps unit<span style={valSt}>{repsUnit} ›</span></button>
+                {onToggleRange && (
+                  <button onClick={() => { setOpen(false); onToggleRange() }} style={itemSt()}>
+                    Rep range
+                    <span style={{ ...valSt, fontSize: 10, color: 'var(--cs-primary)', opacity: 1, visibility: rangeOn ? 'visible' : 'hidden' }}>✓</span>
+                  </button>
+                )}
+                {onSetType && (
+                  <button onClick={() => setPage('t')} style={itemSt()}>
+                    Set type<span style={valSt}>{(SET_TYPES.find(t => t.v === (setType ?? 'working')) || SET_TYPES[0]).label} ›</span>
+                  </button>
+                )}
+                {(onAddDrop || onAddNote || onAddTempo) && hairline}
                 {onAddDrop && (
                   <button disabled={!canAddDrop} onClick={() => { if (canAddDrop) { setOpen(false); onAddDrop() } }} style={itemSt(!canAddDrop)}>
                     Add drop set
@@ -415,6 +479,19 @@ function RowMenu({ weightUnit, repsUnit, onWeightUnit, onRepsUnit, onAddDrop, ca
                 )}
                 {onAddNote && (
                   <button onClick={() => { setOpen(false); onAddNote() }} style={itemSt()}>Add note</button>
+                )}
+                {onAddTempo && (
+                  <button onClick={() => { setOpen(false); onAddTempo() }} style={itemSt()}>Add tempo</button>
+                )}
+                {(onDuplicate || onMoveUp || onMoveDown) && hairline}
+                {onDuplicate && (
+                  <button onClick={() => { setOpen(false); onDuplicate() }} style={itemSt()}>Duplicate set</button>
+                )}
+                {onMoveUp && (
+                  <button disabled={!canMoveUp} onClick={() => { if (canMoveUp) { setOpen(false); onMoveUp() } }} style={itemSt(!canMoveUp)}>Move up</button>
+                )}
+                {onMoveDown && (
+                  <button disabled={!canMoveDown} onClick={() => { if (canMoveDown) { setOpen(false); onMoveDown() } }} style={itemSt(!canMoveDown)}>Move down</button>
                 )}
                 {onDelete && (
                   <>
@@ -449,7 +526,7 @@ function ClockIcon({ size = 11 }) {
 const REST_MINS = [0, 1, 2, 3, 4, 5]
 const REST_SECS = [0, 15, 30, 45]
 
-function RestPickerPopover({ value, onChange, onClose, align = 'center' }) {
+function RestPickerPopover({ value, onChange, onClose, align = 'center', onApplyAll }) {
   const m = Math.floor(value / 60), s = value % 60
   const colLblSt = { ...TT, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textAlign: 'center', color: 'var(--cs-on-surface-variant)', opacity: 0.45, padding: '2px 0 4px' }
   const optSt = on => ({
@@ -467,21 +544,33 @@ function RestPickerPopover({ value, onChange, onClose, align = 'center' }) {
         background: 'var(--glass-popover)', border: '1px solid rgba(var(--overlay-rgb),0.10)',
         borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
         boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)', padding: 8,
-        display: 'flex', gap: 6,
+        display: 'flex', flexDirection: 'column', gap: 6,
       }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={colLblSt}>MIN</span>
-          {REST_MINS.map(x => (
-            <button key={x} onClick={() => onChange(x * 60 + s)} style={optSt(x === m)}>{x}</button>
-          ))}
+        <div style={{ display: 'flex', gap: 6 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={colLblSt}>MIN</span>
+            {REST_MINS.map(x => (
+              <button key={x} onClick={() => onChange(x * 60 + s)} style={optSt(x === m)}>{x}</button>
+            ))}
+          </div>
+          <div style={{ width: 1, background: 'rgba(var(--overlay-rgb),0.07)' }} />
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            <span style={colLblSt}>SEC</span>
+            {REST_SECS.map(x => (
+              <button key={x} onClick={() => onChange(m * 60 + x)} style={optSt(x === s)}>{String(x).padStart(2, '0')}</button>
+            ))}
+          </div>
         </div>
-        <div style={{ width: 1, background: 'rgba(var(--overlay-rgb),0.07)' }} />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          <span style={colLblSt}>SEC</span>
-          {REST_SECS.map(x => (
-            <button key={x} onClick={() => onChange(m * 60 + x)} style={optSt(x === s)}>{String(x).padStart(2, '0')}</button>
-          ))}
-        </div>
+        {onApplyAll && (
+          <>
+            <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.07)' }} />
+            <button onClick={() => { onApplyAll(value); onClose() }} style={{
+              ...TT, width: '100%', border: 'none', background: 'transparent', cursor: 'pointer',
+              padding: '6px 4px', borderRadius: 'var(--radius-lg)', textAlign: 'center',
+              fontSize: 12, fontWeight: 600, color: 'var(--cs-primary)',
+            }}>Apply to all sets</button>
+          </>
+        )}
       </div>
     </>
   )
@@ -489,7 +578,7 @@ function RestPickerPopover({ value, onChange, onClose, align = 'center' }) {
 
 // Rest divider — a quiet hairline with `⏱ 1:30` in the middle; tapping the chip
 // opens the min/sec picker (when onChange is provided).
-function RestDivider({ value, onChange, onMenuLift }) {
+function RestDivider({ value, onChange, onApplyAll, onMenuLift }) {
   const [open, setOpenRaw] = useState(false)
   const setOpen = v => { setOpenRaw(v); onMenuLift?.(v) }
   const chip = (
@@ -507,7 +596,7 @@ function RestDivider({ value, onChange, onMenuLift }) {
             background: open ? 'rgba(var(--overlay-rgb),0.06)' : 'none', border: 'none', cursor: 'pointer',
             padding: '3px 8px', borderRadius: 'var(--radius-lg)', display: 'flex',
           }}>{chip}</button>
-          {open && <RestPickerPopover value={value} onChange={onChange} onClose={() => setOpen(false)} />}
+          {open && <RestPickerPopover value={value} onChange={onChange} onApplyAll={onApplyAll} onClose={() => setOpen(false)} />}
         </div>
       ) : chip}
       <div style={{ flex: 1, height: 1, background: 'rgba(var(--overlay-rgb),0.05)' }} />
@@ -528,21 +617,119 @@ function NoteIcon({ size = 12 }) {
   )
 }
 
-function NoteRow({ value, onChange, onClear, style }) {
+function MetronomeIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 3h6l4 18H5L9 3z" />
+      <line x1="12" y1="14" x2="17" y2="5" />
+    </svg>
+  )
+}
+
+function NoteRow({ value, onChange, onClear, style, icon = <NoteIcon />, placeholder = 'Note…', inputStyle }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, ...style }}>
-      <span style={{ display: 'flex', flexShrink: 0, color: 'var(--cs-on-surface-variant)', opacity: 0.40 }}><NoteIcon /></span>
+      <span style={{ display: 'flex', flexShrink: 0, color: 'var(--cs-on-surface-variant)', opacity: 0.40 }}>{icon}</span>
       <input
         value={value}
         autoFocus={value === ''}
-        placeholder="Note…"
+        placeholder={placeholder}
         onChange={e => onChange(e.target.value)}
         onBlur={() => { if (!value.trim()) onClear() }}
         style={{
           flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', padding: 0,
           ...TT, fontSize: 12, color: 'var(--cs-on-surface-variant)', opacity: 0.8,
+          ...inputStyle,
         }}
       />
+    </div>
+  )
+}
+
+// tempo sub-row — value is PICKED, not typed: tapping it opens a dropdown of the
+// most common tempos (+ a custom text field as the last row). Freshly added tempo
+// ('' value) auto-opens the picker; dismissing it without choosing removes the row.
+const TEMPO_PRESETS = [
+  { v: '2-0-2-0', hint: 'controlled' },
+  { v: '3-0-1-0', hint: 'slow eccentric' },
+  { v: '3-1-1-0', hint: 'pause at bottom' },
+  { v: '4-0-1-0', hint: 'slow eccentric+' },
+  { v: '3-0-X-0', hint: 'explosive up' },
+]
+
+function TempoRow({ value, onChange, onClear, onMenuLift, style }) {
+  const [open, setOpenRaw] = useState(value === '')
+  const [custom, setCustom] = useState('')
+  // auto-open on create lifts the card too
+  useEffect(() => { if (value === '') onMenuLift?.(true) }, []) // eslint-disable-line
+  const closePicked = () => { setOpenRaw(false); onMenuLift?.(false) }
+  const closeDismiss = () => { setOpenRaw(false); onMenuLift?.(false); if (value === '') onClear() }
+  const commitCustom = () => { if (custom.trim()) { onChange(custom.trim()); setCustom(''); closePicked() } }
+
+  const itemSt = {
+    ...TT, width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
+    background: 'transparent', border: 'none', borderRadius: 'var(--radius-lg)', textAlign: 'left', cursor: 'pointer',
+  }
+  const digitsSt = { ...TT, fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--cs-on-surface)' }
+  const hintSt = { ...TT, marginLeft: 'auto', fontSize: 11, color: 'var(--cs-on-surface-variant)', opacity: 0.55 }
+
+  return (
+    <div style={{ position: 'relative', ...style }}>
+      <button onClick={() => (open ? closeDismiss() : (setOpenRaw(true), onMenuLift?.(true)))} style={{
+        display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+      }}>
+        <span style={{ display: 'flex', flexShrink: 0, color: 'var(--cs-on-surface-variant)', opacity: 0.40 }}><MetronomeIcon /></span>
+        <span style={{ ...TT, fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--cs-on-surface-variant)', opacity: value ? 0.8 : 0.5 }}>
+          {value || 'Tempo…'}
+        </span>
+      </button>
+
+      {open && (
+        <>
+          <div onClick={closeDismiss} style={{ position: 'fixed', inset: 0, zIndex: 39 }} />
+          <div style={{
+            position: 'absolute', top: '100%', left: 19, marginTop: 5, zIndex: 40, minWidth: 196,
+            background: 'var(--glass-popover)', border: '1px solid rgba(var(--overlay-rgb),0.10)',
+            borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)', padding: 4,
+          }}>
+            {TEMPO_PRESETS.map(t => (
+              <button key={t.v} onClick={() => { onChange(t.v); closePicked() }} style={itemSt}>
+                <span style={{ ...digitsSt, color: t.v === value ? 'var(--cs-primary)' : 'var(--cs-on-surface)' }}>{t.v}</span>
+                <span style={hintSt}>{t.hint}</span>
+              </button>
+            ))}
+            <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.07)', margin: '4px 6px' }} />
+            {/* custom — typed, committed with Enter or ✓ */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px 6px' }}>
+              <input
+                value={custom}
+                placeholder="Custom · 3-1-2-0"
+                onChange={e => setCustom(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') commitCustom() }}
+                style={{
+                  flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', padding: 0,
+                  ...TT, fontSize: 12, fontWeight: 500, letterSpacing: '0.06em', color: 'var(--cs-on-surface)',
+                }}
+              />
+              <button onClick={commitCustom} disabled={!custom.trim()} style={{
+                width: 22, height: 22, borderRadius: 'var(--radius-lg)', border: 'none', padding: 0, cursor: custom.trim() ? 'pointer' : 'default',
+                background: custom.trim() ? 'rgba(var(--cs-primary-rgb),0.18)' : 'rgba(var(--overlay-rgb),0.05)',
+                color: custom.trim() ? 'var(--cs-primary)' : 'var(--cs-on-surface-variant)', opacity: custom.trim() ? 1 : 0.4,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}><CheckIcon /></button>
+            </div>
+            {value && (
+              <>
+                <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.07)', margin: '4px 6px' }} />
+                <button onClick={() => { onClear(); closePicked() }} style={{ ...itemSt, color: 'var(--cs-error)', fontSize: 12, fontWeight: 500 }}>
+                  Remove tempo
+                </button>
+              </>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -628,6 +815,17 @@ function WorkoutDefaultsCard({ defaults, setDefaults }) {
 function SoloSetsEditor({ item, onChange, onMenuLift, defaults }) {
   function updSet(i, s) { onChange({ ...item, sets: item.sets.map((x, j) => j === i ? s : x) }) }
   function delSet(i) { onChange({ ...item, sets: item.sets.filter((_, j) => j !== i) }) }
+  function dupSet(i) {
+    const copy = JSON.parse(JSON.stringify(item.sets[i]))
+    onChange({ ...item, sets: [...item.sets.slice(0, i + 1), copy, ...item.sets.slice(i + 1)] })
+  }
+  function moveSet(i, d) {
+    const n = [...item.sets]; const [x] = n.splice(i, 1); n.splice(i + d, 0, x)
+    onChange({ ...item, sets: n })
+  }
+  function applyAllRest(v) {
+    onChange({ ...item, restSet: v, sets: item.sets.map(({ restAfter: _r, ...rest }) => rest) })
+  }
   function addSet() {
     const last = item.sets[item.sets.length - 1] || { weight: 0, reps: 8 }
     onChange({ ...item, sets: [...item.sets, { weight: last.weight, reps: last.reps, weightUnit: last.weightUnit, repsUnit: last.repsUnit }] })
@@ -652,19 +850,26 @@ function SoloSetsEditor({ item, onChange, onMenuLift, defaults }) {
     <div>
       {/* set groups — rest dividers live in the gaps between sets (uniform per exercise) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {item.sets.map((set, i) => (
+        {(() => { let wn = 0; return item.sets.map((set, i) => {
+          const displayN = set.type === 'warmup' ? 'W' : set.type === 'backoff' ? 'B' : ++wn
+          return (
           <Fragment key={i}>
-            <SetRowGroup idx={i} set={set} canDelete={item.sets.length > 1}
+            <SetRowGroup idx={i} displayN={displayN} set={set} canDelete={item.sets.length > 1}
               canAddDrop={(set.ds || []).length < MAX_DROPS}
               onChange={s => updSet(i, s)} onDelete={() => delSet(i)}
               onAddDrop={() => addDrop(i)} onRemoveDrop={di => removeDrop(i, di)}
+              onDuplicate={() => dupSet(i)}
+              onMoveUp={() => moveSet(i, -1)} onMoveDown={() => moveSet(i, 1)}
+              canMoveUp={i > 0} canMoveDown={i < item.sets.length - 1}
               onMenuLift={onMenuLift} defaults={defaults} />
             {i < item.sets.length - 1 && (
-              <RestDivider value={item.restSet ?? defaults.restSet}
-                onChange={v => onChange({ ...item, restSet: v })} onMenuLift={onMenuLift} />
+              <RestDivider value={set.restAfter ?? item.restSet ?? defaults.restSet}
+                onChange={v => updSet(i, { ...set, restAfter: v })}
+                onApplyAll={applyAllRest} onMenuLift={onMenuLift} />
             )}
           </Fragment>
-        ))}
+          )
+        }) })()}
       </div>
 
       <button onClick={addSet} style={{ ...linkBtnSt, color: 'var(--cs-primary)', opacity: 0.65, marginTop: 20, fontSize: 13 }}>
@@ -694,23 +899,61 @@ const mainNodeSt = {
 }
 
 // Set number — circled when the set has drop sets (the connector starts here)
-function SetNumber({ n, circled }) {
+function SetNumber({ n, circled, ch }) {
   return (
     <span style={{
       minWidth: 22, height: 22, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999,
-      border: `1px solid ${circled ? 'rgba(var(--cs-primary-rgb),0.45)' : 'transparent'}`,
+      border: `1px solid ${circled ? (ch ? `rgba(var(${ch}),0.35)` : 'rgba(var(--cs-primary-rgb),0.45)') : 'transparent'}`,
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      ...TT, fontSize: 11, fontWeight: 600, color: 'var(--cs-on-surface-variant)', opacity: circled ? 0.80 : 0.45,
+      ...TT, fontSize: 11, fontWeight: 600,
+      color: ch ? `rgba(var(${ch}),0.65)` : 'var(--cs-on-surface-variant)',
+      opacity: circled ? 0.80 : 0.45,
     }}>{n}</span>
+  )
+}
+
+// Typed-set marker — tapping the W/B ring opens a small explainer tooltip
+const TYPE_INFO = {
+  warmup:  { letter: 'W', ch: '--cat-amber-rgb', title: 'Warm-up set',  text: 'Preparation work — not counted toward working sets or volume.' },
+  backoff: { letter: 'B', ch: '--cat-cyan-rgb',  title: 'Back-off set', text: 'Lighter work after the top set — counts as working volume.' },
+}
+
+function SetTypeMarker({ type, n, onMenuLift }) {
+  const [open, setOpenRaw] = useState(false)
+  if (!type) return <SetNumber n={n} circled />
+  const info = TYPE_INFO[type]
+  const setOpen = v => { setOpenRaw(v); onMenuLift?.(v) }
+  return (
+    <div style={{ position: 'relative', display: 'flex' }}>
+      <button onClick={() => setOpen(!open)} style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', display: 'flex' }}>
+        <SetNumber n={info.letter} circled ch={info.ch} />
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 39 }} />
+          <div style={{
+            position: 'absolute', top: '100%', left: 0, marginTop: 6, zIndex: 40, width: 196,
+            background: 'var(--glass-popover)', border: '1px solid rgba(var(--overlay-rgb),0.10)',
+            borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)', padding: '10px 12px',
+          }}>
+            <div style={{ ...TT, fontSize: 12, fontWeight: 600, color: `rgba(var(${info.ch}),0.85)` }}>{info.title}</div>
+            <div style={{ ...TT, fontSize: 11, lineHeight: 1.45, color: 'var(--cs-on-surface-variant)', opacity: 0.8, marginTop: 3 }}>{info.text}</div>
+          </div>
+        </>
+      )}
+    </div>
   )
 }
 
 // One set + its drop sets, grouped as a single block with a connector line.
 // Each row is `marker · value field · × · value field · ⋮` — rare actions
 // (units / add drop / delete) live in the row menu, values edit inline.
-function SetRowGroup({ idx, set, canDelete, canAddDrop, onChange, onDelete, onAddDrop, onRemoveDrop, onMenuLift, defaults }) {
+function SetRowGroup({ idx, displayN, set, canDelete, canAddDrop, onChange, onDelete, onAddDrop, onRemoveDrop, onDuplicate, onMoveUp, onMoveDown, canMoveUp, canMoveDown, onMenuLift, defaults }) {
   const drops = set.ds || []
   const hasDrops = drops.length > 0
+  const isWarmup = set.type === 'warmup'
+  const repsUnitCur = set.repsUnit ?? defaults.repsUnit
 
   const rowGridSt = { display: 'grid', gridTemplateColumns: '32px 1fr 10px 1fr 28px', columnGap: 8, alignItems: 'center' }
 
@@ -724,24 +967,46 @@ function SetRowGroup({ idx, set, canDelete, canAddDrop, onChange, onDelete, onAd
           onClear={() => { const { note: _n, ...rest } = set; onChange(rest) }}
           style={{ marginBottom: 10, paddingLeft: 40, paddingRight: 36 }} />
       )}
+      {set.tempo !== undefined && (
+        <TempoRow value={set.tempo} onMenuLift={onMenuLift}
+          onChange={t => onChange({ ...set, tempo: t })}
+          onClear={() => { const { tempo: _t, ...rest } = set; onChange(rest) }}
+          style={{ marginBottom: 10, paddingLeft: 40, paddingRight: 36 }} />
+      )}
       <div style={{ position: 'relative' }}>
       {/* connector — from the circled set number down through the drop nodes */}
       {hasDrops && (
         <div style={{ position: 'absolute', left: 15, top: LINE_TOP, bottom: LINE_BOTTOM, width: 2, borderRadius: 1, background: 'rgba(var(--cs-primary-rgb),0.35)' }} />
       )}
-      {/* main set row */}
+      {/* main set row — warm-ups dim and show W instead of a number; backoffs get a tiny B */}
       <div style={rowGridSt}>
-        <MarkerCell><SetNumber n={idx + 1} circled /></MarkerCell>
-        <ValueField value={set.weight} unit={set.weightUnit ?? defaults.weightUnit} kind="weight"
+        <MarkerCell>
+          <SetTypeMarker type={set.type} n={displayN ?? idx + 1} onMenuLift={onMenuLift} />
+        </MarkerCell>
+        <ValueField dim={isWarmup} value={set.weight} unit={set.weightUnit ?? defaults.weightUnit} kind="weight"
           onChange={w => onChange({ ...set, weight: w })} onMenuLift={onMenuLift} />
         <span style={xSepSt}>×</span>
-        <ValueField value={set.reps} unit={set.repsUnit ?? defaults.repsUnit} kind="reps"
-          onChange={r => onChange({ ...set, reps: r })} />
+        <ValueField dim={isWarmup} value={set.reps} unit={set.repsUnit ?? defaults.repsUnit} kind="reps"
+          onChange={r => onChange({ ...set, reps: r })}
+          valueMax={set.repsMax} onChangeMax={m => onChange({ ...set, repsMax: m })} />
         <RowMenu
           weightUnit={set.weightUnit ?? defaults.weightUnit} repsUnit={set.repsUnit ?? defaults.repsUnit}
           onWeightUnit={u => onChange({ ...set, weightUnit: u })} onRepsUnit={u => onChange({ ...set, repsUnit: u })}
+          rangeOn={set.repsMax != null}
+          onToggleRange={repsUnitCur === 'reps' ? () => {
+            if (set.repsMax != null) { const { repsMax: _m, ...rest } = set; onChange(rest) }
+            else onChange({ ...set, repsMax: set.reps + 2 })
+          } : null}
+          setType={set.type}
+          onSetType={v => {
+            if (v === 'working') { const { type: _t, ...rest } = set; onChange(rest) }
+            else onChange({ ...set, type: v })
+          }}
           onAddDrop={onAddDrop} canAddDrop={canAddDrop}
           onAddNote={set.note === undefined ? () => onChange({ ...set, note: '' }) : null}
+          onAddTempo={set.tempo === undefined ? () => onChange({ ...set, tempo: '' }) : null}
+          onDuplicate={onDuplicate}
+          onMoveUp={onMoveUp} onMoveDown={onMoveDown} canMoveUp={canMoveUp} canMoveDown={canMoveDown}
           onDelete={onDelete} deleteDisabled={!canDelete}
           onOpenChange={onMenuLift}
         />
@@ -784,6 +1049,17 @@ function SupersetSetsEditor({ item, onChange, onMenuLift, defaults }) {
 
   function updSet(i, s) { onChange({ ...item, sets: item.sets.map((x, j) => j === i ? s : x) }) }
   function delSet(i) { onChange({ ...item, sets: item.sets.filter((_, j) => j !== i) }) }
+  function dupSet(i) {
+    const copy = JSON.parse(JSON.stringify(item.sets[i]))
+    onChange({ ...item, sets: [...item.sets.slice(0, i + 1), copy, ...item.sets.slice(i + 1)] })
+  }
+  function moveSet(i, d) {
+    const n = [...item.sets]; const [x] = n.splice(i, 1); n.splice(i + d, 0, x)
+    onChange({ ...item, sets: n })
+  }
+  function applyAllRest(v) {
+    onChange({ ...item, restSet: v, sets: item.sets.map(({ restAfter: _r, ...rest }) => rest) })
+  }
   function addSet() {
     const s = {}; exercises.forEach(ex => { s[ex.id] = { weight: 8, reps: 10 } })
     onChange({ ...item, sets: [...item.sets, s] })
@@ -835,7 +1111,12 @@ function SupersetSetsEditor({ item, onChange, onMenuLift, defaults }) {
                       <span style={{ marginLeft: 'auto', display: 'flex' }}>
                         <DropdownMenu
                           onOpenChange={onMenuLift}
-                          items={[{ label: 'Delete set', danger: true, disabled: item.sets.length <= 1, onClick: () => delSet(i) }]}
+                          items={[
+                            { label: 'Duplicate set', onClick: () => dupSet(i) },
+                            { label: 'Move up', disabled: i === 0, onClick: () => moveSet(i, -1) },
+                            { label: 'Move down', disabled: i === item.sets.length - 1, onClick: () => moveSet(i, 1) },
+                            { label: 'Delete set', danger: true, disabled: item.sets.length <= 1, onClick: () => delSet(i) },
+                          ]}
                           triggerStyle={{ ...kebabTriggerSt(false), width: 24, height: 24 }}
                         />
                       </span>
@@ -849,6 +1130,12 @@ function SupersetSetsEditor({ item, onChange, onMenuLift, defaults }) {
                       onClear={() => { const { note: _n, ...rest } = set[ex.id] || {}; updSet(i, { ...set, [ex.id]: rest }) }}
                       style={{ marginTop: 6, marginBottom: 2, paddingLeft: 40, paddingRight: 36 }} />
                   )}
+                  {exData.tempo !== undefined && (
+                    <TempoRow value={exData.tempo} onMenuLift={onMenuLift}
+                      onChange={t => updEx(i, ex.id, { tempo: t })}
+                      onClear={() => { const { tempo: _t, ...rest } = set[ex.id] || {}; updSet(i, { ...set, [ex.id]: rest }) }}
+                      style={{ marginTop: 4, marginBottom: 2, paddingLeft: 40, paddingRight: 36 }} />
+                  )}
 
                   {/* main row — hollow ring on the connector; menu has no Delete
                       (a single exercise's row can't leave the round) */}
@@ -858,12 +1145,19 @@ function SupersetSetsEditor({ item, onChange, onMenuLift, defaults }) {
                       onChange={w => updEx(i, ex.id, { weight: w })} onMenuLift={onMenuLift} />
                     <span style={xSepSt}>×</span>
                     <ValueField value={exData.reps} unit={exData.repsUnit ?? defaults.repsUnit} kind="reps"
-                      onChange={r => updEx(i, ex.id, { reps: r })} />
+                      onChange={r => updEx(i, ex.id, { reps: r })}
+                      valueMax={exData.repsMax} onChangeMax={m => updEx(i, ex.id, { repsMax: m })} />
                     <RowMenu
                       weightUnit={exData.weightUnit ?? defaults.weightUnit} repsUnit={exData.repsUnit ?? defaults.repsUnit}
                       onWeightUnit={u => updEx(i, ex.id, { weightUnit: u })} onRepsUnit={u => updEx(i, ex.id, { repsUnit: u })}
+                      rangeOn={exData.repsMax != null}
+                      onToggleRange={(exData.repsUnit ?? defaults.repsUnit) === 'reps' ? () => {
+                        if (exData.repsMax != null) { const { repsMax: _m, ...rest } = set[ex.id] || {}; updSet(i, { ...set, [ex.id]: rest }) }
+                        else updEx(i, ex.id, { repsMax: exData.reps + 2 })
+                      } : null}
                       onAddDrop={() => addDrop(i, ex.id)} canAddDrop={drops.length < MAX_DROPS}
                       onAddNote={exData.note === undefined ? () => updEx(i, ex.id, { note: '' }) : null}
+                      onAddTempo={exData.tempo === undefined ? () => updEx(i, ex.id, { tempo: '' }) : null}
                       onOpenChange={onMenuLift}
                     />
                   </div>
@@ -897,8 +1191,9 @@ function SupersetSetsEditor({ item, onChange, onMenuLift, defaults }) {
             })}
           </div>
           {i < item.sets.length - 1 && (
-            <RestDivider value={item.restSet ?? defaults.restSet}
-              onChange={v => onChange({ ...item, restSet: v })} onMenuLift={onMenuLift} />
+            <RestDivider value={set.restAfter ?? item.restSet ?? defaults.restSet}
+              onChange={v => updSet(i, { ...set, restAfter: v })}
+              onApplyAll={applyAllRest} onMenuLift={onMenuLift} />
           )}
           </Fragment>
         ))}
@@ -931,11 +1226,39 @@ function Expandable({ open, children }) {
 // ─── Exercise cards ────────────────────────────────────────────────────────────
 
 // kebab menu items shared by both card types
-const cardMenu = (onEdit, onDelete, onAddNote) => [
+const cardMenu = ({ onEdit, onScheme, onDuplicate, onAddNote, onDelete }) => [
   { label: 'Change exercise', onClick: onEdit },
+  { label: 'Set scheme', onClick: onScheme },
+  { label: 'Duplicate exercise', onClick: onDuplicate },
   ...(onAddNote ? [{ label: 'Add note', onClick: onAddNote }] : []),
   { label: 'Delete', danger: true, onClick: onDelete },
 ]
+
+// quick set-scheme presets — applying REPLACES the item's sets
+const SCHEMES = [{ n: 3, r: 8 }, { n: 4, r: 10 }, { n: 5, r: 5 }, { n: 5, r: 3 }]
+
+function SchemePopover({ onPick, onClose }) {
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 39 }} />
+      <div style={{
+        position: 'absolute', top: 52, right: 12, zIndex: 40,
+        background: 'var(--glass-popover)', border: '1px solid rgba(var(--overlay-rgb),0.10)',
+        borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)', padding: 6,
+        display: 'grid', gridTemplateColumns: 'repeat(2, 64px)', gap: 4,
+      }}>
+        {SCHEMES.map(({ n, r }) => (
+          <button key={`${n}x${r}`} onClick={() => { onPick(n, r); onClose() }} style={{
+            height: 34, borderRadius: 'var(--radius-lg)', border: 'none', cursor: 'pointer', padding: 0,
+            background: 'rgba(var(--overlay-rgb),0.04)',
+            ...TT, fontSize: 13, fontWeight: 500, color: 'var(--cs-on-surface)',
+          }}>{n}×{r}</button>
+        ))}
+      </div>
+    </>
+  )
+}
 
 // ghost kebab — same visual weight as the chevron beside it, no box until tapped
 const kebabTriggerSt = open => ({
@@ -974,79 +1297,18 @@ function SupersetIcon({ size = 15 }) {
   )
 }
 
-// ─── FAB menu (container transform) ────────────────────────────────────────────
-// The 50×50 circle in the save footer morphs into a glass panel: width/height/
-// radius/background animate on one container, the + icon rotates into ×, and
-// the menu items stagger-fade in. The icon button is pinned to the FAB corner
-// so it never moves during the morph.
-
-const FAB_MENU_W = 264
-const FAB_MENU_H = 252
-
-function FabMenu({ open, setOpen, actions }) {
-  const ease = 'cubic-bezier(0.4, 0, 0.2, 1)'
-  return (
-    <>
-      {open && <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 44 }} />}
-      <div style={{ position: 'relative', width: 50, height: 50, flexShrink: 0 }}>
-        <div style={{
-          position: 'absolute', right: 0, bottom: 0, zIndex: 45,
-          width: open ? FAB_MENU_W : 50, height: open ? FAB_MENU_H : 50,
-          // closed = radius-xl like every control on the screen; open = radius-2xl like the cards
-          borderRadius: open ? 'var(--radius-2xl)' : 'var(--radius-xl)',
-          background: open ? 'var(--glass-popover)' : 'var(--glass-control)',
-          border: '1px solid rgba(var(--cs-outline-rgb),0.50)',
-          boxShadow: open ? '0 12px 32px rgba(var(--cs-shadow-rgb),0.6)' : 'var(--shadow-card)',
-          backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-          overflow: 'hidden',
-          transition: `width 0.32s ${ease}, height 0.32s ${ease}, border-radius 0.32s ${ease}, background 0.32s ${ease}, box-shadow 0.32s ${ease}`,
-        }}>
-          {/* menu items — stagger in once the panel has begun to open */}
-          <div style={{ position: 'absolute', top: 10, left: 10, right: 10, display: 'flex', flexDirection: 'column' }}>
-            {actions.map((a, i) => (
-              <Fragment key={a.label}>
-                {a.dividerAbove && <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.07)', margin: '5px 8px' }} />}
-                <button onClick={() => { setOpen(false); a.onClick?.() }} style={{
-                  ...TT, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 12px',
-                  background: 'none', border: 'none', borderRadius: 'var(--radius-lg)', cursor: 'pointer',
-                  fontSize: 15, fontWeight: a.primary ? 600 : 500,
-                  color: a.primary ? 'var(--cs-primary)' : 'var(--cs-on-surface)',
-                  textAlign: 'left', whiteSpace: 'nowrap',
-                  opacity: open ? 1 : 0,
-                  transform: open ? 'translateY(0)' : 'translateY(6px)',
-                  transition: `opacity 0.2s ease ${open ? 0.1 + i * 0.04 : 0}s, transform 0.2s ease ${open ? 0.1 + i * 0.04 : 0}s`,
-                  pointerEvents: open ? 'auto' : 'none',
-                }}>
-                  <span style={{ display: 'flex', color: a.primary ? 'var(--cs-primary)' : 'var(--cs-on-surface-variant)', opacity: a.primary ? 1 : 0.7 }}>{a.icon}</span>
-                  {a.label}
-                </button>
-              </Fragment>
-            ))}
-          </div>
-          {/* + / × — persists through the morph, pinned where the FAB was */}
-          <button onClick={() => setOpen(o => !o)} style={{
-            position: 'absolute', right: 0, bottom: 0, width: 50, height: 50,
-            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: 'var(--cs-on-surface)',
-            transform: open ? 'rotate(45deg)' : 'rotate(0deg)',
-            transition: `transform 0.32s ${ease}`,
-          }}>
-            <PlusIcon size={18} />
-          </button>
-        </div>
-      </div>
-    </>
-  )
-}
-
-function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit, defaults }) {
+function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit, onDuplicate, defaults }) {
   const ex = ALL_EXERCISES.find(e => e.id === item.exerciseId)
   // card drops overflow:hidden while a menu (header kebab OR a row ⋮) is open
   // so the popover can escape the clip; zIndex raises it above sibling cards
   const [menuOpen, setMenuOpen] = useState(false)
   const [rowLift, setRowLift] = useState(false)
-  const lifted = menuOpen || rowLift
+  const [schemeOpen, setSchemeOpen] = useState(false)
+  const lifted = menuOpen || rowLift || schemeOpen
+  function applyScheme(n, r) {
+    const last = item.sets[item.sets.length - 1] || {}
+    onChange({ ...item, sets: Array.from({ length: n }, () => ({ weight: last.weight ?? 8, reps: r, weightUnit: last.weightUnit, repsUnit: last.repsUnit })) })
+  }
   if (!ex) return null
 
   return (
@@ -1066,10 +1328,18 @@ function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit, defaults }
           <span style={{ color: 'var(--cs-on-surface-variant)', opacity: 0.45, display: 'flex', flexShrink: 0 }}><ChevDownIcon open={open} /></span>
           <span onClick={e => e.stopPropagation()} style={{ display: 'flex', flexShrink: 0 }}>
             <DropdownMenu onOpenChange={setMenuOpen}
-              items={cardMenu(onEdit, onDelete, item.note === undefined ? () => onChange({ ...item, note: '' }) : null)}
+              items={cardMenu({
+                onEdit,
+                onScheme: () => setSchemeOpen(true),
+                onDuplicate,
+                onAddNote: item.note === undefined ? () => onChange({ ...item, note: '' }) : null,
+                onDelete,
+              })}
               triggerStyle={kebabTriggerSt(menuOpen)} />
           </span>
         </div>
+
+        {schemeOpen && <SchemePopover onPick={applyScheme} onClose={() => setSchemeOpen(false)} />}
 
         {/* exercise note — visible even collapsed; emptied on blur = removed */}
         {item.note !== undefined && (
@@ -1100,12 +1370,25 @@ function removeFromSuperset(item, exId) {
   return { id: item.id, type: 'solo', exerciseId: rem, restSet: item.restSet, sets: item.sets.map(s => ({ ...(s[rem] || { weight: 8, reps: 10 }) })) }
 }
 
-function SupersetCard({ item, open, onToggle, onChange, onDelete, onEdit, defaults }) {
+function SupersetCard({ item, open, onToggle, onChange, onDelete, onEdit, onDuplicate, defaults }) {
   const exercises = item.exerciseIds.map(id => ALL_EXERCISES.find(e => e.id === id)).filter(Boolean)
   // card drops overflow:hidden while a menu (header kebab OR a row ⋮) is open
   const [menuOpen, setMenuOpen] = useState(false)
   const [rowLift, setRowLift] = useState(false)
-  const lifted = menuOpen || rowLift
+  const [schemeOpen, setSchemeOpen] = useState(false)
+  const lifted = menuOpen || rowLift || schemeOpen
+  function applyScheme(n, r) {
+    const lastRound = item.sets[item.sets.length - 1] || {}
+    const sets = Array.from({ length: n }, () => {
+      const o = {}
+      item.exerciseIds.forEach(id => {
+        const prev = lastRound[id] || {}
+        o[id] = { weight: prev.weight ?? 8, reps: r, weightUnit: prev.weightUnit, repsUnit: prev.repsUnit }
+      })
+      return o
+    })
+    onChange({ ...item, sets })
+  }
 
   return (
     <div style={{ borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.05)', border: '1px solid rgba(var(--cs-primary-rgb),0.18)', overflow: lifted ? 'visible' : 'hidden', position: 'relative', zIndex: lifted ? 30 : 'auto', boxShadow: 'var(--shadow-card)' }}>
@@ -1120,10 +1403,17 @@ function SupersetCard({ item, open, onToggle, onChange, onDelete, onEdit, defaul
           <span style={{ color: 'var(--cs-on-surface-variant)', opacity: 0.45, display: 'flex' }}><ChevDownIcon open={open} /></span>
           <span onClick={e => e.stopPropagation()} style={{ display: 'flex', flexShrink: 0 }}>
             <DropdownMenu onOpenChange={setMenuOpen}
-              items={cardMenu(onEdit, onDelete, item.note === undefined ? () => onChange({ ...item, note: '' }) : null)}
+              items={cardMenu({
+                onEdit,
+                onScheme: () => setSchemeOpen(true),
+                onDuplicate,
+                onAddNote: item.note === undefined ? () => onChange({ ...item, note: '' }) : null,
+                onDelete,
+              })}
               triggerStyle={kebabTriggerSt(menuOpen)} />
           </span>
         </div>
+        {schemeOpen && <SchemePopover onPick={applyScheme} onClose={() => setSchemeOpen(false)} />}
         {exercises.map((ex, i) => (
           <div key={ex.id}>
             {i > 0 && <div style={{ height: 1, background: 'rgba(var(--cs-primary-rgb),0.10)', marginLeft: 14 }} />}
@@ -1210,12 +1500,37 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
 
   function toggle(id) { setExpandedId(cur => cur === id ? null : id) }
   function updateItem(updated) { setItems(p => p.map(it => it.id === updated.id ? updated : it)) }
+  // delete is undoable: the removed card + its rest slot sit in a 4s buffer
+  const [lastDeleted, setLastDeleted] = useState(null) // { item, index, gap }
+  const undoTimer = useRef(null)
+  const copySeq = useRef(1)
   function deleteItem(id) {
     const i = items.findIndex(it => it.id === id)
-    // drop the gap after the removed card (or the last gap when removing the last card)
-    if (i >= 0) setRestGaps(g => g.filter((_, j) => j !== Math.min(i, g.length - 1)))
+    if (i < 0) return
+    const gap = restGaps[Math.min(i, restGaps.length - 1)]
+    setRestGaps(g => g.filter((_, j) => j !== Math.min(i, g.length - 1)))
     setItems(p => p.filter(it => it.id !== id))
     setExpandedId(null)
+    clearTimeout(undoTimer.current)
+    setLastDeleted({ item: items[i], index: i, gap })
+    undoTimer.current = setTimeout(() => setLastDeleted(null), 4000)
+  }
+  function undoDelete() {
+    if (!lastDeleted) return
+    clearTimeout(undoTimer.current)
+    const { item, index, gap } = lastDeleted
+    setItems(p => { const n = [...p]; n.splice(Math.min(index, n.length), 0, item); return n })
+    setRestGaps(g => { const n = [...g]; n.splice(Math.min(index, n.length), 0, gap ?? defaults.restGap); return n })
+    setLastDeleted(null)
+  }
+  function duplicateItem(id) {
+    const i = items.findIndex(it => it.id === id)
+    if (i < 0) return
+    const copy = JSON.parse(JSON.stringify(items[i]))
+    copy.id = `${id}-c${copySeq.current++}`
+    setItems(p => [...p.slice(0, i + 1), copy, ...p.slice(i + 1)])
+    // the copy inherits the original's pause-after as its own slot
+    setRestGaps(g => { const n = [...g]; n.splice(i, 0, g[i] ?? defaults.restGap); return n })
   }
   function editItem() { /* stub — wire to the Exercises search/picker when connected */ }
   function moveItem(from, to) {
@@ -1329,8 +1644,8 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: reorderMode ? ROW_GAP : 16 }}>
             {items.map((item, i) => {
               const card = item.type === 'superset'
-                ? <SupersetCard item={item} open={!reorderMode && expandedId === item.id} onToggle={() => !reorderMode && toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} defaults={defaults} />
-                : <SoloCard item={item} open={!reorderMode && expandedId === item.id} onToggle={() => !reorderMode && toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} defaults={defaults} />
+                ? <SupersetCard item={item} open={!reorderMode && expandedId === item.id} onToggle={() => !reorderMode && toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} onDuplicate={() => duplicateItem(item.id)} defaults={defaults} />
+                : <SoloCard item={item} open={!reorderMode && expandedId === item.id} onToggle={() => !reorderMode && toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} onDuplicate={() => duplicateItem(item.id)} defaults={defaults} />
               return (
                 <Fragment key={item.id}>
                   <div ref={el => { rowRefs.current[i] = el }} style={{
@@ -1374,6 +1689,23 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
                 { label: 'Save workout', icon: <CheckIcon />, primary: true, dividerAbove: true, onClick: () => { /* stub — save */ } },
               ]} />
             </div>
+          </div>
+        )}
+
+        {/* undo snackbar — 4s window after deleting an exercise */}
+        {lastDeleted && (
+          <div style={{
+            position: 'absolute', left: 16, right: 16, bottom: 96, zIndex: 46,
+            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
+            borderRadius: 'var(--radius-xl)', background: 'var(--glass-popover)',
+            border: '1px solid rgba(var(--overlay-rgb),0.10)',
+            backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+            boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)',
+          }}>
+            <span style={{ ...TT, flex: 1, fontSize: 13, color: 'var(--cs-on-surface)' }}>Exercise deleted</span>
+            <button onClick={undoDelete} style={{ ...TT, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--cs-primary)', padding: 0 }}>
+              Undo
+            </button>
           </div>
         )}
 

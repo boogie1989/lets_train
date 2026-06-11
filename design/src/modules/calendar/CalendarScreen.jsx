@@ -1,58 +1,19 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import DateCell from '../../components/DateCell.jsx'
-import ScheduleHeader from '../../components/ScheduleHeader.jsx'
 import TaskItem from '../../components/TaskItem.jsx'
+import FabMenu from '../../components/FabMenu.jsx'
 import { LibrariesView } from '../libraries/index.js'
+import {
+  MONTH_LABEL, TODAY, WEEKS, WD, WEEKDAY_FULL, weekIndexOf, dateLabel, PLAN, NEIGHBOR_MONTHS,
+  initMonth, computeDayStats, computeNut, computeDayLoad, isDone,
+  patchDay, addItem, toggleItem,
+} from './calendarModel.js'
+import { DaySummary, ReadinessCard, MonthGrid } from './CalendarWidgets.jsx'
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
 const USER = { name: 'Serhii Buhai', email: 'serhii.work@gmail.com', initials: 'SB' }
-// Nutrition goals (per day) — consumed values are derived from completed meal items.
-const GOALS = { kcal: 2200, p: 150, c: 230, f: 70 }
-
-// Plan templates. Items are typed (kind: workout | meal); meals carry kcal + macros so
-// the day's nutrition is computed from what's actually checked off.
-const PLANS = {
-  full: [
-    { kind: 'workout', title: 'Morning Strength', time: '07:00 AM', exerciseCount: 8, status: 'Completed' },
-    { kind: 'meal', title: 'Breakfast', time: '08:00 AM', kcal: 560, p: 32, c: 62, f: 22, status: 'Completed' },
-    { kind: 'workout', title: 'Mobility Training', time: '08:30 AM', exerciseCount: 7, status: 'Completed' },
-    { kind: 'workout', title: 'Leg Day', time: '10:00 AM', exerciseCount: 12, status: 'Planned' },
-    { kind: 'meal', title: 'Lunch', time: '12:30 PM', kcal: 680, p: 42, c: 75, f: 25, status: 'Completed' },
-    { kind: 'workout', title: 'Core Workout', time: '03:00 PM', exerciseCount: 10, status: 'Planned' },
-    { kind: 'workout', title: 'Evening Yoga', time: '06:30 PM', exerciseCount: 5, status: 'Planned' },
-    { kind: 'meal', title: 'Dinner', time: '07:30 PM', kcal: 540, p: 38, c: 55, f: 18, status: 'Planned' },
-  ],
-  light: [
-    { kind: 'meal', title: 'Breakfast', time: '08:00 AM', kcal: 520, p: 30, c: 60, f: 18, status: 'Completed' },
-    { kind: 'workout', title: 'Upper Body', time: '06:00 PM', exerciseCount: 9, status: 'Planned' },
-    { kind: 'meal', title: 'Dinner', time: '07:30 PM', kcal: 610, p: 45, c: 62, f: 23, status: 'Planned' },
-  ],
-  empty: [],
-}
-
-// Selectable demo week. tense drives initial item statuses: future → all Planned;
-// past + today keep the plan's authored mix — past days show what actually happened,
-// so their uncompleted items surface the "Missed" label. `init` can still override.
-const WEEK = [
-  { weekday: 'Sun', day: '10', date: 'May 10', plan: 'light', tense: 'past' },
-  { weekday: 'Mon', day: '11', date: 'May 11', plan: 'full', tense: 'past' },
-  { weekday: 'Tue', day: '12', date: 'May 12', plan: 'empty', tense: 'past' },
-  { weekday: 'Wed', day: '13', date: 'May 13', plan: 'full', tense: 'today' },
-  { weekday: 'Thu', day: '14', date: 'May 14', plan: 'light', tense: 'future' },
-  { weekday: 'Fri', day: '15', date: 'May 15', plan: 'full', tense: 'future' },
-  { weekday: 'Sat', day: '16', date: 'May 16', plan: 'empty', tense: 'future' },
-]
-const WEEKDAY_FULL = { Sun: 'Sunday', Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday' }
-
-const initWeekItems = () => Object.fromEntries(WEEK.map(w => {
-  const init = w.init ?? (w.tense === 'future' ? 'planned' : 'authored')
-  return [w.day, PLANS[w.plan].map(it => ({
-    ...it,
-    status: init === 'done' ? 'Completed' : init === 'planned' ? 'Planned' : it.status,
-  }))]
-}))
 
 const cardSlab = {
   width: '100%',
@@ -77,52 +38,67 @@ const iconBtn = {
   flexShrink: 0, cursor: 'default', padding: 0,
 }
 
-export default function CalendarScreen({ initialDay = '13' }) {
+export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = false }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [lib, setLib] = useState(null)
+  const [month, setMonth] = useState(initMonth)
   const [selected, setSelected] = useState(initialDay)
-  const [weekItems, setWeekItems] = useState(initWeekItems)
+  const [weekIdx, setWeekIdx] = useState(Math.max(0, weekIndexOf(initialDay)))
+  const [monthOpen, setMonthOpen] = useState(initialMonthOpen)
+  const [monthOffset, setMonthOffset] = useState(0) // -1 Apr / 0 May / 1 Jun (ghost months)
+  const [fabOpen, setFabOpen] = useState(false)
 
-  const selDay = WEEK.find(w => w.day === selected) ?? WEEK[3]
-  const items = weekItems[selected] ?? []
-  const workouts = items.filter(t => t.kind === 'workout')
-  const meals = items.filter(t => t.kind === 'meal')
-  const eaten = meals.filter(t => t.status === 'Completed')
-  const dayStats = {
-    wTotal: workouts.length,
-    wDone: workouts.filter(t => t.status === 'Completed').length,
-    exercises: workouts.reduce((s, t) => s + t.exerciseCount, 0),
-    mTotal: meals.length,
-    mDone: eaten.length,
+  const day = month[selected]
+  const items = day.items
+  const stats = computeDayStats(items)
+  const nut = computeNut(items)
+  const dayLoad = computeDayLoad(items)
+  const isToday = selected === TODAY
+  const isPast = day.tense === 'past'
+  const dayCompleted = n => month[n].items.length > 0 && month[n].items.every(isDone)
+
+  const selectDay = n => { setSelected(n); setWeekIdx(Math.max(0, weekIndexOf(n))); setMonthOpen(false); setMonthOffset(0) }
+  const toggle = i => setMonth(m => toggleItem(m, selected, i))
+
+  // ── horizontal swipe on the date strip: week view pages weeks, month view pages months ──
+  const swipeStart = useRef(null)
+  const [dragX, setDragX] = useState(0)
+  const shiftWeek = dir => {
+    const wi = Math.max(0, Math.min(WEEKS.length - 1, weekIdx + dir))
+    if (wi === weekIdx) return
+    setWeekIdx(wi)
+    setSelected(WEEKS[wi][WD.indexOf(day.weekday)] ?? WEEKS[wi].find(x => x != null))
   }
-  const nut = {
-    kcal: eaten.reduce((s, t) => s + t.kcal, 0), goal: GOALS.kcal,
-    p: eaten.reduce((s, t) => s + t.p, 0), pGoal: GOALS.p,
-    c: eaten.reduce((s, t) => s + t.c, 0), cGoal: GOALS.c,
-    f: eaten.reduce((s, t) => s + t.f, 0), fGoal: GOALS.f,
+  const swipeHandlers = {
+    onPointerDown: e => { swipeStart.current = e.clientX },
+    onPointerMove: e => { if (swipeStart.current != null) setDragX(e.clientX - swipeStart.current) },
+    onPointerUp: () => {
+      if (swipeStart.current == null) return
+      const d = dragX
+      swipeStart.current = null
+      setDragX(0)
+      if (Math.abs(d) < 60) return
+      const dir = d < 0 ? 1 : -1 // swipe left → next
+      if (monthOpen) setMonthOffset(o => Math.max(-1, Math.min(1, o + dir)))
+      else shiftWeek(dir)
+    },
+    onPointerLeave: () => { if (swipeStart.current != null) { swipeStart.current = null; setDragX(0) } },
   }
-  const dayCompleted = d => (weekItems[d] ?? []).length > 0 && weekItems[d].every(t => t.status === 'Completed')
-  const toggleItem = title => setWeekItems(w => ({
-    ...w,
-    [selected]: w[selected].map(it => it.title === title
-      ? { ...it, status: it.status === 'Completed' ? 'Planned' : 'Completed' }
-      : it),
-  }))
+  const dragShift = Math.max(-70, Math.min(70, dragX / 2)) // follow with resistance
+  // FAB menu actions — demo items land in the selected day (ad-hoc: no plan tag)
+  const scheduleWorkout = () => setMonth(m => addItem(m, selected, { kind: 'workout', title: 'Quick Workout', time: '05:00 PM', exerciseCount: 6, status: 'Planned' }))
+  const scheduleMeal = () => setMonth(m => addItem(m, selected, { kind: 'meal', title: 'Snack', time: '04:00 PM', kcal: 280, p: 18, c: 30, f: 9, status: 'Planned' }))
+  const logMeal = () => setMonth(m => addItem(m, selected, { kind: 'meal', title: 'Snack', time: '04:00 PM', kcal: 280, p: 18, c: 30, f: 9, status: 'Completed' }))
+
   return (
     <PhoneFrame smokeVariant="animated">
       {/* Calendar Card — unified glass slab, full-bleed from top, no border-radius */}
       <div style={cardSlab}>
         <StatusBar />
 
-        {/* Top Bar + Date row with padding */}
-        <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
+        <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 18 }}>
           {/* Top Bar */}
-          <div style={{
-            height: 56,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}>
+          <div style={{ height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <button onClick={() => setMenuOpen(true)} style={{ ...iconBtn, cursor: 'pointer' }} aria-label="Open menu">
               <MenuIcon />
             </button>
@@ -137,15 +113,20 @@ export default function CalendarScreen({ initialDay = '13' }) {
               }}>
                 Calendar
               </span>
-              <span style={{
-                fontFamily: 'var(--tt-font-family)',
+              {/* Month label = quiet week/month toggle (chevron flips when open) */}
+              <button onClick={() => { setMonthOpen(o => !o); setMonthOffset(0) }} style={{
+                ...TT, display: 'flex', alignItems: 'center', gap: 4, padding: 0,
+                background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: 'var(--tt-body-small-size)',
                 fontWeight: 'var(--tt-body-small-weight)',
                 letterSpacing: 'var(--tt-body-small-tracking)',
                 color: 'var(--cs-on-surface-variant)',
               }}>
-                May 2026
-              </span>
+                {monthOpen && monthOffset !== 0 ? NEIGHBOR_MONTHS[monthOffset].label : MONTH_LABEL}
+                <span style={{ display: 'flex', transform: monthOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', opacity: 0.7 }}>
+                  <ChevDown />
+                </span>
+              </button>
             </div>
 
             <div style={iconBtn}>
@@ -153,14 +134,29 @@ export default function CalendarScreen({ initialDay = '13' }) {
             </div>
           </div>
 
-          {/* Date row — selectable; completed dot derived from the day's items */}
-          <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-            {WEEK.map(({ weekday, day, tense }) => (
-              <DateCell key={day} weekday={weekday} day={day}
-                state={selected === day ? 'selected' : tense === 'today' ? 'today' : 'default'}
-                completed={dayCompleted(day)}
-                onClick={() => setSelected(day)} />
-            ))}
+          {/* Date strip: week row ⇄ inline month grid (same slab, no dialog).
+              Horizontal swipe pages weeks (week view) / months (month view). */}
+          <div {...swipeHandlers} style={{ touchAction: 'pan-y', overflow: 'hidden', cursor: 'grab' }}>
+            <div style={{
+              transform: `translateX(${dragShift}px)`,
+              transition: dragX === 0 ? 'transform 0.25s ease' : 'none',
+            }}>
+              {monthOpen ? (
+                <MonthGrid month={month} selected={selected} onSelect={selectDay}
+                  ghost={monthOffset !== 0 ? NEIGHBOR_MONTHS[monthOffset] : null} />
+              ) : (
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+                  {WEEKS[weekIdx].map((n, i) => (
+                    n == null
+                      ? <span key={`b${i}`} style={{ width: 52, height: 76, flexShrink: 0 }} />
+                      : <DateCell key={n} weekday={month[n].weekday} day={String(n)}
+                          state={selected === n ? 'selected' : n === TODAY ? 'today' : 'default'}
+                          completed={dayCompleted(n)}
+                          onClick={() => selectDay(n)} />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -171,17 +167,31 @@ export default function CalendarScreen({ initialDay = '13' }) {
         display: 'flex',
         flexDirection: 'column',
         gap: 16,
-        padding: '24px 16px',
-        overflow: 'hidden',
+        padding: '20px 16px 96px',
+        overflowY: 'auto',
       }}>
-        <ScheduleHeader subtitle={`${WEEKDAY_FULL[selDay.weekday]}, ${selDay.date}`} />
+        {/* quiet date caption — full weekday for orientation after month-grid jumps */}
+        <span style={{
+          ...TT,
+          fontSize: 'var(--tt-body-medium-size)',
+          fontWeight: 'var(--tt-body-medium-weight)',
+          letterSpacing: 'var(--tt-body-medium-tracking)',
+          color: 'var(--cs-on-surface-variant)',
+        }}>
+          {WEEKDAY_FULL[day.weekday]}, {dateLabel(selected)}
+        </span>
+
+        {isToday && <ReadinessCard value={day.readiness} onSet={v => setMonth(m => patchDay(m, selected, { readiness: v }))} />}
 
         {items.length > 0 ? (
           <>
-            <DaySummary stats={dayStats} nut={nut} />
+            <DaySummary stats={stats} load={dayLoad} nut={nut} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {items.map((task) => (
-                <TaskItem key={task.title} {...task} missed={selDay.tense === 'past'} onToggle={() => toggleItem(task.title)} />
+              {items.map((task, i) => (
+                <TaskItem key={task.title + i} {...task}
+                  plan={task.fromPlan ? PLAN.name : undefined}
+                  missed={isPast}
+                  onClick={() => toggle(i)} />
               ))}
             </div>
           </>
@@ -190,6 +200,17 @@ export default function CalendarScreen({ initialDay = '13' }) {
             <EmptyState />
           </div>
         )}
+      </div>
+
+      {/* ── Footer — FAB menu (shared FabMenu, same recipe as Workout Builder) ── */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 40, padding: '12px 16px 28px', background: 'linear-gradient(0deg, rgba(var(--cs-surface-rgb),0.92) 55%, transparent)', pointerEvents: 'none' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', pointerEvents: 'auto' }}>
+          <FabMenu open={fabOpen} setOpen={setFabOpen} actions={[
+            { label: 'Schedule workout', icon: <BarbellGlyph />, onClick: scheduleWorkout },
+            { label: 'Schedule meal', icon: <MealGlyph />, onClick: scheduleMeal },
+            { label: 'Log meal', icon: <LoggedMealGlyph />, dividerAbove: true, onClick: logMeal },
+          ]} />
+        </div>
       </div>
 
       {/* ── Side menu drawer ── */}
@@ -265,11 +286,17 @@ function LayersGlyph() {
 function MealGlyph() {
   return <svg width="17" height="17" viewBox="0 0 24 24" {...glyph}><path d="M4 3v7a2 2 0 0 0 2 2 2 2 0 0 0 2-2V3" /><line x1="6" y1="12" x2="6" y2="21" /><path d="M17 3c-1.5 0-2.5 1.6-2.5 4s1 4 2.5 4 2.5-1.6 2.5-4-1-4-2.5-4z" /><line x1="17" y1="11" x2="17" y2="21" /></svg>
 }
+function LoggedMealGlyph() {
+  return <svg width="16" height="16" viewBox="0 0 24 24" {...glyph}><circle cx="12" cy="12" r="9" /><polyline points="8.5 12.2 11 14.7 15.5 9.8" /></svg>
+}
 function PlanGlyph() {
   return <svg width="16" height="16" viewBox="0 0 24 24" {...glyph}><rect x="3" y="4" width="18" height="17" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="7" y1="14" x2="9" y2="14" /><line x1="12" y1="14" x2="17" y2="14" /></svg>
 }
 function ChevR() {
   return <svg width="15" height="15" viewBox="0 0 24 24" {...glyph}><polyline points="9 6 15 12 9 18" /></svg>
+}
+function ChevDown() {
+  return <svg width="12" height="12" viewBox="0 0 24 24" {...glyph}><polyline points="6 9 12 15 18 9" /></svg>
 }
 
 function EmptyState() {
@@ -286,7 +313,7 @@ function EmptyState() {
       paddingTop: 80,
       paddingBottom: 52,
       gap: 8,
-      transform: 'translateY(-50%)',  // center = 0, this = -0.5 in block units
+      transform: 'translateY(-50%)',
     }}>
       <div style={{ opacity: 0.25, marginBottom: 4 }}>
         <CalendarOffIcon />
@@ -309,75 +336,6 @@ function EmptyState() {
       }}>
         Press + to add a workout
       </span>
-    </div>
-  )
-}
-
-
-const summaryCard = { flexShrink: 0, background: 'var(--glass-low-bg)', borderRadius: 'var(--radius-2xl)', border: '1px solid rgba(var(--cs-outline-rgb),0.20)' }
-
-// ── Selected-day summary — calm progress rows, both segmented per item. Workouts =
-// 1 segment per workout (completed filled emerald); Nutrition = 1 segment per meal
-// (eaten filled slate) + kcal value + one-line macro legend (P / C / F).
-function SegmentBar({ total, done, color }) {
-  return (
-    <div style={{ display: 'flex', gap: 4 }}>
-      {Array.from({ length: total }, (_, i) => (
-        <div key={i} style={{
-          flex: 1, height: 6, borderRadius: 3,
-          background: i < done ? color : 'rgba(var(--overlay-rgb),0.06)',
-          opacity: i < done ? 0.85 : 1,
-        }} />
-      ))}
-    </div>
-  )
-}
-
-function DaySummary({ stats, nut }) {
-  const macros = [
-    { key: 'P', g: nut.p, goal: nut.pGoal, ch: '--cat-blue-rgb' },
-    { key: 'C', g: nut.c, goal: nut.cGoal, ch: '--cat-amber-rgb' },
-    { key: 'F', g: nut.f, goal: nut.fGoal, ch: '--cat-pink-rgb' },
-  ]
-  const headRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 9 }
-  const lbl = { ...TT, fontSize: 'var(--tt-title-small-size)', fontWeight: 'var(--tt-title-small-weight)', letterSpacing: 'var(--tt-title-small-tracking)', color: 'var(--cs-on-surface)' }
-  const val = { ...TT, fontSize: 'var(--tt-body-small-size)', fontWeight: 'var(--tt-body-small-weight)', letterSpacing: 'var(--tt-body-small-tracking)', color: 'var(--cs-on-surface-variant)' }
-  return (
-    <div style={{ ...summaryCard, padding: '15px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Workouts — segmented bar, one segment per workout */}
-      {stats.wTotal > 0 && (
-        <div>
-          <div style={headRow}>
-            <span style={lbl}>Workouts</span>
-            <span style={val}>
-              {stats.wTotal === 1 ? (stats.wDone ? 'Completed' : 'Planned') : `${stats.wDone} of ${stats.wTotal}`}
-              {' · '}{stats.exercises} exercises
-            </span>
-          </div>
-          <SegmentBar total={stats.wTotal} done={stats.wDone} color="var(--cs-status-completed)" />
-        </div>
-      )}
-
-      {/* Nutrition — segmented bar, one segment per meal + macro legend */}
-      {stats.mTotal > 0 && (
-        <div>
-          <div style={headRow}>
-            <span style={lbl}>Nutrition</span>
-            <span style={val}>{nut.kcal.toLocaleString()} / {nut.goal.toLocaleString()} kcal</span>
-          </div>
-          <SegmentBar total={stats.mTotal} done={stats.mDone} color="var(--cs-primary)" />
-          <div style={{ display: 'flex', gap: 18, marginTop: 9 }}>
-            {macros.map(m => (
-              <span key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: `rgba(var(${m.ch}),1)` }} />
-                <span style={val}>
-                  <span style={{ fontWeight: 500, color: 'var(--cs-on-surface)' }}>{m.key} {m.g}</span> / {m.goal} g
-                </span>
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
