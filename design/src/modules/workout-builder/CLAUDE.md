@@ -38,7 +38,7 @@ Create / edit a workout — name it, add exercises (solo or superset), and edit 
 ## Notes (exercise + set level)
 - **`NoteRow`** — a quiet one-liner (pencil icon 12px at 0.40 + transparent 12px input, placeholder `Note…`). Always editable in place; **blurring it empty removes the note** — zero pixels when absent. `autoFocus` fires when the note is created empty.
 - **Exercise note** (`item.note`) — added via the card kebab → `Add note` (the item shows only while no note exists). Renders under the card header, **visible even collapsed** — it's the coach's cue for the whole exercise. Works on solo cards and supersets (note on the whole superset item).
-- **Set note** (`set.note`; in supersets per-exercise `set[exId].note`) — added via the row ⋮ → `Add note`. Renders as an indented sub-row under the set row (paddingLeft 40, same grammar as drop sub-rows).
+- **Set note** (`set.note`; in supersets per-exercise `set[exId].note`) — added via the row ⋮ → `Add note`. Renders **ABOVE the set row** (indented to the value columns, paddingLeft 40): the cue is read before the set is performed, the main-row → drops chain stays unbroken, and it matches the "note precedes what it describes" rule (exercise notes sit above the sets, superset name rows sit above their values). Below-the-row was tried and moved.
 - NO notes on drops, rounds, or rest — the exercise/set levels cover those cases (decision; don't add).
 - Workout-level notes = the description field in the details card (already existed).
 

@@ -715,7 +715,16 @@ function SetRowGroup({ idx, set, canDelete, canAddDrop, onChange, onDelete, onAd
   const rowGridSt = { display: 'grid', gridTemplateColumns: '32px 1fr 10px 1fr 28px', columnGap: 8, alignItems: 'center' }
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div>
+      {/* set note — ABOVE the set: the cue is read before the set is performed,
+          and the main-row → drops chain stays unbroken */}
+      {set.note !== undefined && (
+        <NoteRow value={set.note}
+          onChange={t => onChange({ ...set, note: t })}
+          onClear={() => { const { note: _n, ...rest } = set; onChange(rest) }}
+          style={{ marginBottom: 10, paddingLeft: 40, paddingRight: 36 }} />
+      )}
+      <div style={{ position: 'relative' }}>
       {/* connector — from the circled set number down through the drop nodes */}
       {hasDrops && (
         <div style={{ position: 'absolute', left: 15, top: LINE_TOP, bottom: LINE_BOTTOM, width: 2, borderRadius: 1, background: 'rgba(var(--cs-primary-rgb),0.35)' }} />
@@ -737,14 +746,6 @@ function SetRowGroup({ idx, set, canDelete, canAddDrop, onChange, onDelete, onAd
           onOpenChange={onMenuLift}
         />
       </div>
-
-      {/* set note — indented to the value columns, like a sub-row */}
-      {set.note !== undefined && (
-        <NoteRow value={set.note}
-          onChange={t => onChange({ ...set, note: t })}
-          onClear={() => { const { note: _n, ...rest } = set; onChange(rest) }}
-          style={{ marginTop: 6, paddingLeft: 40, paddingRight: 36 }} />
-      )}
 
       {/* drop-set rows — same full-width fields, separated from the main set by a
           larger top gap (14 vs the 8 in-group rhythm) so the hierarchy reads vertically */}
@@ -771,6 +772,7 @@ function SetRowGroup({ idx, set, canDelete, canAddDrop, onChange, onDelete, onAd
           })}
         </div>
       )}
+      </div>
     </div>
   )
 }
@@ -840,6 +842,14 @@ function SupersetSetsEditor({ item, onChange, onMenuLift, defaults }) {
                     )}
                   </div>
 
+                  {/* per-exercise set note — between the name row and the values */}
+                  {exData.note !== undefined && (
+                    <NoteRow value={exData.note}
+                      onChange={t => updEx(i, ex.id, { note: t })}
+                      onClear={() => { const { note: _n, ...rest } = set[ex.id] || {}; updSet(i, { ...set, [ex.id]: rest }) }}
+                      style={{ marginTop: 6, marginBottom: 2, paddingLeft: 40, paddingRight: 36 }} />
+                  )}
+
                   {/* main row — hollow ring on the connector; menu has no Delete
                       (a single exercise's row can't leave the round) */}
                   <div style={{ ...rowGridSt, marginTop: 8 }}>
@@ -857,14 +867,6 @@ function SupersetSetsEditor({ item, onChange, onMenuLift, defaults }) {
                       onOpenChange={onMenuLift}
                     />
                   </div>
-
-                  {/* per-exercise set note */}
-                  {exData.note !== undefined && (
-                    <NoteRow value={exData.note}
-                      onChange={t => updEx(i, ex.id, { note: t })}
-                      onClear={() => { const { note: _n, ...rest } = set[ex.id] || {}; updSet(i, { ...set, [ex.id]: rest }) }}
-                      style={{ marginTop: 6, paddingLeft: 40, paddingRight: 36 }} />
-                  )}
 
                   {/* drop rows — same full-width fields, separated by a larger top gap */}
                   {drops.length > 0 && (
