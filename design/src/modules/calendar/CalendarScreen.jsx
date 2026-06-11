@@ -8,27 +8,51 @@ import { LibrariesView } from '../libraries/index.js'
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
 const USER = { name: 'Serhii Buhai', email: 'serhii.work@gmail.com', initials: 'SB' }
-const NUT = { kcal: 1840, goal: 2200, p: 132, pGoal: 150, c: 180, cGoal: 230, f: 58, fGoal: 70 }  // selected-day nutrition (demo)
+// Nutrition goals (per day) — consumed values are derived from completed meal items.
+const GOALS = { kcal: 2200, p: 150, c: 230, f: 70 }
 
-const TASKS = [
-  { title: 'Morning Strength', time: '07:00 AM', exerciseCount: 8, status: 'Completed' },
-  { title: 'Mobility Training', time: '08:30 AM', exerciseCount: 7, status: 'Completed' },
-  { title: 'Leg Day', time: '10:00 AM', exerciseCount: 12, status: 'Planned' },
-  { title: 'HIIT Cardio', time: '12:00 PM', exerciseCount: 6, status: 'Planned' },
-  { title: 'Core Workout', time: '03:00 PM', exerciseCount: 10, status: 'Planned' },
-  { title: 'Upper Body', time: '05:00 PM', exerciseCount: 9, status: 'Planned' },
-  { title: 'Evening Yoga', time: '06:30 PM', exerciseCount: 5, status: 'Planned' },
-]
+// Plan templates. Items are typed (kind: workout | meal); meals carry kcal + macros so
+// the day's nutrition is computed from what's actually checked off.
+const PLANS = {
+  full: [
+    { kind: 'workout', title: 'Morning Strength', time: '07:00 AM', exerciseCount: 8, status: 'Completed' },
+    { kind: 'meal', title: 'Breakfast', time: '08:00 AM', kcal: 560, p: 32, c: 62, f: 22, status: 'Completed' },
+    { kind: 'workout', title: 'Mobility Training', time: '08:30 AM', exerciseCount: 7, status: 'Completed' },
+    { kind: 'workout', title: 'Leg Day', time: '10:00 AM', exerciseCount: 12, status: 'Planned' },
+    { kind: 'meal', title: 'Lunch', time: '12:30 PM', kcal: 680, p: 42, c: 75, f: 25, status: 'Completed' },
+    { kind: 'workout', title: 'Core Workout', time: '03:00 PM', exerciseCount: 10, status: 'Planned' },
+    { kind: 'workout', title: 'Evening Yoga', time: '06:30 PM', exerciseCount: 5, status: 'Planned' },
+    { kind: 'meal', title: 'Dinner', time: '07:30 PM', kcal: 540, p: 38, c: 55, f: 18, status: 'Planned' },
+  ],
+  light: [
+    { kind: 'meal', title: 'Breakfast', time: '08:00 AM', kcal: 520, p: 30, c: 60, f: 18, status: 'Completed' },
+    { kind: 'workout', title: 'Upper Body', time: '06:00 PM', exerciseCount: 9, status: 'Planned' },
+    { kind: 'meal', title: 'Dinner', time: '07:30 PM', kcal: 610, p: 45, c: 62, f: 23, status: 'Planned' },
+  ],
+  empty: [],
+}
 
-const DATES = [
-  { weekday: 'Sun', day: '10', state: 'default' },
-  { weekday: 'Mon', day: '11', state: 'default' },
-  { weekday: 'Tue', day: '12', state: 'default' },
-  { weekday: 'Wed', day: '13', state: 'today' },
-  { weekday: 'Thu', day: '14', state: 'selected' },
-  { weekday: 'Fri', day: '15', state: 'default' },
-  { weekday: 'Sat', day: '16', state: 'default' },
+// Selectable demo week. tense drives initial item statuses: future → all Planned;
+// past + today keep the plan's authored mix — past days show what actually happened,
+// so their uncompleted items surface the "Missed" label. `init` can still override.
+const WEEK = [
+  { weekday: 'Sun', day: '10', date: 'May 10', plan: 'light', tense: 'past' },
+  { weekday: 'Mon', day: '11', date: 'May 11', plan: 'full', tense: 'past' },
+  { weekday: 'Tue', day: '12', date: 'May 12', plan: 'empty', tense: 'past' },
+  { weekday: 'Wed', day: '13', date: 'May 13', plan: 'full', tense: 'today' },
+  { weekday: 'Thu', day: '14', date: 'May 14', plan: 'light', tense: 'future' },
+  { weekday: 'Fri', day: '15', date: 'May 15', plan: 'full', tense: 'future' },
+  { weekday: 'Sat', day: '16', date: 'May 16', plan: 'empty', tense: 'future' },
 ]
+const WEEKDAY_FULL = { Sun: 'Sunday', Mon: 'Monday', Tue: 'Tuesday', Wed: 'Wednesday', Thu: 'Thursday', Fri: 'Friday', Sat: 'Saturday' }
+
+const initWeekItems = () => Object.fromEntries(WEEK.map(w => {
+  const init = w.init ?? (w.tense === 'future' ? 'planned' : 'authored')
+  return [w.day, PLANS[w.plan].map(it => ({
+    ...it,
+    status: init === 'done' ? 'Completed' : init === 'planned' ? 'Planned' : it.status,
+  }))]
+}))
 
 const cardSlab = {
   width: '100%',
@@ -53,14 +77,37 @@ const iconBtn = {
   flexShrink: 0, cursor: 'default', padding: 0,
 }
 
-export default function CalendarScreen({ hasItems = true }) {
+export default function CalendarScreen({ initialDay = '13' }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [lib, setLib] = useState(null)
+  const [selected, setSelected] = useState(initialDay)
+  const [weekItems, setWeekItems] = useState(initWeekItems)
+
+  const selDay = WEEK.find(w => w.day === selected) ?? WEEK[3]
+  const items = weekItems[selected] ?? []
+  const workouts = items.filter(t => t.kind === 'workout')
+  const meals = items.filter(t => t.kind === 'meal')
+  const eaten = meals.filter(t => t.status === 'Completed')
   const dayStats = {
-    total: TASKS.length,
-    completed: TASKS.filter(t => t.status === 'Completed').length,
-    exercises: TASKS.reduce((s, t) => s + t.exerciseCount, 0),
+    wTotal: workouts.length,
+    wDone: workouts.filter(t => t.status === 'Completed').length,
+    exercises: workouts.reduce((s, t) => s + t.exerciseCount, 0),
+    mTotal: meals.length,
+    mDone: eaten.length,
   }
+  const nut = {
+    kcal: eaten.reduce((s, t) => s + t.kcal, 0), goal: GOALS.kcal,
+    p: eaten.reduce((s, t) => s + t.p, 0), pGoal: GOALS.p,
+    c: eaten.reduce((s, t) => s + t.c, 0), cGoal: GOALS.c,
+    f: eaten.reduce((s, t) => s + t.f, 0), fGoal: GOALS.f,
+  }
+  const dayCompleted = d => (weekItems[d] ?? []).length > 0 && weekItems[d].every(t => t.status === 'Completed')
+  const toggleItem = title => setWeekItems(w => ({
+    ...w,
+    [selected]: w[selected].map(it => it.title === title
+      ? { ...it, status: it.status === 'Completed' ? 'Planned' : 'Completed' }
+      : it),
+  }))
   return (
     <PhoneFrame smokeVariant="animated">
       {/* Calendar Card — unified glass slab, full-bleed from top, no border-radius */}
@@ -106,10 +153,13 @@ export default function CalendarScreen({ hasItems = true }) {
             </div>
           </div>
 
-          {/* Date row */}
+          {/* Date row — selectable; completed dot derived from the day's items */}
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
-            {DATES.map(({ weekday, day, state }) => (
-              <DateCell key={weekday} weekday={weekday} day={day} state={state} />
+            {WEEK.map(({ weekday, day, tense }) => (
+              <DateCell key={day} weekday={weekday} day={day}
+                state={selected === day ? 'selected' : tense === 'today' ? 'today' : 'default'}
+                completed={dayCompleted(day)}
+                onClick={() => setSelected(day)} />
             ))}
           </div>
         </div>
@@ -124,14 +174,14 @@ export default function CalendarScreen({ hasItems = true }) {
         padding: '24px 16px',
         overflow: 'hidden',
       }}>
-        <ScheduleHeader subtitle="Thursday, May 14" />
+        <ScheduleHeader subtitle={`${WEEKDAY_FULL[selDay.weekday]}, ${selDay.date}`} />
 
-        {hasItems ? (
+        {items.length > 0 ? (
           <>
-            <DaySummary stats={dayStats} nut={NUT} />
+            <DaySummary stats={dayStats} nut={nut} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {TASKS.map((task) => (
-                <TaskItem key={task.title} {...task} />
+              {items.map((task) => (
+                <TaskItem key={task.title} {...task} missed={selDay.tense === 'past'} onToggle={() => toggleItem(task.title)} />
               ))}
             </div>
           </>
@@ -265,62 +315,69 @@ function EmptyState() {
 
 
 const summaryCard = { flexShrink: 0, background: 'var(--glass-low-bg)', borderRadius: 'var(--radius-2xl)', border: '1px solid rgba(var(--cs-outline-rgb),0.20)' }
-const pctDone = s => (s.total ? Math.round((s.completed / s.total) * 100) : 0)
 
-// ── Selected-day summary — calm progress rows. Workouts = one overall bar; Nutrition
-// = overall kcal + a 3-section bar (protein / carbs / fat), each filling to its goal.
+// ── Selected-day summary — calm progress rows, both segmented per item. Workouts =
+// 1 segment per workout (completed filled emerald); Nutrition = 1 segment per meal
+// (eaten filled slate) + kcal value + one-line macro legend (P / C / F).
+function SegmentBar({ total, done, color }) {
+  return (
+    <div style={{ display: 'flex', gap: 4 }}>
+      {Array.from({ length: total }, (_, i) => (
+        <div key={i} style={{
+          flex: 1, height: 6, borderRadius: 3,
+          background: i < done ? color : 'rgba(var(--overlay-rgb),0.06)',
+          opacity: i < done ? 0.85 : 1,
+        }} />
+      ))}
+    </div>
+  )
+}
+
 function DaySummary({ stats, nut }) {
   const macros = [
-    { key: 'Protein', g: nut.p, goal: nut.pGoal, ch: '--cat-blue-rgb' },
-    { key: 'Carbs', g: nut.c, goal: nut.cGoal, ch: '--cat-amber-rgb' },
-    { key: 'Fat', g: nut.f, goal: nut.fGoal, ch: '--cat-pink-rgb' },
+    { key: 'P', g: nut.p, goal: nut.pGoal, ch: '--cat-blue-rgb' },
+    { key: 'C', g: nut.c, goal: nut.cGoal, ch: '--cat-amber-rgb' },
+    { key: 'F', g: nut.f, goal: nut.fGoal, ch: '--cat-pink-rgb' },
   ]
   const headRow = { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 9 }
-  const lbl = { ...TT, fontSize: 13, fontWeight: 500, color: 'var(--cs-on-surface)' }
-  const val = { ...TT, fontSize: 12, color: 'var(--cs-on-surface-variant)' }
+  const lbl = { ...TT, fontSize: 'var(--tt-title-small-size)', fontWeight: 'var(--tt-title-small-weight)', letterSpacing: 'var(--tt-title-small-tracking)', color: 'var(--cs-on-surface)' }
+  const val = { ...TT, fontSize: 'var(--tt-body-small-size)', fontWeight: 'var(--tt-body-small-weight)', letterSpacing: 'var(--tt-body-small-tracking)', color: 'var(--cs-on-surface-variant)' }
   return (
     <div style={{ ...summaryCard, padding: '15px 16px', display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Workouts — single overall bar */}
-      <div>
-        <div style={headRow}>
-          <span style={lbl}>Workouts</span>
-          <span style={val}>{stats.completed} of {stats.total} done</span>
+      {/* Workouts — segmented bar, one segment per workout */}
+      {stats.wTotal > 0 && (
+        <div>
+          <div style={headRow}>
+            <span style={lbl}>Workouts</span>
+            <span style={val}>
+              {stats.wTotal === 1 ? (stats.wDone ? 'Completed' : 'Planned') : `${stats.wDone} of ${stats.wTotal}`}
+              {' · '}{stats.exercises} exercises
+            </span>
+          </div>
+          <SegmentBar total={stats.wTotal} done={stats.wDone} color="var(--cs-status-completed)" />
         </div>
-        <div style={{ height: 6, borderRadius: 3, background: 'rgba(var(--overlay-rgb),0.06)', overflow: 'hidden' }}>
-          <div style={{ width: `${pctDone(stats)}%`, height: '100%', borderRadius: 3, background: 'var(--cs-tertiary)', opacity: 0.85, transition: 'width 0.25s' }} />
-        </div>
-      </div>
+      )}
 
-      {/* Nutrition — overall kcal (general) + 3 macro sections */}
-      <div>
-        <div style={headRow}>
-          <span style={lbl}>Nutrition</span>
-          <span style={val}>{nut.kcal.toLocaleString()} / {nut.goal.toLocaleString()} kcal</span>
-        </div>
-        <div style={{ display: 'flex', gap: 5 }}>
-          {macros.map(m => {
-            const mp = m.goal ? Math.min(100, Math.round((m.g / m.goal) * 100)) : 0
-            return (
-              <div key={m.key} style={{ flex: 1, height: 8, borderRadius: 4, background: 'rgba(var(--overlay-rgb),0.06)', overflow: 'hidden' }}>
-                <div style={{ width: `${mp}%`, height: '100%', borderRadius: 4, background: `rgba(var(${m.ch}),1)`, opacity: 0.9, transition: 'width 0.25s' }} />
-              </div>
-            )
-          })}
-        </div>
-        <div style={{ display: 'flex', gap: 5, marginTop: 8 }}>
-          {macros.map(m => (
-            <div key={m.key} style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+      {/* Nutrition — segmented bar, one segment per meal + macro legend */}
+      {stats.mTotal > 0 && (
+        <div>
+          <div style={headRow}>
+            <span style={lbl}>Nutrition</span>
+            <span style={val}>{nut.kcal.toLocaleString()} / {nut.goal.toLocaleString()} kcal</span>
+          </div>
+          <SegmentBar total={stats.mTotal} done={stats.mDone} color="var(--cs-primary)" />
+          <div style={{ display: 'flex', gap: 18, marginTop: 9 }}>
+            {macros.map(m => (
+              <span key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                 <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: `rgba(var(${m.ch}),1)` }} />
-                <span style={{ ...TT, fontSize: 9.5, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.7 }}>{m.key}</span>
-              </div>
-              <div style={{ ...TT, fontSize: 11, color: 'var(--cs-on-surface-variant)' }}>
-                <span style={{ fontWeight: 600, color: 'var(--cs-on-surface)' }}>{m.g}</span> / {m.goal} g
-              </div>
-            </div>
-          ))}
+                <span style={val}>
+                  <span style={{ fontWeight: 500, color: 'var(--cs-on-surface)' }}>{m.key} {m.g}</span> / {m.goal} g
+                </span>
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   )
 }

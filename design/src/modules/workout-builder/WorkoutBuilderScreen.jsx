@@ -1,4 +1,4 @@
-import { useState, useRef, Fragment } from 'react'
+import { useState, useRef, useEffect, Fragment } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import NavBar from '../../components/NavBar.jsx'
@@ -21,11 +21,11 @@ const ALL_EXERCISES = [
 // it belongs to the slot in the workout, not to the exercise, so reordering
 // cards never drags a pause along.
 const DEMO_ITEMS = [
-  { id: 'a', type: 'solo', exerciseId: 1, restSet: 120,
+  { id: 'a', type: 'solo', exerciseId: 1, restSet: 120, note: 'Pause 2s at the bottom, no bouncing.',
     sets: [
       { weight: 7.5, reps: 8 },
       { weight: 175, reps: 8, weightUnit: 'lbs' },
-      { weight: 9, reps: 6, ds: [{ weight: 9.5, reps: 10 }, { weight: 10, reps: 30, repsUnit: 'time' }] },
+      { weight: 9, reps: 6, note: 'Top set — belt on.', ds: [{ weight: 9.5, reps: 10 }, { weight: 10, reps: 30, repsUnit: 'time' }] },
       { weight: 8, reps: 8 },
     ] },
   { id: 'b', type: 'superset', exerciseIds: [5, 8], restSet: 60,
@@ -34,13 +34,13 @@ const DEMO_ITEMS = [
       { 5: { weight: 8.5, reps: 10 }, 8: { weight: 12, reps: 10, weightUnit: 'kg' } },
       { 5: { weight: 9, reps: 10 }, 8: { weight: 10, reps: 12, weightUnit: 'kg' } },
     ] },
-  { id: 'c', type: 'solo', exerciseId: 7, restSet: 60,
+  { id: 'c', type: 'solo', exerciseId: 7,
     sets: [
       { weight: 25, reps: 12, weightUnit: 'kg', ds: [{ weight: 20, reps: 15, weightUnit: 'kg' }] },
       { weight: 25, reps: 10, weightUnit: 'kg', ds: [{ weight: 15, reps: 12, weightUnit: 'kg' }] },
       { weight: 20, reps: 10, weightUnit: 'kg' },
     ] },
-  { id: 'd', type: 'solo', exerciseId: 2, restSet: 120,
+  { id: 'd', type: 'solo', exerciseId: 2,
     sets: [
       { weight: 7, reps: 10 },
       { weight: 8, reps: 8 },
@@ -104,11 +104,11 @@ const tagCreateRowSt = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function soloSummary(sets) {
+function soloSummary(sets, d = { weightUnit: 'rpe' }) {
   if (!sets.length) return '0 sets'
   // summarize load in the unit of the first set; ignore sets logged in other units
-  const unit = sets[0].weightUnit ?? 'rpe'
-  const weights = sets.filter(s => (s.weightUnit ?? 'rpe') === unit).map(s => s.weight).filter(w => w > 0)
+  const unit = sets[0].weightUnit ?? d.weightUnit
+  const weights = sets.filter(s => (s.weightUnit ?? d.weightUnit) === unit).map(s => s.weight).filter(w => w > 0)
   const reps = sets.map(s => s.reps)
   const range = weights.length && Math.min(...weights) === Math.max(...weights)
     ? `${weights[0]}`
@@ -121,7 +121,7 @@ function soloSummary(sets) {
   return `${wStr} · ${rStr} reps`
 }
 
-function calcStats(items, restGaps = []) {
+function calcStats(items, restGaps = [], d = { restSet: 90, restGap: 120 }) {
   let exCount = 0, setCount = 0, sec = 0
   items.forEach((item, i) => {
     const exN = item.type === 'solo' ? 1 : item.exerciseIds.length
@@ -129,8 +129,8 @@ function calcStats(items, restGaps = []) {
     setCount += item.sets.length
     // rough duration: ~40s of work per exercise per set + rests
     sec += item.sets.length * 40 * exN
-    sec += Math.max(0, item.sets.length - 1) * (item.restSet ?? 90)
-    if (i < items.length - 1) sec += restGaps[i] ?? 120
+    sec += Math.max(0, item.sets.length - 1) * (item.restSet ?? d.restSet)
+    if (i < items.length - 1) sec += restGaps[i] ?? d.restGap
   })
   return { exCount, setCount, estMin: Math.round(sec / 60) }
 }
@@ -227,40 +227,93 @@ function Thumb({ muscle, size = 40 }) {
   )
 }
 
-// ─── StepperInput — [ − | editable number | + ] ───────────────────────────────
+// ─── ValueField — `175 lbs` text field / `7.5 rpe` picker field ────────────────
+// The unit lives INSIDE the field as a passive suffix (changing it is a rare,
+// menu-level action). No step buttons at all: continuous values (kg/lbs/sec,
+// reps) are typed; the DISCRETE rpe scale gets a one-tap picker instead.
 
-const stepBtnSt = {
-  width: 34, height: '100%', flexShrink: 0, padding: 0,
-  background: 'transparent', border: 'none',
-  ...TT, fontSize: 19, fontWeight: 300, color: 'var(--cs-on-surface-variant)',
-  cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+const unitSuffix = (kind, u) => {
+  if (u === 'time') return 'sec'
+  if (kind === 'reps' && u === 'failure') return 'AMRAP'
+  return u
 }
 
-function StepperInput({ value, onChange, step = 1, min = 0, max = Infinity, dim = false }) {
+const fieldBoxSt = (dim, active) => ({
+  height: 40, borderRadius: 'var(--radius-xl)', boxSizing: 'border-box',
+  background: dim ? 'rgba(var(--overlay-rgb),0.025)' : 'rgba(var(--overlay-rgb),0.04)',
+  border: `1px solid ${active ? 'rgba(var(--cs-primary-rgb),0.40)' : 'rgba(var(--overlay-rgb),0.08)'}`,
+  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4,
+  transition: 'border-color 0.15s ease',
+})
+
+const suffixSt = dim => ({
+  ...TT, fontSize: 11, fontWeight: 500, color: 'var(--cs-on-surface-variant)', opacity: dim ? 0.45 : 0.55,
+})
+
+// RPE is prescribed on a discrete 6–10 scale in 0.5 steps — picking beats typing.
+// The picker is a compact 3×3 grid, not a scrolling list.
+const RPE_OPTIONS = [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10]
+
+function RpeField({ value, dim = false, onChange, onMenuLift }) {
+  const [open, setOpenRaw] = useState(false)
+  const setOpen = v => { setOpenRaw(v); onMenuLift?.(v) }
   return (
-    <div style={{
-      display: 'flex', alignItems: 'center', height: 40,
-      borderRadius: 'var(--radius-xl)',
-      background: dim ? 'rgba(var(--overlay-rgb),0.025)' : 'rgba(var(--overlay-rgb),0.04)',
-      border: '1px solid rgba(var(--overlay-rgb),0.08)',
-      overflow: 'hidden',
-    }}>
-      <button onClick={() => onChange(Math.max(min, +(value - step).toFixed(2)))}
-        style={{ ...stepBtnSt, borderRight: '1px solid rgba(var(--overlay-rgb),0.06)' }}>−</button>
+    <div style={{ position: 'relative' }}>
+      <button onClick={() => setOpen(!open)} style={{ ...fieldBoxSt(dim, open), width: '100%', padding: 0, cursor: 'pointer' }}>
+        <span style={{ ...TT, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)' }}>{value || 0}</span>
+        <span style={suffixSt(dim)}>rpe</span>
+      </button>
+      {open && (
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 39 }} />
+          <div style={{
+            position: 'absolute', top: '100%', left: '50%', transform: 'translateX(-50%)', marginTop: 5, zIndex: 40,
+            background: 'var(--glass-popover)', border: '1px solid rgba(var(--overlay-rgb),0.10)',
+            borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)', padding: 6,
+            display: 'grid', gridTemplateColumns: 'repeat(3, 44px)', gap: 4,
+          }}>
+            {RPE_OPTIONS.map(v => (
+              <button key={v} onClick={() => { onChange(v); setOpen(false) }} style={{
+                height: 34, borderRadius: 'var(--radius-lg)', border: 'none', cursor: 'pointer', padding: 0,
+                background: v === value ? 'rgba(var(--cs-primary-rgb),0.18)' : 'transparent',
+                ...TT, fontSize: 14, fontWeight: v === value ? 600 : 400,
+                color: v === value ? 'var(--cs-primary)' : 'var(--cs-on-surface)',
+              }}>{v}</button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
+
+function ValueField({ value, unit, kind, dim = false, onChange, onMenuLift }) {
+  const [focused, setFocused] = useState(false)
+  const inputRef = useRef(null)
+
+  if (kind === 'weight' && unit === 'rpe') {
+    return <RpeField value={value} dim={dim} onChange={onChange} onMenuLift={onMenuLift} />
+  }
+
+  const chars = Math.max(1, String(value === 0 ? '0' : value).length)
+  return (
+    <div onClick={() => inputRef.current?.focus()} style={{ ...fieldBoxSt(dim, focused), cursor: 'text' }}>
       <input
+        ref={inputRef}
         value={value === 0 ? '' : String(value)}
         placeholder="0"
-        onChange={e => onChange(Math.min(max, parseFloat(e.target.value) || 0))}
-        inputMode={step < 1 ? 'decimal' : 'numeric'}
+        onChange={e => onChange(parseFloat(e.target.value) || 0)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setFocused(false)}
+        inputMode="numeric"
         style={{
-          flex: 1, minWidth: 0, width: '100%', height: '100%',
+          width: `${chars + 0.5}ch`, maxWidth: 56, padding: 0,
           background: 'transparent', border: 'none', outline: 'none',
-          ...TT, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)',
-          textAlign: 'center', padding: 0,
+          ...TT, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)', textAlign: 'right',
         }}
       />
-      <button onClick={() => onChange(Math.min(max, +(value + step).toFixed(2)))}
-        style={{ ...stepBtnSt, borderLeft: '1px solid rgba(var(--overlay-rgb),0.06)' }}>+</button>
+      <span style={suffixSt(dim)}>{unitSuffix(kind, unit)}</span>
     </div>
   )
 }
@@ -282,64 +335,100 @@ const exNameSt = {
 const MAX_DROPS = 3
 const WEIGHT_UNITS = ['rpe', 'kg', 'lbs', 'time']
 const REPS_UNITS   = ['reps', 'failure', 'time']
-const wStep = u => (u === 'rpe' ? 0.5 : u === 'lbs' || u === 'time' ? 5 : 2.5)
-const wMax  = u => (u === 'rpe' ? 10 : Infinity)
-const rStep = u => (u === 'time' ? 5 : 1)
-const LBL_H = 17  // reserved height for the unit-label row (keeps pills aligned)
 
-// Unit picker — label above each input, same dropdown as WorkoutRunner
-function UnitDropdown({ value, options, onChange }) {
-  const [open, setOpen] = useState(false)
+// non-input cell (marker, × separator) centered against the 40px fields
+function MarkerCell({ children }) {
   return (
-    <div style={{ position: 'relative', display: 'flex', justifyContent: 'flex-start' }}>
-      <button onClick={() => setOpen(o => !o)}
-        style={{ ...TT, fontSize: 11, fontWeight: 500, color: 'var(--cs-on-surface-variant)', opacity: 0.55,
-          height: LBL_H, lineHeight: 1, background: 'none', border: 'none', cursor: 'pointer', padding: '0 2px',
-          display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-        {value}<span style={{ fontSize: 7 }}>▼</span>
+    <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{children}</div>
+  )
+}
+
+// ─── Row menu (⋮) — rare actions live here: units, drops, delete ───────────────
+// Two pages: the action list, and an in-place unit picker (‹ back at the top).
+// Frequency rule: values are edited inline, everything rare goes behind ⋮.
+
+function RowKebabIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+      <circle cx="12" cy="5" r="1.7" /><circle cx="12" cy="12" r="1.7" /><circle cx="12" cy="19" r="1.7" />
+    </svg>
+  )
+}
+
+function RowMenu({ weightUnit, repsUnit, onWeightUnit, onRepsUnit, onAddDrop, canAddDrop = true, onAddNote, onDelete, deleteDisabled = false, onOpenChange }) {
+  const [open, setOpenRaw] = useState(false)
+  const [page, setPage] = useState(null) // null | 'w' | 'r'
+  const setOpen = v => { setOpenRaw(v); setPage(null); onOpenChange?.(v) }
+
+  const itemSt = (disabled = false, danger = false) => ({
+    ...TT, width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px',
+    background: 'transparent', border: 'none', borderRadius: 'var(--radius-lg)', textAlign: 'left',
+    fontSize: 13, fontWeight: 500,
+    color: danger ? 'var(--cs-error)' : 'var(--cs-on-surface)',
+    opacity: disabled ? 0.35 : 1, cursor: disabled ? 'default' : 'pointer', whiteSpace: 'nowrap',
+  })
+  const valSt = { ...TT, marginLeft: 'auto', paddingLeft: 14, fontSize: 12, fontWeight: 400, color: 'var(--cs-on-surface-variant)', opacity: 0.6 }
+  const hairline = <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.07)', margin: '4px 6px' }} />
+
+  const unitPage = page && (
+    <>
+      <button onClick={() => setPage(null)} style={{ ...itemSt(), fontWeight: 600 }}>
+        <span style={{ fontSize: 14, opacity: 0.6 }}>‹</span>{page === 'w' ? 'Load unit' : 'Reps unit'}
       </button>
+      {hairline}
+      {(page === 'w' ? WEIGHT_UNITS : REPS_UNITS).map(u => {
+        const cur = page === 'w' ? weightUnit : repsUnit
+        return (
+          <button key={u} onClick={() => { (page === 'w' ? onWeightUnit : onRepsUnit)(u); setOpen(false) }} style={itemSt()}>
+            <span style={{ width: 12, fontSize: 10, color: 'var(--cs-primary)', visibility: cur === u ? 'visible' : 'hidden' }}>✓</span>
+            {u}
+          </button>
+        )
+      })}
+    </>
+  )
+
+  return (
+    <div style={{ position: 'relative', display: 'flex', justifyContent: 'center' }}>
+      <button onClick={() => setOpen(!open)} style={{
+        ...kebabTriggerSt(open), padding: 0, cursor: 'pointer',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}><RowKebabIcon /></button>
+
       {open && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, marginTop: 5, zIndex: 40,
-          minWidth: 96, background: 'var(--glass-popover)', border: '1px solid rgba(var(--overlay-rgb),0.10)',
-          borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
-          overflow: 'hidden', boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)',
-        }}>
-          {options.map(u => (
-            <button key={u} onClick={() => { onChange(u); setOpen(false) }}
-              style={{ width: '100%', border: 'none', background: 'transparent', padding: '9px 12px', textAlign: 'left',
-                ...TT, fontSize: 13, fontWeight: value === u ? 500 : 400,
-                color: value === u ? 'var(--cs-primary)' : 'var(--cs-on-surface)', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ width: 12, fontSize: 10, color: 'var(--cs-primary)', visibility: value === u ? 'visible' : 'hidden' }}>✓</span>
-              {u}
-            </button>
-          ))}
-        </div>
+        <>
+          <div onClick={() => setOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 39 }} />
+          <div style={{
+            position: 'absolute', top: '100%', right: 0, marginTop: 5, zIndex: 40, minWidth: 176,
+            background: 'var(--glass-popover)', border: '1px solid rgba(var(--overlay-rgb),0.10)',
+            borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+            boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)', padding: 4,
+          }}>
+            {page ? unitPage : (
+              <>
+                <button onClick={() => setPage('w')} style={itemSt()}>Load unit<span style={valSt}>{weightUnit} ›</span></button>
+                <button onClick={() => setPage('r')} style={itemSt()}>Reps unit<span style={valSt}>{repsUnit} ›</span></button>
+                {onAddDrop && (
+                  <button disabled={!canAddDrop} onClick={() => { if (canAddDrop) { setOpen(false); onAddDrop() } }} style={itemSt(!canAddDrop)}>
+                    Add drop set
+                  </button>
+                )}
+                {onAddNote && (
+                  <button onClick={() => { setOpen(false); onAddNote() }} style={itemSt()}>Add note</button>
+                )}
+                {onDelete && (
+                  <>
+                    {hairline}
+                    <button disabled={deleteDisabled} onClick={() => { if (!deleteDisabled) { setOpen(false); onDelete() } }} style={itemSt(deleteDisabled, true)}>
+                      Delete
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </>
       )}
-    </div>
-  )
-}
-
-// A stepper pill with its own unit dropdown directly above it
-function LabeledStepper({ value, onChange, unit, options, onUnitChange, min = 0, dim = false }) {
-  const step = options === WEIGHT_UNITS ? wStep(unit) : rStep(unit)
-  const max  = options === WEIGHT_UNITS ? wMax(unit) : Infinity
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <UnitDropdown value={unit} options={options} onChange={onUnitChange} />
-      <StepperInput value={value} onChange={onChange} step={step} min={min} max={max} dim={dim} />
-    </div>
-  )
-}
-
-// Non-input cell (set number, × separator, delete) — reserves the label row so
-// its content stays vertically aligned with the stepper pills beside it
-function CtrlCell({ children }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <div style={{ height: LBL_H }} />
-      <div style={{ height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{children}</div>
     </div>
   )
 }
@@ -355,24 +444,188 @@ function ClockIcon({ size = 11 }) {
   )
 }
 
-// Rest divider — a quiet hairline with `⏱ 1:30` in the middle. Display-only
-// for now (editing TBD); rest stays a divider, never competing with set inputs.
-function RestDivider({ value }) {
+// Rest picker — two columns: minutes (0–5) and seconds (0/15/30/45). Taps write
+// live (m·60+s); tap-away closes. `0:00` reads back as `No rest`.
+const REST_MINS = [0, 1, 2, 3, 4, 5]
+const REST_SECS = [0, 15, 30, 45]
+
+function RestPickerPopover({ value, onChange, onClose, align = 'center' }) {
+  const m = Math.floor(value / 60), s = value % 60
+  const colLblSt = { ...TT, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textAlign: 'center', color: 'var(--cs-on-surface-variant)', opacity: 0.45, padding: '2px 0 4px' }
+  const optSt = on => ({
+    width: 44, height: 30, borderRadius: 'var(--radius-lg)', border: 'none', cursor: 'pointer', padding: 0,
+    background: on ? 'rgba(var(--cs-primary-rgb),0.18)' : 'transparent',
+    ...TT, fontSize: 13, fontWeight: on ? 600 : 400,
+    color: on ? 'var(--cs-primary)' : 'var(--cs-on-surface)',
+  })
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 39 }} />
+      <div style={{
+        position: 'absolute', top: '100%', marginTop: 5, zIndex: 40,
+        ...(align === 'center' ? { left: '50%', transform: 'translateX(-50%)' } : { right: 0 }),
+        background: 'var(--glass-popover)', border: '1px solid rgba(var(--overlay-rgb),0.10)',
+        borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)', padding: 8,
+        display: 'flex', gap: 6,
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={colLblSt}>MIN</span>
+          {REST_MINS.map(x => (
+            <button key={x} onClick={() => onChange(x * 60 + s)} style={optSt(x === m)}>{x}</button>
+          ))}
+        </div>
+        <div style={{ width: 1, background: 'rgba(var(--overlay-rgb),0.07)' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <span style={colLblSt}>SEC</span>
+          {REST_SECS.map(x => (
+            <button key={x} onClick={() => onChange(m * 60 + x)} style={optSt(x === s)}>{String(x).padStart(2, '0')}</button>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
+// Rest divider — a quiet hairline with `⏱ 1:30` in the middle; tapping the chip
+// opens the min/sec picker (when onChange is provided).
+function RestDivider({ value, onChange, onMenuLift }) {
+  const [open, setOpenRaw] = useState(false)
+  const setOpen = v => { setOpenRaw(v); onMenuLift?.(v) }
+  const chip = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)', opacity: 0.40 }}><ClockIcon size={11} /></span>
+      <span style={{ ...TT, fontSize: 11, fontWeight: 600, color: 'var(--cs-on-surface-variant)', opacity: 0.70 }}>{fmtRest(value)}</span>
+    </span>
+  )
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '2px 0' }}>
       <div style={{ flex: 1, height: 1, background: 'rgba(var(--overlay-rgb),0.05)' }} />
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)', opacity: 0.40 }}><ClockIcon size={11} /></span>
-        <span style={{ ...TT, fontSize: 11, fontWeight: 600, color: 'var(--cs-on-surface-variant)', opacity: 0.70 }}>{fmtRest(value)}</span>
-      </span>
+      {onChange ? (
+        <div style={{ position: 'relative' }}>
+          <button onClick={() => setOpen(!open)} style={{
+            background: open ? 'rgba(var(--overlay-rgb),0.06)' : 'none', border: 'none', cursor: 'pointer',
+            padding: '3px 8px', borderRadius: 'var(--radius-lg)', display: 'flex',
+          }}>{chip}</button>
+          {open && <RestPickerPopover value={value} onChange={onChange} onClose={() => setOpen(false)} />}
+        </div>
+      ) : chip}
       <div style={{ flex: 1, height: 1, background: 'rgba(var(--overlay-rgb),0.05)' }} />
     </div>
   )
 }
 
+// ─── Notes — quiet one-liners on exercises and sets ────────────────────────────
+// Added via menus (card kebab / row ⋮ → "Add note"). The row is always an
+// editable input; blurring it empty removes the note entirely (zero pixels when absent).
+
+function NoteIcon({ size = 12 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  )
+}
+
+function NoteRow({ value, onChange, onClear, style }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 7, ...style }}>
+      <span style={{ display: 'flex', flexShrink: 0, color: 'var(--cs-on-surface-variant)', opacity: 0.40 }}><NoteIcon /></span>
+      <input
+        value={value}
+        autoFocus={value === ''}
+        placeholder="Note…"
+        onChange={e => onChange(e.target.value)}
+        onBlur={() => { if (!value.trim()) onClear() }}
+        style={{
+          flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', padding: 0,
+          ...TT, fontSize: 12, color: 'var(--cs-on-surface-variant)', opacity: 0.8,
+        }}
+      />
+    </div>
+  )
+}
+
+// ─── Workout defaults — base config that sets/exercises inherit ────────────────
+// Sits between the details card and the exercise list. Per-set/per-exercise
+// overrides (row menus, divider pickers) always win over these.
+
+function UnitListPopover({ options, value, onSelect, onClose }) {
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, zIndex: 39 }} />
+      <div style={{
+        position: 'absolute', top: '100%', right: 0, marginTop: 5, zIndex: 40, minWidth: 120,
+        background: 'var(--glass-popover)', border: '1px solid rgba(var(--overlay-rgb),0.10)',
+        borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
+        boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)', padding: 4,
+      }}>
+        {options.map(u => (
+          <button key={u} onClick={() => onSelect(u)} style={{
+            ...TT, width: '100%', display: 'flex', alignItems: 'center', gap: 8, padding: '9px 12px',
+            background: 'transparent', border: 'none', borderRadius: 'var(--radius-lg)', textAlign: 'left',
+            fontSize: 13, fontWeight: value === u ? 500 : 400, cursor: 'pointer',
+            color: value === u ? 'var(--cs-primary)' : 'var(--cs-on-surface)',
+          }}>
+            <span style={{ width: 12, fontSize: 10, color: 'var(--cs-primary)', visibility: value === u ? 'visible' : 'hidden' }}>✓</span>
+            {u}
+          </button>
+        ))}
+      </div>
+    </>
+  )
+}
+
+function WorkoutDefaultsCard({ defaults, setDefaults }) {
+  const [openKey, setOpenKey] = useState(null)
+  const upd = patch => setDefaults(d => ({ ...d, ...patch }))
+  const close = () => setOpenKey(null)
+
+  const rowBtnSt = {
+    ...TT, width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+    padding: '10px 0', background: 'none', border: 'none', cursor: 'pointer',
+  }
+  const hairline = <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)' }} />
+
+  const row = (key, label, valueLabel, popover) => (
+    <div style={{ position: 'relative' }}>
+      <button onClick={() => setOpenKey(openKey === key ? null : key)} style={rowBtnSt}>
+        <span style={{ ...TT, flex: 1, textAlign: 'left', fontSize: 13, color: 'var(--cs-on-surface-variant)', opacity: 0.7 }}>{label}</span>
+        <span style={{ ...TT, fontSize: 13, fontWeight: 600, color: 'var(--cs-on-surface)' }}>{valueLabel}</span>
+        <span style={{ fontSize: 8, color: 'var(--cs-on-surface-variant)', opacity: 0.5 }}>▼</span>
+      </button>
+      {openKey === key && popover}
+    </div>
+  )
+
+  return (
+    <GlassCard level="Low" style={{ padding: '12px 16px 6px', marginBottom: 14 }}>
+      <p style={{ ...TT, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--cs-on-surface-variant)', opacity: 0.45, margin: '0 0 2px' }}>
+        WORKOUT DEFAULTS
+      </p>
+      {row('w', 'Load unit', defaults.weightUnit,
+        <UnitListPopover options={WEIGHT_UNITS} value={defaults.weightUnit}
+          onSelect={u => { upd({ weightUnit: u }); close() }} onClose={close} />)}
+      {hairline}
+      {row('r', 'Reps unit', defaults.repsUnit,
+        <UnitListPopover options={REPS_UNITS} value={defaults.repsUnit}
+          onSelect={u => { upd({ repsUnit: u }); close() }} onClose={close} />)}
+      {hairline}
+      {row('rs', 'Rest between sets', fmtRest(defaults.restSet),
+        <RestPickerPopover align="right" value={defaults.restSet}
+          onChange={v => upd({ restSet: v })} onClose={close} />)}
+      {hairline}
+      {row('rg', 'Rest between exercises', fmtRest(defaults.restGap),
+        <RestPickerPopover align="right" value={defaults.restGap}
+          onChange={v => upd({ restGap: v })} onClose={close} />)}
+    </GlassCard>
+  )
+}
+
 // ─── Solo sets editor (grid table) ─────────────────────────────────────────────
 
-function SoloSetsEditor({ item, onChange }) {
+function SoloSetsEditor({ item, onChange, onMenuLift, defaults }) {
   function updSet(i, s) { onChange({ ...item, sets: item.sets.map((x, j) => j === i ? s : x) }) }
   function delSet(i) { onChange({ ...item, sets: item.sets.filter((_, j) => j !== i) }) }
   function addSet() {
@@ -385,7 +638,7 @@ function SoloSetsEditor({ item, onChange }) {
     if (ds.length >= MAX_DROPS) return
     const last = ds[ds.length - 1] || s
     // drop = lighter weight pushed again; in RPE terms each drop lands closer to 10
-    const w = (last.weightUnit ?? 'rpe') === 'rpe' ? Math.min(10, (last.weight || 8) + 0.5) : Math.max(0, last.weight - 5)
+    const w = (last.weightUnit ?? defaults.weightUnit) === 'rpe' ? Math.min(10, (last.weight || 8) + 0.5) : Math.max(0, last.weight - 5)
     updSet(i, { ...s, ds: [...ds, { weight: w, reps: (last.reps || 8) + 2, weightUnit: last.weightUnit, repsUnit: last.repsUnit }] })
   }
   function removeDrop(i, di) {
@@ -397,15 +650,18 @@ function SoloSetsEditor({ item, onChange }) {
 
   return (
     <div>
-      {/* set groups — rest chips live in the gaps between sets (uniform per exercise) */}
+      {/* set groups — rest dividers live in the gaps between sets (uniform per exercise) */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {item.sets.map((set, i) => (
           <Fragment key={i}>
-            <SetRowGroup idx={i} set={set} canDelete={item.sets.length > 1} maxDrops={MAX_DROPS}
+            <SetRowGroup idx={i} set={set} canDelete={item.sets.length > 1}
+              canAddDrop={(set.ds || []).length < MAX_DROPS}
               onChange={s => updSet(i, s)} onDelete={() => delSet(i)}
-              onAddDrop={() => addDrop(i)} onRemoveDrop={di => removeDrop(i, di)} />
+              onAddDrop={() => addDrop(i)} onRemoveDrop={di => removeDrop(i, di)}
+              onMenuLift={onMenuLift} defaults={defaults} />
             {i < item.sets.length - 1 && (
-              <RestDivider value={item.restSet ?? 90} />
+              <RestDivider value={item.restSet ?? defaults.restSet}
+                onChange={v => onChange({ ...item, restSet: v })} onMenuLift={onMenuLift} />
             )}
           </Fragment>
         ))}
@@ -418,10 +674,9 @@ function SoloSetsEditor({ item, onChange }) {
   )
 }
 
-// vertical position of a pill/control centre inside a labelled row, and the
-// point just below the circled set number where the connector starts
-const CTRL_CENTER = LBL_H + 4 + 20
-const LINE_TOP = CTRL_CENTER + 11
+// connector geometry: rows are plain 40px fields now (no unit-label row), so
+// the line starts just below the circled set number and ends at the last node
+const LINE_TOP = 31
 const LINE_BOTTOM = 20
 
 const dotNodeSt = {
@@ -437,14 +692,6 @@ const mainNodeSt = {
   background: 'var(--node-center)', border: '1px solid rgba(var(--cs-primary-rgb),0.45)',
   boxShadow: '0 0 0 3px var(--node-center)',
 }
-const delBtnSt = (active = true) => ({
-  background: 'none', border: 'none', cursor: active ? 'pointer' : 'default', padding: 0,
-  color: 'rgba(var(--cs-primary-rgb),0.30)', opacity: active ? 1 : 0.25, display: 'flex',
-})
-const dropDelBtnSt = {
-  background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-  color: 'var(--cs-primary)', opacity: 0.55, display: 'flex',
-}
 
 // Set number — circled when the set has drop sets (the connector starts here)
 function SetNumber({ n, circled }) {
@@ -459,55 +706,70 @@ function SetNumber({ n, circled }) {
 }
 
 // One set + its drop sets, grouped as a single block with a connector line.
-// Each set and each drop carries its own weight/reps units.
-function SetRowGroup({ idx, set, canDelete, maxDrops, onChange, onDelete, onAddDrop, onRemoveDrop }) {
+// Each row is `marker · value field · × · value field · ⋮` — rare actions
+// (units / add drop / delete) live in the row menu, values edit inline.
+function SetRowGroup({ idx, set, canDelete, canAddDrop, onChange, onDelete, onAddDrop, onRemoveDrop, onMenuLift, defaults }) {
   const drops = set.ds || []
   const hasDrops = drops.length > 0
 
-  return (
-    <div>
-      <div style={{ position: 'relative' }}>
-        {/* connector — from the circled set number down through the drop nodes */}
-        {hasDrops && (
-          <div style={{ position: 'absolute', left: 15, top: LINE_TOP, bottom: LINE_BOTTOM, width: 2, borderRadius: 1, background: 'rgba(var(--cs-primary-rgb),0.35)' }} />
-        )}
-        <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 10px 1fr 24px', columnGap: 8, rowGap: 8, alignItems: 'start' }}>
-          {/* main set row */}
-          <CtrlCell><SetNumber n={idx + 1} circled /></CtrlCell>
-          <LabeledStepper value={set.weight} onChange={w => onChange({ ...set, weight: w })}
-            unit={set.weightUnit ?? 'rpe'} options={WEIGHT_UNITS} onUnitChange={u => onChange({ ...set, weightUnit: u })} />
-          <CtrlCell><span style={xSepSt}>×</span></CtrlCell>
-          <LabeledStepper value={set.reps} onChange={r => onChange({ ...set, reps: r })}
-            unit={set.repsUnit ?? 'reps'} options={REPS_UNITS} onUnitChange={u => onChange({ ...set, repsUnit: u })} min={1} />
-          <CtrlCell>
-            <button onClick={onDelete} disabled={!canDelete} style={delBtnSt(canDelete)}><XIcon size={12} /></button>
-          </CtrlCell>
+  const rowGridSt = { display: 'grid', gridTemplateColumns: '32px 1fr 10px 1fr 28px', columnGap: 8, alignItems: 'center' }
 
-          {/* drop-set rows — each marked by a node on the connector, own units */}
+  return (
+    <div style={{ position: 'relative' }}>
+      {/* connector — from the circled set number down through the drop nodes */}
+      {hasDrops && (
+        <div style={{ position: 'absolute', left: 15, top: LINE_TOP, bottom: LINE_BOTTOM, width: 2, borderRadius: 1, background: 'rgba(var(--cs-primary-rgb),0.35)' }} />
+      )}
+      {/* main set row */}
+      <div style={rowGridSt}>
+        <MarkerCell><SetNumber n={idx + 1} circled /></MarkerCell>
+        <ValueField value={set.weight} unit={set.weightUnit ?? defaults.weightUnit} kind="weight"
+          onChange={w => onChange({ ...set, weight: w })} onMenuLift={onMenuLift} />
+        <span style={xSepSt}>×</span>
+        <ValueField value={set.reps} unit={set.repsUnit ?? defaults.repsUnit} kind="reps"
+          onChange={r => onChange({ ...set, reps: r })} />
+        <RowMenu
+          weightUnit={set.weightUnit ?? defaults.weightUnit} repsUnit={set.repsUnit ?? defaults.repsUnit}
+          onWeightUnit={u => onChange({ ...set, weightUnit: u })} onRepsUnit={u => onChange({ ...set, repsUnit: u })}
+          onAddDrop={onAddDrop} canAddDrop={canAddDrop}
+          onAddNote={set.note === undefined ? () => onChange({ ...set, note: '' }) : null}
+          onDelete={onDelete} deleteDisabled={!canDelete}
+          onOpenChange={onMenuLift}
+        />
+      </div>
+
+      {/* set note — indented to the value columns, like a sub-row */}
+      {set.note !== undefined && (
+        <NoteRow value={set.note}
+          onChange={t => onChange({ ...set, note: t })}
+          onClear={() => { const { note: _n, ...rest } = set; onChange(rest) }}
+          style={{ marginTop: 6, paddingLeft: 40, paddingRight: 36 }} />
+      )}
+
+      {/* drop-set rows — same full-width fields, separated from the main set by a
+          larger top gap (14 vs the 8 in-group rhythm) so the hierarchy reads vertically */}
+      {hasDrops && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
           {drops.map((d, di) => {
             const updDrop = patch => onChange({ ...set, ds: drops.map((x, j) => j === di ? { ...x, ...patch } : x) })
             return (
-              <Fragment key={di}>
-                <CtrlCell><span style={dotNodeSt} /></CtrlCell>
-                <LabeledStepper dim value={d.weight} onChange={w => updDrop({ weight: w })}
-                  unit={d.weightUnit ?? 'rpe'} options={WEIGHT_UNITS} onUnitChange={u => updDrop({ weightUnit: u })} />
-                <CtrlCell><span style={xSepSt}>×</span></CtrlCell>
-                <LabeledStepper dim value={d.reps} onChange={r => updDrop({ reps: r })}
-                  unit={d.repsUnit ?? 'reps'} options={REPS_UNITS} onUnitChange={u => updDrop({ repsUnit: u })} min={1} />
-                <CtrlCell>
-                  <button onClick={() => onRemoveDrop(di)} style={dropDelBtnSt}><XIcon size={12} /></button>
-                </CtrlCell>
-              </Fragment>
+              <div key={di} style={rowGridSt}>
+                <MarkerCell><span style={dotNodeSt} /></MarkerCell>
+                <ValueField dim value={d.weight} unit={d.weightUnit ?? defaults.weightUnit} kind="weight"
+                  onChange={w => updDrop({ weight: w })} onMenuLift={onMenuLift} />
+                <span style={xSepSt}>×</span>
+                <ValueField dim value={d.reps} unit={d.repsUnit ?? defaults.repsUnit} kind="reps"
+                  onChange={r => updDrop({ reps: r })} />
+                <RowMenu
+                  weightUnit={d.weightUnit ?? defaults.weightUnit} repsUnit={d.repsUnit ?? defaults.repsUnit}
+                  onWeightUnit={u => updDrop({ weightUnit: u })} onRepsUnit={u => updDrop({ repsUnit: u })}
+                  onDelete={() => onRemoveDrop(di)}
+                  onOpenChange={onMenuLift}
+                />
+              </div>
             )
           })}
         </div>
-      </div>
-
-      {/* add drop set — hidden once max reached */}
-      {drops.length < maxDrops && (
-        <button onClick={onAddDrop} style={{ ...linkBtnSt, paddingLeft: 40, marginTop: 8, color: 'rgba(var(--cs-primary-rgb),0.38)' }}>
-          <PlusIcon size={10} /> drop set
-        </button>
       )}
     </div>
   )
@@ -515,7 +777,7 @@ function SetRowGroup({ idx, set, canDelete, maxDrops, onChange, onDelete, onAddD
 
 // ─── Superset sets editor (grouped by set) ─────────────────────────────────────
 
-function SupersetSetsEditor({ item, onChange }) {
+function SupersetSetsEditor({ item, onChange, onMenuLift, defaults }) {
   const exercises = item.exerciseIds.map(id => ALL_EXERCISES.find(e => e.id === id)).filter(Boolean)
 
   function updSet(i, s) { onChange({ ...item, sets: item.sets.map((x, j) => j === i ? s : x) }) }
@@ -533,7 +795,7 @@ function SupersetSetsEditor({ item, onChange }) {
     const ds = cur.ds || []
     if (ds.length >= MAX_DROPS) return
     const last = ds[ds.length - 1] || cur
-    const w = (last.weightUnit ?? 'rpe') === 'rpe' ? Math.min(10, (last.weight || 8) + 0.5) : Math.max(0, last.weight - 5)
+    const w = (last.weightUnit ?? defaults.weightUnit) === 'rpe' ? Math.min(10, (last.weight || 8) + 0.5) : Math.max(0, last.weight - 5)
     updEx(i, exId, { ds: [...ds, { weight: w, reps: (last.reps || 8) + 2, weightUnit: last.weightUnit, repsUnit: last.repsUnit }] })
   }
   function removeDrop(i, exId, di) {
@@ -552,63 +814,89 @@ function SupersetSetsEditor({ item, onChange }) {
           <Fragment key={i}>
           <div style={{ position: 'relative' }}>
             {/* connector line — anchored at the circled set number, runs to the bottom */}
-            <div style={{ position: 'absolute', left: 15, top: 24, bottom: 14, width: 2, borderRadius: 1, background: 'rgba(var(--cs-primary-rgb),0.35)' }} />
+            <div style={{ position: 'absolute', left: 15, top: 23, bottom: LINE_BOTTOM, width: 2, borderRadius: 1, background: 'rgba(var(--cs-primary-rgb),0.35)' }} />
 
-            <div style={{ display: 'grid', gridTemplateColumns: '32px 1fr 10px 1fr 24px', columnGap: 8, rowGap: 8, alignItems: 'start' }}>
-              {exercises.map((ex, ei) => {
-                const exData = set[ex.id] || { weight: 0, reps: 10 }
-                const drops = exData.ds || []
-                return (
-                  <Fragment key={ex.id}>
-                    {/* exercise name row */}
-                    <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 8, marginTop: ei > 0 ? 6 : 0 }}>
-                      <span style={{ width: 32, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
-                        {ei === 0 ? <SetNumber n={i + 1} circled /> : null}
+            {exercises.map((ex, ei) => {
+              const exData = set[ex.id] || { weight: 0, reps: 10 }
+              const drops = exData.ds || []
+              const rowGridSt = { display: 'grid', gridTemplateColumns: '32px 1fr 10px 1fr 28px', columnGap: 8, alignItems: 'center' }
+              return (
+                <Fragment key={ex.id}>
+                  {/* exercise name row — the round's ⋮ menu lives on the first one
+                      (the round is the unit; deleting it is the menu's job now) */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: ei > 0 ? 14 : 0 }}>
+                    <span style={{ width: 32, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                      {ei === 0 ? <SetNumber n={i + 1} circled /> : null}
+                    </span>
+                    <span style={exNameSt}>{ex.name}</span>
+                    {ei === 0 && (
+                      <span style={{ marginLeft: 'auto', display: 'flex' }}>
+                        <DropdownMenu
+                          onOpenChange={onMenuLift}
+                          items={[{ label: 'Delete set', danger: true, disabled: item.sets.length <= 1, onClick: () => delSet(i) }]}
+                          triggerStyle={{ ...kebabTriggerSt(false), width: 24, height: 24 }}
+                        />
                       </span>
-                      <span style={exNameSt}>{ex.name}</span>
-                      {ei === 0 && item.sets.length > 1 && (
-                        <button onClick={() => delSet(i)} style={{ ...delBtnSt(true), marginLeft: 'auto' }}><XIcon size={12} /></button>
-                      )}
-                    </div>
-
-                    {/* main stepper row — marked by a hollow ring on the connector */}
-                    <CtrlCell><span style={mainNodeSt} /></CtrlCell>
-                    <LabeledStepper value={exData.weight} onChange={w => updEx(i, ex.id, { weight: w })}
-                      unit={exData.weightUnit ?? 'rpe'} options={WEIGHT_UNITS} onUnitChange={u => updEx(i, ex.id, { weightUnit: u })} />
-                    <CtrlCell><span style={xSepSt}>×</span></CtrlCell>
-                    <LabeledStepper value={exData.reps} onChange={r => updEx(i, ex.id, { reps: r })}
-                      unit={exData.repsUnit ?? 'reps'} options={REPS_UNITS} onUnitChange={u => updEx(i, ex.id, { repsUnit: u })} min={1} />
-                    <span />
-
-                    {/* drop rows — marked by a node on the connector */}
-                    {drops.map((d, di) => {
-                      const updDrop = patch => updEx(i, ex.id, { ds: drops.map((x, j) => j === di ? { ...x, ...patch } : x) })
-                      return (
-                        <Fragment key={di}>
-                          <CtrlCell><span style={dotNodeSt} /></CtrlCell>
-                          <LabeledStepper dim value={d.weight} onChange={w => updDrop({ weight: w })}
-                            unit={d.weightUnit ?? 'rpe'} options={WEIGHT_UNITS} onUnitChange={u => updDrop({ weightUnit: u })} />
-                          <CtrlCell><span style={xSepSt}>×</span></CtrlCell>
-                          <LabeledStepper dim value={d.reps} onChange={r => updDrop({ reps: r })}
-                            unit={d.repsUnit ?? 'reps'} options={REPS_UNITS} onUnitChange={u => updDrop({ repsUnit: u })} min={1} />
-                          <CtrlCell><button onClick={() => removeDrop(i, ex.id, di)} style={dropDelBtnSt}><XIcon size={12} /></button></CtrlCell>
-                        </Fragment>
-                      )
-                    })}
-
-                    {/* add drop set */}
-                    {drops.length < MAX_DROPS && (
-                      <button onClick={() => addDrop(i, ex.id)} style={{ ...linkBtnSt, gridColumn: '1 / -1', paddingLeft: 40, marginTop: 4, color: 'rgba(var(--cs-primary-rgb),0.38)' }}>
-                        <PlusIcon size={10} /> drop set
-                      </button>
                     )}
-                  </Fragment>
-                )
-              })}
-            </div>
+                  </div>
+
+                  {/* main row — hollow ring on the connector; menu has no Delete
+                      (a single exercise's row can't leave the round) */}
+                  <div style={{ ...rowGridSt, marginTop: 8 }}>
+                    <MarkerCell><span style={mainNodeSt} /></MarkerCell>
+                    <ValueField value={exData.weight} unit={exData.weightUnit ?? defaults.weightUnit} kind="weight"
+                      onChange={w => updEx(i, ex.id, { weight: w })} onMenuLift={onMenuLift} />
+                    <span style={xSepSt}>×</span>
+                    <ValueField value={exData.reps} unit={exData.repsUnit ?? defaults.repsUnit} kind="reps"
+                      onChange={r => updEx(i, ex.id, { reps: r })} />
+                    <RowMenu
+                      weightUnit={exData.weightUnit ?? defaults.weightUnit} repsUnit={exData.repsUnit ?? defaults.repsUnit}
+                      onWeightUnit={u => updEx(i, ex.id, { weightUnit: u })} onRepsUnit={u => updEx(i, ex.id, { repsUnit: u })}
+                      onAddDrop={() => addDrop(i, ex.id)} canAddDrop={drops.length < MAX_DROPS}
+                      onAddNote={exData.note === undefined ? () => updEx(i, ex.id, { note: '' }) : null}
+                      onOpenChange={onMenuLift}
+                    />
+                  </div>
+
+                  {/* per-exercise set note */}
+                  {exData.note !== undefined && (
+                    <NoteRow value={exData.note}
+                      onChange={t => updEx(i, ex.id, { note: t })}
+                      onClear={() => { const { note: _n, ...rest } = set[ex.id] || {}; updSet(i, { ...set, [ex.id]: rest }) }}
+                      style={{ marginTop: 6, paddingLeft: 40, paddingRight: 36 }} />
+                  )}
+
+                  {/* drop rows — same full-width fields, separated by a larger top gap */}
+                  {drops.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
+                      {drops.map((d, di) => {
+                        const updDrop = patch => updEx(i, ex.id, { ds: drops.map((x, j) => j === di ? { ...x, ...patch } : x) })
+                        return (
+                          <div key={di} style={rowGridSt}>
+                            <MarkerCell><span style={dotNodeSt} /></MarkerCell>
+                            <ValueField dim value={d.weight} unit={d.weightUnit ?? defaults.weightUnit} kind="weight"
+                              onChange={w => updDrop({ weight: w })} onMenuLift={onMenuLift} />
+                            <span style={xSepSt}>×</span>
+                            <ValueField dim value={d.reps} unit={d.repsUnit ?? defaults.repsUnit} kind="reps"
+                              onChange={r => updDrop({ reps: r })} />
+                            <RowMenu
+                              weightUnit={d.weightUnit ?? defaults.weightUnit} repsUnit={d.repsUnit ?? defaults.repsUnit}
+                              onWeightUnit={u => updDrop({ weightUnit: u })} onRepsUnit={u => updDrop({ repsUnit: u })}
+                              onDelete={() => removeDrop(i, ex.id, di)}
+                              onOpenChange={onMenuLift}
+                            />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </Fragment>
+              )
+            })}
           </div>
           {i < item.sets.length - 1 && (
-            <RestDivider value={item.restSet ?? 90} />
+            <RestDivider value={item.restSet ?? defaults.restSet}
+              onChange={v => onChange({ ...item, restSet: v })} onMenuLift={onMenuLift} />
           )}
           </Fragment>
         ))}
@@ -624,9 +912,16 @@ function SupersetSetsEditor({ item, onChange }) {
 // ─── Expandable wrapper (animated grid-rows) ───────────────────────────────────
 
 function Expandable({ open, children }) {
+  // overflow:hidden is required for the grid-rows animation, but it would clip
+  // the row menus — release it once the expand transition has settled
+  const [settled, setSettled] = useState(open)
+  useEffect(() => { if (!open) setSettled(false) }, [open])
   return (
-    <div style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 0.28s ease' }}>
-      <div style={{ overflow: 'hidden' }}>{children}</div>
+    <div
+      style={{ display: 'grid', gridTemplateRows: open ? '1fr' : '0fr', transition: 'grid-template-rows 0.28s ease' }}
+      onTransitionEnd={() => setSettled(open)}
+    >
+      <div style={{ overflow: open && settled ? 'visible' : 'hidden' }}>{children}</div>
     </div>
   )
 }
@@ -634,8 +929,9 @@ function Expandable({ open, children }) {
 // ─── Exercise cards ────────────────────────────────────────────────────────────
 
 // kebab menu items shared by both card types
-const cardMenu = (onEdit, onDelete) => [
+const cardMenu = (onEdit, onDelete, onAddNote) => [
   { label: 'Change exercise', onClick: onEdit },
+  ...(onAddNote ? [{ label: 'Add note', onClick: onAddNote }] : []),
   { label: 'Delete', danger: true, onClick: onDelete },
 ]
 
@@ -742,14 +1038,17 @@ function FabMenu({ open, setOpen, actions }) {
   )
 }
 
-function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit }) {
+function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit, defaults }) {
   const ex = ALL_EXERCISES.find(e => e.id === item.exerciseId)
-  // card drops overflow:hidden while the menu is open so it can escape the clip
+  // card drops overflow:hidden while a menu (header kebab OR a row ⋮) is open
+  // so the popover can escape the clip; zIndex raises it above sibling cards
   const [menuOpen, setMenuOpen] = useState(false)
+  const [rowLift, setRowLift] = useState(false)
+  const lifted = menuOpen || rowLift
   if (!ex) return null
 
   return (
-    <GlassCard level="Low" style={{ display: 'flex', overflow: menuOpen ? 'visible' : 'hidden', position: 'relative', zIndex: menuOpen ? 30 : 'auto' }}>
+    <GlassCard level="Low" style={{ display: 'flex', overflow: lifted ? 'visible' : 'hidden', position: 'relative', zIndex: lifted ? 30 : 'auto' }}>
       <div style={{ width: 4, flexShrink: 0, background: 'var(--cs-primary)', opacity: 0.55, borderRadius: 'var(--radius-2xl) 0 0 var(--radius-2xl)' }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* Header (tap to expand) */}
@@ -758,20 +1057,30 @@ function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit }) {
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ ...TT, fontSize: 14, fontWeight: 500, color: 'var(--cs-on-surface)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ex.name}</div>
             <div style={{ ...TT, fontSize: 11, color: 'var(--cs-on-surface-variant)', opacity: 0.55, marginTop: 2 }}>
-              {open ? `${ex.muscle} · ${ex.equipment}` : soloSummary(item.sets)}
+              {open ? `${ex.muscle} · ${ex.equipment}` : soloSummary(item.sets, defaults)}
             </div>
           </div>
           <span style={{ ...TT, fontSize: 12, color: 'var(--cs-on-surface-variant)', opacity: 0.45, flexShrink: 0 }}>{item.sets.length} sets</span>
           <span style={{ color: 'var(--cs-on-surface-variant)', opacity: 0.45, display: 'flex', flexShrink: 0 }}><ChevDownIcon open={open} /></span>
           <span onClick={e => e.stopPropagation()} style={{ display: 'flex', flexShrink: 0 }}>
-            <DropdownMenu onOpenChange={setMenuOpen} items={cardMenu(onEdit, onDelete)} triggerStyle={kebabTriggerSt(menuOpen)} />
+            <DropdownMenu onOpenChange={setMenuOpen}
+              items={cardMenu(onEdit, onDelete, item.note === undefined ? () => onChange({ ...item, note: '' }) : null)}
+              triggerStyle={kebabTriggerSt(menuOpen)} />
           </span>
         </div>
+
+        {/* exercise note — visible even collapsed; emptied on blur = removed */}
+        {item.note !== undefined && (
+          <NoteRow value={item.note}
+            onChange={t => onChange({ ...item, note: t })}
+            onClear={() => { const { note: _n, ...rest } = item; onChange(rest) }}
+            style={{ padding: '0 14px 11px 14px' }} />
+        )}
 
         <Expandable open={open}>
           <div style={{ padding: '4px 14px 14px' }}>
             <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '0 0 16px' }} />
-            <SoloSetsEditor item={item} onChange={onChange} />
+            <SoloSetsEditor item={item} onChange={onChange} onMenuLift={setRowLift} defaults={defaults} />
           </div>
         </Expandable>
       </div>
@@ -779,13 +1088,25 @@ function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit }) {
   )
 }
 
-function SupersetCard({ item, open, onToggle, onChange, onDelete, onEdit }) {
+// pulling an exercise out of a 2-exercise superset converts the item to solo
+function removeFromSuperset(item, exId) {
+  const ids = item.exerciseIds.filter(x => x !== exId)
+  if (ids.length >= 2) {
+    return { ...item, exerciseIds: ids, sets: item.sets.map(s => { const { [exId]: _x, ...rest } = s; return rest }) }
+  }
+  const rem = ids[0]
+  return { id: item.id, type: 'solo', exerciseId: rem, restSet: item.restSet, sets: item.sets.map(s => ({ ...(s[rem] || { weight: 8, reps: 10 }) })) }
+}
+
+function SupersetCard({ item, open, onToggle, onChange, onDelete, onEdit, defaults }) {
   const exercises = item.exerciseIds.map(id => ALL_EXERCISES.find(e => e.id === id)).filter(Boolean)
-  // card drops overflow:hidden while the menu is open so it can escape the clip
+  // card drops overflow:hidden while a menu (header kebab OR a row ⋮) is open
   const [menuOpen, setMenuOpen] = useState(false)
+  const [rowLift, setRowLift] = useState(false)
+  const lifted = menuOpen || rowLift
 
   return (
-    <div style={{ borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.05)', border: '1px solid rgba(var(--cs-primary-rgb),0.18)', overflow: menuOpen ? 'visible' : 'hidden', position: 'relative', zIndex: menuOpen ? 30 : 'auto', boxShadow: 'var(--shadow-card)' }}>
+    <div style={{ borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.05)', border: '1px solid rgba(var(--cs-primary-rgb),0.18)', overflow: lifted ? 'visible' : 'hidden', position: 'relative', zIndex: lifted ? 30 : 'auto', boxShadow: 'var(--shadow-card)' }}>
       <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 3, background: 'var(--cs-primary)', borderRadius: 'var(--radius-2xl) 0 0 var(--radius-2xl)' }} />
 
       {/* Header (tap to expand) */}
@@ -796,7 +1117,9 @@ function SupersetCard({ item, open, onToggle, onChange, onDelete, onEdit }) {
           </span>
           <span style={{ color: 'var(--cs-on-surface-variant)', opacity: 0.45, display: 'flex' }}><ChevDownIcon open={open} /></span>
           <span onClick={e => e.stopPropagation()} style={{ display: 'flex', flexShrink: 0 }}>
-            <DropdownMenu onOpenChange={setMenuOpen} items={cardMenu(onEdit, onDelete)} triggerStyle={kebabTriggerSt(menuOpen)} />
+            <DropdownMenu onOpenChange={setMenuOpen}
+              items={cardMenu(onEdit, onDelete, item.note === undefined ? () => onChange({ ...item, note: '' }) : null)}
+              triggerStyle={kebabTriggerSt(menuOpen)} />
           </span>
         </div>
         {exercises.map((ex, i) => (
@@ -808,15 +1131,34 @@ function SupersetCard({ item, open, onToggle, onChange, onDelete, onEdit }) {
                 <div style={{ ...TT, fontSize: 14, fontWeight: 500, color: 'var(--cs-on-surface)' }}>{ex.name}</div>
                 <div style={{ ...TT, fontSize: 11, color: 'var(--cs-on-surface-variant)', opacity: 0.55 }}>{ex.muscle} · {ex.equipment}</div>
               </div>
+              {/* per-exercise ⋮ — resolves the "which exercise does Change apply to?" ambiguity */}
+              <span onClick={e => e.stopPropagation()} style={{ display: 'flex', flexShrink: 0 }}>
+                <DropdownMenu
+                  onOpenChange={setRowLift}
+                  items={[
+                    { label: 'Change exercise', onClick: () => { /* stub — exercise picker */ } },
+                    { label: 'Remove from superset', danger: true, onClick: () => onChange(removeFromSuperset(item, ex.id)) },
+                  ]}
+                  triggerStyle={kebabTriggerSt(false)}
+                />
+              </span>
             </div>
           </div>
         ))}
       </div>
 
+      {/* superset note — visible even collapsed */}
+      {item.note !== undefined && (
+        <NoteRow value={item.note}
+          onChange={t => onChange({ ...item, note: t })}
+          onClear={() => { const { note: _n, ...rest } = item; onChange(rest) }}
+          style={{ padding: '0 14px 10px 14px' }} />
+      )}
+
       <Expandable open={open}>
         <div style={{ padding: '6px 14px 14px' }}>
           <div style={{ height: 1, background: 'rgba(var(--cs-primary-rgb),0.12)', margin: '0 0 14px' }} />
-          <SupersetSetsEditor item={item} onChange={onChange} />
+          <SupersetSetsEditor item={item} onChange={onChange} onMenuLift={setRowLift} defaults={defaults} />
         </div>
       </Expandable>
     </div>
@@ -843,6 +1185,8 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
   const [expandedId, setExpandedId] = useState(seedExpanded)
   // rest between exercises is keyed by GAP POSITION, not by item (see DEMO_GAPS note)
   const [restGaps, setRestGaps] = useState(() => DEMO_GAPS.slice(0, seedItems.length - 1))
+  // workout-level base config — sets/exercises without explicit values inherit these
+  const [defaults, setDefaults] = useState({ weightUnit: 'rpe', repsUnit: 'reps', restSet: 90, restGap: 120 })
 
   // FAB menu — the page-level actions live here (add exercise / superset / reorder)
   const [fabOpen, setFabOpen] = useState(false)
@@ -854,7 +1198,7 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
   const rowRefs = useRef([])
   const dragState = useRef(null)
 
-  const { exCount, setCount, estMin } = calcStats(items, restGaps)
+  const { exCount, setCount, estMin } = calcStats(items, restGaps, defaults)
 
   // tag dialog: search + create. List shows only NOT-yet-selected tags
   // (selected ones live as removable chips above the list).
@@ -961,6 +1305,9 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
             </button>
           </GlassCard>
 
+          {/* Workout defaults — base units + rests that sets/exercises inherit */}
+          <WorkoutDefaultsCard defaults={defaults} setDefaults={setDefaults} />
+
           <div style={{ display: 'flex', alignItems: 'center', margin: '0 2px 14px', minHeight: 26 }}>
             <p style={{ ...TT, flex: 1, fontSize: 'var(--tt-body-small-size)', letterSpacing: 'var(--tt-body-small-tracking)', color: 'var(--cs-on-surface-variant)', opacity: 0.40, margin: 0 }}>
               {exCount} {exCount === 1 ? 'exercise' : 'exercises'} · {setCount} sets · ~{estMin} min
@@ -980,8 +1327,8 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: reorderMode ? ROW_GAP : 16 }}>
             {items.map((item, i) => {
               const card = item.type === 'superset'
-                ? <SupersetCard item={item} open={!reorderMode && expandedId === item.id} onToggle={() => !reorderMode && toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} />
-                : <SoloCard item={item} open={!reorderMode && expandedId === item.id} onToggle={() => !reorderMode && toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} />
+                ? <SupersetCard item={item} open={!reorderMode && expandedId === item.id} onToggle={() => !reorderMode && toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} defaults={defaults} />
+                : <SoloCard item={item} open={!reorderMode && expandedId === item.id} onToggle={() => !reorderMode && toggle(item.id)} onChange={updateItem} onDelete={() => deleteItem(item.id)} onEdit={() => editItem(item.id)} defaults={defaults} />
               return (
                 <Fragment key={item.id}>
                   <div ref={el => { rowRefs.current[i] = el }} style={{
@@ -1004,7 +1351,8 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
                     </div>
                   </div>
                   {!reorderMode && i < items.length - 1 && (
-                    <RestDivider value={restGaps[i] ?? 120} />
+                    <RestDivider value={restGaps[i] ?? defaults.restGap}
+                      onChange={v => setRestGaps(g => { const n = [...g]; n[i] = v; return n })} />
                   )}
                 </Fragment>
               )

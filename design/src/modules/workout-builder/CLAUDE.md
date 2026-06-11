@@ -12,18 +12,35 @@ Create / edit a workout — name it, add exercises (solo or superset), and edit 
 - **Exercise cards** — match the Workout Runner preview cards (`GlassCard` + accent strip + thumb + name + `muscle · equipment`). Tap to **expand inline** (animated `grid-template-rows 0fr→1fr`) — no bottom sheet. Card list gap 16.
   - Header has a **kebab menu (⋮)** (shared `DropdownMenu` with `onOpenChange` + `triggerStyle`) → "Change exercise" / "Delete" (red). The trigger is a **ghost** (`kebabTriggerSt`): no box/border, chevron-weight opacity 0.45, subtle bg only while open. While the menu is open the card drops `overflow:hidden` AND raises `zIndex:30` — glass cards each create a stacking context (backdrop-filter), so without the raise the next card in DOM paints OVER the open menu ("transparent menu" bug). The accent strip carries its own left border-radius so corners stay clean. The menu is the ONLY home for destructive actions — there is no "Remove exercise" link in the expanded editor.
   - Headers are `div`s with `onClick` (not `<button>`) so the kebab isn't a nested button; the kebab wrapper stops propagation.
-- **Sets editor** (expanded): grid `32px 1fr 10px 1fr 24px` of compact stepper pills `[− value +]`. Each input has its **own unit dropdown above it** (per set AND per drop). Units + step stored per set / per drop (`set.weightUnit`, `d.repsUnit`, …).
+- **Sets editor** (expanded): grid `32px 1fr 10px 1fr 28px`, each row = `marker · ValueField · × · ValueField · ⋮`. **Frequency rule: values edit inline, everything rare (units / add drop / delete) lives behind the row ⋮.** No unit labels above fields, no `+ drop set` links, no per-row ✕ — all three were folded into `ValueField` + `RowMenu` to kill the patchwork rhythm.
+- **`ValueField`** — field with the unit INSIDE as a passive suffix (`175 lbs`, `8 reps`; `time → sec`, `failure → AMRAP` via `unitSuffix`). h40, radius-xl, quiet bg, accent border while active. **No step buttons at all**: continuous values (kg/lbs/sec, reps) are typed; the discrete **rpe** scale gets **`RpeField`** instead — tap opens a compact **3×3 picker grid** (`RPE_OPTIONS` 6–10 in 0.5 steps), one tap to pick, invalid values impossible. Two input modalities on purpose: discrete → pick, continuous → type.
+- **Drop hierarchy is vertical, not horizontal**: drop fields keep the SAME full column width as the main set; the drop block is separated by a larger top gap (`marginTop:14` vs the 8px in-group rhythm). Left-indenting drop fields was tried and rolled back (it shrank the fields).
+- **`RowMenu` (⋮ per row)** — glass popover, two pages: action list ↔ in-place unit picker (`‹ back` header). Items: `Load unit · <cur> ›`, `Reps unit · <cur> ›`, `Add drop set` (main set rows only; disabled at `MAX_DROPS`), `Delete` (danger; disabled on the last set). Drop rows: units + Delete. Superset main rows: units + Add drop set, NO Delete (a single exercise's row can't leave the round).
+- **Superset round ⋮** — the round's name row carries a shared-`DropdownMenu` kebab (`Delete set`, disabled on the last round). The old lone ✕ is gone — no exceptions to "rare actions live behind ⋮".
+- **Superset card header: per-exercise ⋮** — each exercise row in the card header has a kebab: `Change exercise` (stub) / `Remove from superset` (danger). Removing from a 2-exercise superset **converts the item to solo** (`removeFromSuperset` keeps the remaining exercise's set data + `restSet`). This resolves the old "which exercise does the card-level Change apply to?" ambiguity.
+- Menus open downward; while any row menu / picker is open the card lifts (`overflow:visible` + `zIndex:30` — same mechanism as the header kebab, wired via `onMenuLift`, including `RpeField`). `Expandable` releases its `overflow:hidden` after the expand transition settles (`onTransitionEnd`) so popovers aren't clipped.
 
 ## Load units — RPE by default
-- Load dropdown options: `rpe · kg · lbs · time`. **Default is `rpe`** (prescription by effort); weight is the opt-in via the dropdown. Reps dropdown unchanged (`reps · failure · time`).
+- Load unit options: `rpe · kg · lbs · time`. **Default is `rpe`**; weight is the opt-in via the row menu. Reps units unchanged (`reps · failure · time`). Units stored per set / per drop as before.
 - Steps: rpe → 0.5 (clamped to max 10 via `wMax`), kg → 2.5, lbs/time → 5.
 - Collapsed-card summary is unit-aware: `RPE 7.5–9 · 6–8 reps` or `20–25 kg · 10–12 reps`; uses the first set's unit, ignores sets logged in other units. `Bodyweight` only for zero weight-unit sets.
 - New drop inherits the parent unit; in rpe a drop goes **up** toward 10 (`min(10, last+0.5)`), in weight units it goes down (`last−5`).
 
-## Rest (display-only for now)
-- **`RestDivider`** — a quiet centered divider: hairline · `⏱ 1:30` · hairline. A small clock icon (11px, opacity 0.40) replaces the text label; value = 11/600 at 0.70, gap 5; hairlines at overlay 0.05. **Not editable yet** — editing UX is TBD; rest stays a divider so it never competes with the set inputs. `fmtRest`: `45s` / `1:30` / `2 min`; `0` → `No rest`.
-- **Between sets** — a `RestDivider` in each gap between set groups (`item.restSet`, sec, uniform per exercise, default 90). In supersets it sits between **rounds**; within a round there is no rest by definition.
-- **Between exercise cards** — the same `RestDivider`, but the value lives in **`restGaps[i]`** (screen-level state, sec, default 120) — the pause after slot `i`, keyed by **gap position, NOT by item**, so reordering cards never drags a pause along. `deleteItem` removes the gap after the removed card (or the last gap for the last card). Nothing after the last card.
+## Rest (editable via the min/sec picker)
+- **`RestDivider`** — a quiet centered divider: hairline · `⏱ 1:30` · hairline (clock 11px at 0.40, value 11/600 at 0.70, hairlines at overlay 0.05). Tapping the chip opens **`RestPickerPopover`** — two columns, **MIN 0–5** and **SEC 0/15/30/45**; taps write live (`m·60+s`), tap-away closes, `0:00` reads back as `No rest`. The chip gets a subtle bg while open; the popover lifts the card via `onMenuLift`. `fmtRest`: `45s` / `1:30` / `2 min`.
+- **Between sets** — a `RestDivider` in each gap between set groups (`item.restSet`, sec, uniform per exercise) — editing any divider updates all of them. In supersets it sits between **rounds**; within a round there is no rest by definition.
+- **Between exercise cards** — the same `RestDivider`; the value lives in **`restGaps[i]`** (screen-level state, sec) — the pause after slot `i`, keyed by **gap position, NOT by item**, so reordering cards never drags a pause along. Editing writes the explicit value into the slot. `deleteItem` removes the gap after the removed card (or the last gap for the last card). Nothing after the last card.
+
+## Workout defaults (base config)
+- **`WorkoutDefaultsCard`** sits between the details card and the exercise list: micro-label `WORKOUT DEFAULTS` + four settings rows (label left · value 13/600 right · ▼): `Load unit`, `Reps unit` (→ `UnitListPopover`), `Rest between sets`, `Rest between exercises` (→ `RestPickerPopover`, right-aligned).
+- Stored as screen state `defaults = { weightUnit:'rpe', repsUnit:'reps', restSet:90, restGap:120 }`, threaded through cards → editors → rows. **Inheritance rule: anything without an explicit value falls back to defaults** (`set.weightUnit ?? defaults.weightUnit`, `item.restSet ?? defaults.restSet`, `restGaps[i] ?? defaults.restGap`); per-set / per-divider overrides always win and are written explicitly on first edit. `calcStats` and `soloSummary` are defaults-aware. Demo: items `a`/`b` carry explicit `restSet` overrides, `c`/`d` inherit.
+
+## Notes (exercise + set level)
+- **`NoteRow`** — a quiet one-liner (pencil icon 12px at 0.40 + transparent 12px input, placeholder `Note…`). Always editable in place; **blurring it empty removes the note** — zero pixels when absent. `autoFocus` fires when the note is created empty.
+- **Exercise note** (`item.note`) — added via the card kebab → `Add note` (the item shows only while no note exists). Renders under the card header, **visible even collapsed** — it's the coach's cue for the whole exercise. Works on solo cards and supersets (note on the whole superset item).
+- **Set note** (`set.note`; in supersets per-exercise `set[exId].note`) — added via the row ⋮ → `Add note`. Renders as an indented sub-row under the set row (paddingLeft 40, same grammar as drop sub-rows).
+- NO notes on drops, rounds, or rest — the exercise/set levels cover those cases (decision; don't add).
+- Workout-level notes = the description field in the details card (already existed).
 
 ## FAB menu (page-level actions)
 - A 50×50 glass square (**`radius-xl`, like every control on the screen — NOT a circle**) is the only thing in the footer, flush right. There is NO separate Save button — saving lives in this menu. The whole footer hides in reorder mode.
@@ -44,7 +61,7 @@ Create / edit a workout — name it, add exercises (solo or superset), and edit 
 - Nodes use `position:relative; zIndex:1` + opaque centre so the connector line never shows through them.
 
 ## Drop sets
-Up to **3 per set** (`MAX_DROPS`); the `+ drop set` link hides at 3. Stored as `set.ds: [{weight, reps, weightUnit?, repsUnit?}]`. Supersets: drops live per exercise (`set[exId].ds`).
+Up to **3 per set** (`MAX_DROPS`). Added via the main set row's ⋮ → `Add drop set` (disabled at 3); removed via the drop row's ⋮ → `Delete`. The old standalone `+ drop set` links are gone. Stored as `set.ds: [{weight, reps, weightUnit?, repsUnit?}]`. Supersets: drops live per exercise (`set[exId].ds`).
 
 ## Superset editor
 Outer grid `32px 1fr`: col1 = circled number + connector line bracketing the round; col2 = one labelled stepper block per exercise (name centred-ish, own steppers, own drops). Exercises are grouped under one set number.

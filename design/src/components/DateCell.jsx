@@ -1,12 +1,13 @@
 // state: 'default' | 'today' | 'selected' | 'otherMonth'
+// completed (orthogonal to state): day's plan fully done → emerald dot (wins over today's dot)
 // Exact from Figma: 52×76, r=14, gap=4, bg=surfaceContainer
-export default function DateCell({ day, weekday, state = 'default' }) {
+export default function DateCell({ day, weekday, state = 'default', completed = false, onClick }) {
   const isSelected = state === 'selected'
   const isToday    = state === 'today'
   const isOther    = state === 'otherMonth'
 
   return (
-    <div style={{
+    <div onClick={onClick} style={{
       width: 52,
       height: 76,
       display: 'flex',
@@ -51,12 +52,12 @@ export default function DateCell({ day, weekday, state = 'default' }) {
         {day}
       </span>
 
-      {/* Today indicator — 4×4 dot in secondary color */}
-      {isToday && (
+      {/* Indicator — 4×4 dot: emerald = plan completed, secondary = today */}
+      {(completed || isToday) && (
         <div style={{
           width: 4, height: 4,
           borderRadius: '50%',
-          background: 'var(--cs-secondary)',
+          background: completed ? 'var(--cs-status-completed)' : 'var(--cs-secondary)',
         }}/>
       )}
     </div>
