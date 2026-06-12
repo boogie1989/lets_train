@@ -8,9 +8,10 @@ import { LibrariesView } from '../libraries/index.js'
 import {
   MONTH_LABEL, TODAY, WEEKS, WD, WEEKDAY_FULL, weekIndexOf, dateLabel, PLAN, NEIGHBOR_MONTHS,
   initMonth, computeDayStats, computeNut, computeDayLoad, isDone,
-  patchDay, addItem, toggleItem,
+  patchDay, addItem, moveItem, deleteItem, setEaten, setNote,
 } from './calendarModel.js'
 import { DaySummary, ReadinessCard, MonthGrid } from './CalendarWidgets.jsx'
+import ItemDetailDialog from './ItemDetailDialog.jsx'
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
 const USER = { name: 'Serhii Buhai', email: 'serhii.work@gmail.com', initials: 'SB' }
@@ -38,7 +39,16 @@ const iconBtn = {
   flexShrink: 0, cursor: 'default', padding: 0,
 }
 
-export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = false }) {
+// edge-peek — the adjacent week's nearest day (last of the previous week /
+// first of the next), shown as a faint sliver so the strip reads as swipeable
+const weekPeek = (month, wi, edge) => {
+  const days = (WEEKS[wi] ?? []).filter(n => n != null)
+  if (!days.length) return null
+  const n = edge === 'last' ? days[days.length - 1] : days[0]
+  return { weekday: month[n].weekday, day: String(n), state: 'default' }
+}
+
+export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = false, initialDetailId = null }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [lib, setLib] = useState(null)
   const [month, setMonth] = useState(initMonth)
@@ -47,6 +57,7 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
   const [monthOpen, setMonthOpen] = useState(initialMonthOpen)
   const [monthOffset, setMonthOffset] = useState(0) // -1 Apr / 0 May / 1 Jun (ghost months)
   const [fabOpen, setFabOpen] = useState(false)
+  const [detailId, setDetailId] = useState(initialDetailId)
 
   const day = month[selected]
   const items = day.items
@@ -58,7 +69,43 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
   const dayCompleted = n => month[n].items.length > 0 && month[n].items.every(isDone)
 
   const selectDay = n => { setSelected(n); setWeekIdx(Math.max(0, weekIndexOf(n))); setMonthOpen(false); setMonthOffset(0) }
-  const toggle = i => setMonth(m => toggleItem(m, selected, i))
+
+  // ── undo snackbar — planning ops (move / delete / eaten) keep the previous
+  //    month snapshot; Undo swaps it back ──
+  const [snack, setSnack] = useState(null)
+  const snackTimer = useRef(null)
+  const showSnack = (msg, prev) => {
+    clearTimeout(snackTimer.current)
+    setSnack({ msg, prev })
+    snackTimer.current = setTimeout(() => setSnack(null), 4000)
+  }
+  const undo = () => { clearTimeout(snackTimer.current); setMonth(snack.prev); setSnack(null) }
+
+  // ── item detail dialog — tap on a card opens it; its actions are the only
+  //    planning ops (workout completion lives in the Workout Runner) ──
+  const detailItem = detailId ? items.find(it => it.id === detailId) ?? null : null
+  const detailHandlers = {
+    onClose: () => setDetailId(null),
+    onMove: toN => {
+      const prev = month
+      setMonth(m => moveItem(m, selected, detailId, toN))
+      setDetailId(null)
+      showSnack(`Moved to ${dateLabel(toN)}`, prev)
+    },
+    onDelete: () => {
+      const prev = month
+      setMonth(m => deleteItem(m, selected, detailId))
+      setDetailId(null)
+      showSnack('Deleted', prev)
+    },
+    onSetEaten: eaten => {
+      const prev = month
+      setMonth(m => setEaten(m, selected, detailId, eaten))
+      setDetailId(null)
+      showSnack(eaten ? 'Marked eaten' : 'Marked not eaten', prev)
+    },
+    onSetNote: note => setMonth(m => setNote(m, selected, detailId, note)),
+  }
 
   // ── horizontal swipe on the date strip: week view pages weeks, month view pages months ──
   const swipeStart = useRef(null)
@@ -113,10 +160,12 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
               }}>
                 Calendar
               </span>
-              {/* Month label = quiet week/month toggle (chevron flips when open) */}
+              {/* Month label = week/month toggle (chevron flips when open); the
+                  faint pill backing marks it as tappable without shouting */}
               <button onClick={() => { setMonthOpen(o => !o); setMonthOffset(0) }} style={{
-                ...TT, display: 'flex', alignItems: 'center', gap: 4, padding: 0,
-                background: 'none', border: 'none', cursor: 'pointer',
+                ...TT, display: 'flex', alignItems: 'center', gap: 4, padding: '3px 10px',
+                background: 'rgba(var(--overlay-rgb),0.06)', border: 'none',
+                borderRadius: 'var(--radius-pill)', cursor: 'pointer',
                 fontSize: 'var(--tt-body-small-size)',
                 fontWeight: 'var(--tt-body-small-weight)',
                 letterSpacing: 'var(--tt-body-small-tracking)',
@@ -145,7 +194,14 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
                 <MonthGrid month={month} selected={selected} onSelect={selectDay}
                   ghost={monthOffset !== 0 ? NEIGHBOR_MONTHS[monthOffset] : null} />
               ) : (
-                <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ position: 'relative', display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+                  {/* edge-peek — slivers of the neighbouring weeks' cells make the
+                      strip read as swipeable (clipped by the swipe wrapper) */}
+                  {weekPeek(month, weekIdx - 1, 'last') && (
+                    <div style={{ position: 'absolute', left: -44, opacity: 0.25, pointerEvents: 'none' }}>
+                      <DateCell {...weekPeek(month, weekIdx - 1, 'last')} />
+                    </div>
+                  )}
                   {WEEKS[weekIdx].map((n, i) => (
                     n == null
                       ? <span key={`b${i}`} style={{ width: 52, height: 76, flexShrink: 0 }} />
@@ -154,6 +210,11 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
                           completed={dayCompleted(n)}
                           onClick={() => selectDay(n)} />
                   ))}
+                  {weekPeek(month, weekIdx + 1, 'first') && (
+                    <div style={{ position: 'absolute', right: -44, opacity: 0.25, pointerEvents: 'none' }}>
+                      <DateCell {...weekPeek(month, weekIdx + 1, 'first')} />
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -170,28 +231,44 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
         padding: '20px 16px 96px',
         overflowY: 'auto',
       }}>
-        {/* quiet date caption — full weekday for orientation after month-grid jumps */}
-        <span style={{
-          ...TT,
-          fontSize: 'var(--tt-body-medium-size)',
-          fontWeight: 'var(--tt-body-medium-weight)',
-          letterSpacing: 'var(--tt-body-medium-tracking)',
-          color: 'var(--cs-on-surface-variant)',
-        }}>
-          {WEEKDAY_FULL[day.weekday]}, {dateLabel(selected)}
-        </span>
+        {/* quiet date caption — full weekday for orientation after month-grid
+            jumps; a Today pill appears whenever the selection wandered off */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <span style={{
+            ...TT,
+            fontSize: 'var(--tt-body-medium-size)',
+            fontWeight: 'var(--tt-body-medium-weight)',
+            letterSpacing: 'var(--tt-body-medium-tracking)',
+            color: 'var(--cs-on-surface-variant)',
+          }}>
+            {WEEKDAY_FULL[day.weekday]}, {dateLabel(selected)}
+          </span>
+          {!isToday && (
+            <button onClick={() => selectDay(TODAY)} style={{
+              ...TT, fontSize: 11, fontWeight: 500, padding: '4px 12px', cursor: 'pointer',
+              borderRadius: 'var(--radius-pill)',
+              background: 'rgba(var(--overlay-rgb),0.05)',
+              border: '1px solid rgba(var(--cs-outline-rgb),0.25)',
+              color: 'var(--cs-on-surface-variant)',
+            }}>
+              Today
+            </button>
+          )}
+        </div>
 
+        {/* readiness — interactive check-in today, read-only history on past days */}
         {isToday && <ReadinessCard value={day.readiness} onSet={v => setMonth(m => patchDay(m, selected, { readiness: v }))} />}
+        {isPast && day.readiness && <ReadinessCard value={day.readiness} readOnly />}
 
         {items.length > 0 ? (
           <>
             <DaySummary stats={stats} load={dayLoad} nut={nut} />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {items.map((task, i) => (
-                <TaskItem key={task.title + i} {...task}
+              {items.map(task => (
+                <TaskItem key={task.id} {...task}
                   plan={task.fromPlan ? PLAN.name : undefined}
                   missed={isPast}
-                  onClick={() => toggle(i)} />
+                  onClick={() => setDetailId(task.id)} />
               ))}
             </div>
           </>
@@ -212,6 +289,30 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
           ]} />
         </div>
       </div>
+
+      {/* ── Undo snackbar — move / delete / eaten ops are reversible ── */}
+      {snack && (
+        <div style={{ position: 'absolute', left: 16, right: 16, bottom: 96, zIndex: 46, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
+          <div style={{
+            pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 16,
+            padding: '10px 16px', borderRadius: 'var(--radius-xl)',
+            background: 'var(--glass-popover)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+            border: '1px solid rgba(var(--cs-outline-rgb),0.5)',
+            boxShadow: '0 12px 32px rgba(var(--cs-shadow-rgb),0.6)',
+          }}>
+            <span style={{ ...TT, fontSize: 13, fontWeight: 400, color: 'var(--cs-on-surface)' }}>{snack.msg}</span>
+            <button onClick={undo} style={{
+              ...TT, fontSize: 13, fontWeight: 600, color: 'var(--cs-primary)',
+              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
+            }}>
+              Undo
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Item detail dialog — container transform per the FabMenu recipe ── */}
+      <ItemDetailDialog item={detailItem} tense={day.tense} month={month} dayN={selected} {...detailHandlers} />
 
       {/* ── Side menu drawer ── */}
       <SideDrawer open={menuOpen} onClose={() => setMenuOpen(false)} onNavigate={id => { setLib(id); setMenuOpen(false) }} />

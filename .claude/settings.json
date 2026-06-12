@@ -43,7 +43,8 @@
       "Bash(perl -0777 -i -pe ' *)",
       "Bash(node _shot8.mjs)",
       "Bash(lsof -ti:5175)",
-      "Bash(git restore *)"
+      "Bash(git restore *)",
+      "Bash(npx vite-node *)"
     ],
     "additionalDirectories": [
       "/tmp",

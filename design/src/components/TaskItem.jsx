@@ -2,11 +2,15 @@ import GlassCard from './GlassCard.jsx'
 
 // 398×88, r=16, accent strip 5px left, content pad 20/18 gap 10
 // kind: 'workout' (meta = N exercises) | 'meal' (meta = N kcal)
-// onClick (optional): tapping the card flips Completed/Planned.
+// onClick (optional): tapping the card opens its detail dialog (a quiet trailing
+// chevron marks the affordance). The card does NOT toggle status — workout
+// completion comes from the Workout Runner, meals are logged from the detail.
+// result (optional): completed workout's session result — the meta segment then
+// shows the actual `tonnage kg · RPE x` instead of the planned exercise count.
 // plan (optional): name of the training plan that scheduled this item — shown as a
 // quiet third meta segment; ad-hoc items simply omit it.
 // missed: the item's day is in the past — uncompleted items get a muted "Missed" label.
-export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'workout', status = 'Planned', onClick, plan, missed = false }) {
+export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'workout', status = 'Planned', onClick, plan, missed = false, result }) {
   const completed = status === 'Completed'
   const label = completed
     ? { text: 'Done', color: 'var(--cs-tertiary)', opacity: 1 }
@@ -71,7 +75,11 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
               fontWeight: 400,
               color: 'var(--cs-on-surface-variant)',
             }}>
-              {kind === 'meal' ? `${kcal} kcal` : `${exerciseCount} exercises`}
+              {kind === 'meal'
+                ? `${kcal} kcal`
+                : result
+                  ? `${result.tonnage.toLocaleString()} kg · RPE ${result.sessionRpe}`
+                  : `${exerciseCount} exercises`}
             </span>
           </div>
 
@@ -97,21 +105,34 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
         </div>
       </div>
 
-      {/* Status marker — quiet "Done" (emerald) / "Missed" (muted error) label */}
-      {label && (
-        <div style={{ display: 'flex', alignItems: 'center', paddingRight: 20, flexShrink: 0 }}>
-          <span style={{
-            fontFamily: 'var(--tt-font-family)',
-            fontSize: 10,
-            fontWeight: 500,
-            color: label.color,
-            opacity: label.opacity,
-          }}>
-            {label.text}
-          </span>
+      {/* Trailing: quiet "Done" (emerald) / "Missed" (muted error) label + a
+          faint chevron when the card opens a detail dialog */}
+      {(label || onClick) && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingRight: 16, flexShrink: 0 }}>
+          {label && (
+            <span style={{
+              fontFamily: 'var(--tt-font-family)',
+              fontSize: 10,
+              fontWeight: 500,
+              color: label.color,
+              opacity: label.opacity,
+            }}>
+              {label.text}
+            </span>
+          )}
+          {onClick && <span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)', opacity: 0.3 }}><ChevronIcon /></span>}
         </div>
       )}
     </GlassCard>
+  )
+}
+
+function ChevronIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 6 15 12 9 18" />
+    </svg>
   )
 }
 

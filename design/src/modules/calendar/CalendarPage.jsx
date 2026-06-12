@@ -2,12 +2,15 @@ import CalendarScreen from './CalendarScreen.jsx'
 
 // Each phone starts on a different selected day; the calendar is interactive:
 // tap "May 2026 ⌄" to swap the week strip for the inline month grid, tap dates
-// to switch days, tap cards to toggle Completed.
+// to switch days, tap cards to open the item detail dialog (workout completion
+// itself happens in the Workout Runner, not here).
 const STATES = [
   { id: 'today', label: 'Today — week', props: { initialDay: 13 } },
   { id: 'light', label: 'Light day', props: { initialDay: 14 } },
   { id: 'month', label: 'Month open', props: { initialDay: 13, initialMonthOpen: true } },
   { id: 'empty', label: 'Empty day', props: { initialDay: 16 } },
+  // d13-0 = Morning Strength (Completed: session result + note)
+  { id: 'detail', label: 'Detail open', props: { initialDay: 13, initialDetailId: 'd13-0' } },
 ]
 
 export default function CalendarPage() {

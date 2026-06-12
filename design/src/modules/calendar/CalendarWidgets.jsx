@@ -1,6 +1,7 @@
 // Calendar widgets — selected-day summary, readiness check-in, inline month grid.
 // All derive from calendarModel data.
-import { WD, WEEKS, dayDot, TODAY } from './calendarModel.js'
+import { useState } from 'react'
+import { WD, WEEKS, dayDot, TODAY, readinessScore, readinessTier } from './calendarModel.js'
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
 const card = { flexShrink: 0, background: 'var(--glass-low-bg)', borderRadius: 'var(--radius-2xl)', border: '1px solid rgba(var(--cs-outline-rgb),0.20)' }
@@ -45,9 +46,12 @@ export function DaySummary({ stats, load, nut }) {
             </span>
           </div>
           <SegmentBar total={stats.wTotal} done={stats.wDone} color="var(--cs-status-completed)" />
-          {/* load line — mirrors the macro legend under the nutrition bar */}
+          {/* load line — mirrors the macro legend under the nutrition bar; the
+              quiet "Load" prefix names the jargon for non-pro readers */}
           {load && (
             <div style={{ ...val, fontSize: 11, marginTop: 9 }}>
+              <span style={{ opacity: 0.7 }}>Load</span>
+              {' · '}
               <span style={{ fontWeight: 500, color: 'var(--cs-on-surface)' }}>{load.tonnage.toLocaleString()} kg</span>
               {' · '}
               <span style={{ fontWeight: 500, color: 'var(--cs-on-surface)' }}>{load.au} AU</span>
@@ -80,34 +84,73 @@ export function DaySummary({ stats, load, nut }) {
   )
 }
 
-// ── Readiness check-in — today only, collapses to a quiet line once answered ──
-const MOODS = [
-  { key: 'Good', ch: '--cs-tertiary-rgb' },
-  { key: 'Okay', ch: '--cat-amber-rgb' },
-  { key: 'Rough', ch: '--cs-error-rgb' },
+// ── Readiness check-in — multi-factor { sleep, soreness, energy }, each 1–5 ───
+// Today, unanswered: three 5-segment scales; auto-collapses once all three are
+// set. Answered: one quiet line `Readiness 7 · Sleep 4 · Soreness 2 · Energy 5`
+// with edit. Past days render the same line read-only (history).
+const FACTORS = [
+  { key: 'sleep', label: 'Sleep' },
+  { key: 'soreness', label: 'Soreness' },
+  { key: 'energy', label: 'Energy' },
 ]
-export function ReadinessCard({ value, onSet }) {
-  if (value) {
-    const mood = MOODS.find(m => m.key === value) ?? MOODS[0]
+const TIER_CH = { Good: '--cs-tertiary-rgb', Okay: '--cat-amber-rgb', Rough: '--cs-error-rgb' }
+
+export function ReadinessCard({ value, onSet, readOnly = false }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState({})
+
+  if (value && !editing) {
+    const score = readinessScore(value)
+    const tier = readinessTier(score)
+    const line = (
+      <>
+        <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: `rgba(var(${TIER_CH[tier]}),1)` }} />
+        <span style={val}>
+          Readiness <span style={{ fontWeight: 500, color: 'var(--cs-on-surface)' }}>{score}</span>
+          {FACTORS.map(f => <span key={f.key}> · {f.label} {value[f.key]}</span>)}
+        </span>
+      </>
+    )
+    if (readOnly) {
+      return <div style={{ ...card, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8 }}>{line}</div>
+    }
     return (
-      <button onClick={() => onSet(null)} style={{ ...card, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', width: '100%', textAlign: 'left' }}>
-        <span style={{ width: 6, height: 6, borderRadius: '50%', background: `rgba(var(${mood.ch}),1)` }} />
-        <span style={val}>Readiness: <span style={{ fontWeight: 500, color: 'var(--cs-on-surface)' }}>{value}</span></span>
+      <button onClick={() => { setDraft(value); setEditing(true) }} style={{ ...card, padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', width: '100%', textAlign: 'left' }}>
+        {line}
         <span style={{ ...TT, marginLeft: 'auto', fontSize: 10, color: 'var(--cs-on-surface-variant)', opacity: 0.4 }}>edit</span>
       </button>
     )
   }
+
+  // check-in — tap a segment per factor; saves itself once all three are set
+  const set = (key, v) => {
+    const next = { ...draft, [key]: v }
+    setDraft(next)
+    if (FACTORS.every(f => next[f.key])) {
+      onSet(next)
+      setEditing(false)
+      setDraft({})
+    }
+  }
   return (
-    <div style={{ ...card, padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-      <span style={{ ...lbl, flex: 1 }}>How are you today?</span>
-      {MOODS.map(m => (
-        <button key={m.key} onClick={() => onSet(m.key)} style={{
-          ...TT, fontSize: 11, fontWeight: 500, padding: '5px 11px', cursor: 'pointer',
-          borderRadius: 'var(--radius-pill)',
-          background: `rgba(var(${m.ch}),0.10)`,
-          border: `1px solid rgba(var(${m.ch}),0.28)`,
-          color: `rgba(var(${m.ch}),1)`,
-        }}>{m.key}</button>
+    <div style={{ ...card, padding: '13px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <span style={lbl}>How are you today?</span>
+      {FACTORS.map(f => (
+        <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ ...val, width: 62, flexShrink: 0 }}>{f.label}</span>
+          <div style={{ flex: 1, display: 'flex', gap: 4 }}>
+            {[1, 2, 3, 4, 5].map(v => (
+              <button key={v} onClick={() => set(f.key, v)} aria-label={`${f.label} ${v}`} style={{
+                flex: 1, height: 20, padding: 0, cursor: 'pointer',
+                borderRadius: 'var(--radius-sm)', border: 'none',
+                background: draft[f.key] >= v ? 'rgba(var(--cs-primary-rgb),0.75)' : 'rgba(var(--overlay-rgb),0.06)',
+              }} />
+            ))}
+          </div>
+          <span style={{ ...val, width: 12, textAlign: 'right', fontSize: 11, opacity: draft[f.key] ? 1 : 0.35 }}>
+            {draft[f.key] ?? '—'}
+          </span>
+        </div>
       ))}
     </div>
   )
@@ -118,13 +161,16 @@ export function ReadinessCard({ value, onSet }) {
 // like the DateCell row reads as one strip), transparent day cells inside.
 // The only accents: selected = DateCell gradient pill (reduced glow), today =
 // subtle 1px primary ring. Dot per day: emerald done / muted-error missed /
-// slate has-items. `ghost` renders a neighbouring month: numbers only, muted,
-// non-interactive (no demo data outside May).
-const DOT = {
+// slate has-items; dot SIZE = per-day intensity tier from completed sRPE AU
+// (3/4/5px — quiet per-day weight, not a weekly aggregate). `ghost` renders a
+// neighbouring month: numbers only, muted, non-interactive (no demo data
+// outside May).
+const DOT_COLOR = {
   done: 'var(--cs-status-completed)',
   missed: 'rgba(var(--cs-error-rgb),0.75)',
   has: 'var(--cs-status-planned)',
 }
+const DOT_SIZE = { 1: 3, 2: 4, 3: 5 }
 
 const chunkMonth = (lead, days) => {
   const cells = [...Array(lead).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)]
@@ -184,7 +230,10 @@ export function MonthGrid({ month, selected, onSelect, ghost }) {
                   : 'none',
               }}>
                 <span style={{ fontSize: 15, fontWeight: 'var(--tt-title-medium-weight)', lineHeight: 1, color: 'var(--cs-on-surface)' }}>{n}</span>
-                <span style={{ width: 4, height: 4, borderRadius: '50%', background: dot === 'none' ? 'transparent' : DOT[dot] }} />
+                {/* fixed 5px slot keeps the numbers aligned across dot sizes */}
+                <span style={{ height: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {dot && <span style={{ width: DOT_SIZE[dot.tier], height: DOT_SIZE[dot.tier], borderRadius: '50%', background: DOT_COLOR[dot.kind] }} />}
+                </span>
               </button>
             )
           })}

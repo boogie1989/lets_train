@@ -2,6 +2,10 @@
 // (no randomness): every day of the month gets typed items (workout | meal) with
 // statuses plus a readiness value, so the week strip, the inline month grid and
 // the day summary all derive from one source.
+//
+// Workout completion NEVER happens from the calendar — it comes from the Workout
+// Runner (past/today statuses are pre-baked here "as if after the runner"). The
+// calendar's own ops are planning ops: move / delete / note / meal eaten.
 
 export const MONTH_LABEL = 'May 2026'
 export const TODAY = 13
@@ -62,6 +66,26 @@ const T = {
 // Weekday → template (Mon/Wed/Fri are training-heavy, Tue/Sat are rest days).
 const TEMPLATE_BY_WD = { Sun: 'light', Mon: 'full', Tue: 'empty', Wed: 'full', Thu: 'light', Fri: 'full', Sat: 'empty' }
 
+// ── Deterministic exercise list (shown in the item detail dialog) ─────────────
+const EX_POOL = [
+  'Back Squat', 'Bench Press', 'Deadlift', 'Overhead Press', 'Barbell Row',
+  'Pull-ups', 'Romanian Deadlift', 'Walking Lunges', 'Lat Pulldown', 'Leg Press',
+  'Cable Fly', 'Hip Thrust', 'Face Pull', 'Plank', 'Calf Raise', 'Hammer Curl',
+]
+const makeExercises = (seed, count) => Array.from({ length: count }, (_, i) => ({
+  name: EX_POOL[(seed + i * 3) % EX_POOL.length],
+  sets: 3 + ((seed + i) % 2),
+  reps: 6 + ((seed * 2 + i) % 7),
+}))
+
+// Session notes on a few demo items (pro pattern: notes live on the item,
+// edited from the detail dialog).
+const NOTES = {
+  '13:Morning Strength': 'Felt strong — added 2.5 kg on the top sets.',
+  '11:Leg Day': 'Knee felt tight on warm-up — capped top sets at RPE 8.',
+  '4:Leg Day': 'Short on time — supersetted the accessories.',
+}
+
 // ── Deterministic workout result (attached when a workout is completed) ───────
 // Raw load components, NOT one magic number: tonnage = external load (only the
 // sets logged with weight — setsMeasured tracks coverage), sessionRpe × minutes
@@ -77,13 +101,26 @@ const makeResult = (n, ec) => {
   }
 }
 
+// ── Readiness — multi-factor check-in { sleep, soreness, energy }, each 1–5 ───
+// soreness is inverted in the composite (5 = very sore = bad).
+const makeReadiness = n => ({ sleep: 2 + (n % 4), soreness: 1 + ((n * 2) % 5), energy: 2 + ((n + 1) % 4) })
+
+export const readinessScore = r => Math.round(((r.sleep + (6 - r.soreness) + r.energy) / 15) * 10)
+export const readinessTier = score => (score >= 7 ? 'Good' : score >= 4 ? 'Okay' : 'Rough')
+
 // ── Month generation ──────────────────────────────────────────────────────────
 export function initMonth() {
   const month = {}
   for (let n = 1; n <= DAYS_IN_MONTH; n++) {
     const wd = weekdayOf(n)
     const tense = tenseOf(n)
-    let items = T[TEMPLATE_BY_WD[wd]].map(it => ({ ...it, status: 'Planned' }))
+    let items = T[TEMPLATE_BY_WD[wd]].map((it, i) => ({
+      ...it,
+      id: `d${n}-${i}`,
+      status: 'Planned',
+      exercises: it.kind === 'workout' ? makeExercises(n + it.title.length, it.exerciseCount) : undefined,
+      note: NOTES[`${n}:${it.title}`],
+    }))
 
     if (tense === 'past') {
       items = items.map(it => ({
@@ -114,7 +151,7 @@ export function initMonth() {
       weekday: wd,
       tense,
       items,
-      readiness: tense === 'past' ? ['Good', 'Okay', 'Good', 'Rough'][n % 4] : null,
+      readiness: tense === 'past' ? makeReadiness(n) : null,
     }
   }
   return month
@@ -163,26 +200,52 @@ export function computeDayLoad(items) {
   }
 }
 
-// Month-grid dot: 'done' (everything checked) | 'missed' (past day with gaps)
-// | 'has' (items scheduled) | 'none'
+// Month-grid dot — { kind, tier } or null when the day is empty.
+// kind: 'done' (everything checked) | 'missed' (past day with gaps) | 'has'.
+// tier 1–3 = per-day intensity from completed sRPE AU (NOT a weekly aggregate —
+// trends live on a separate screen); days without completed load stay tier 1.
 export function dayDot(day) {
-  if (!day.items.length) return 'none'
-  if (day.items.every(isDone)) return 'done'
-  if (day.tense === 'past') return 'missed'
-  return 'has'
+  if (!day.items.length) return null
+  const kind = day.items.every(isDone) ? 'done' : day.tense === 'past' ? 'missed' : 'has'
+  const load = computeDayLoad(day.items)
+  const tier = !load ? 1 : load.au < 600 ? 1 : load.au < 1500 ? 2 : 3
+  return { kind, tier }
 }
 
-// ── Immutable update helpers (screen state ops, item ops are index-based) ─────
+// ── Immutable update helpers (planning ops, id-based) ─────────────────────────
+const timeKey = t => {
+  const [, h, m, ap] = t.match(/(\d+):(\d+) (AM|PM)/)
+  return ((+h % 12) + (ap === 'PM' ? 12 : 0)) * 60 + +m
+}
+const byTime = (a, b) => timeKey(a.time) - timeKey(b.time)
+
 export const patchDay = (month, n, patch) => ({ ...month, [n]: { ...month[n], ...patch } })
 
-export const addItem = (month, n, item) =>
-  patchDay(month, n, { items: [...month[n].items, item] })
+const patchItem = (month, n, id, patch) =>
+  patchDay(month, n, { items: month[n].items.map(it => (it.id === id ? { ...it, ...patch } : it)) })
 
-export const toggleItem = (month, n, idx) =>
-  patchDay(month, n, {
-    items: month[n].items.map((it, i) => (i === idx
-      ? (isDone(it)
-          ? { ...it, status: 'Planned', result: undefined }
-          : { ...it, status: 'Completed', result: it.kind === 'workout' ? makeResult(n, it.exerciseCount) : undefined })
-      : it)),
-  })
+let uid = 0
+export const addItem = (month, n, item) => {
+  const it = { ...item, id: `u${++uid}` }
+  if (it.kind === 'workout' && !it.exercises) it.exercises = makeExercises(n + it.title.length, it.exerciseCount)
+  return patchDay(month, n, { items: [...month[n].items, it].sort(byTime) })
+}
+
+export const deleteItem = (month, n, id) =>
+  patchDay(month, n, { items: month[n].items.filter(it => it.id !== id) })
+
+export const moveItem = (month, fromN, id, toN) => {
+  if (fromN === toN) return month
+  const item = month[fromN].items.find(it => it.id === id)
+  if (!item) return month
+  const removed = patchDay(month, fromN, { items: month[fromN].items.filter(it => it.id !== id) })
+  return patchDay(removed, toN, { items: [...removed[toN].items, item].sort(byTime) })
+}
+
+// Meals only — eating is logged from the calendar; workout completion is not
+// (it comes from the Workout Runner).
+export const setEaten = (month, n, id, eaten) =>
+  patchItem(month, n, id, { status: eaten ? 'Completed' : 'Planned' })
+
+export const setNote = (month, n, id, note) =>
+  patchItem(month, n, id, { note: note || undefined })
