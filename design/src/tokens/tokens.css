@@ -325,6 +325,19 @@
                    0 10px 24px -2px rgba(0,0,0,.35),
                    inset 0 1px 0 rgba(255,255,255,.05);
 
+  /* Glass-container elevation ramp — ambient + key + inner top-highlight.
+     One per GlassCard level (Low/Mid/High). The inner highlight is what gives
+     a glass card volume against the dark/smoke background; don't drop it. */
+  --shadow-glass-low:  0 4px 12px rgba(0,0,0,.25),
+                       0 10px 24px -2px rgba(0,0,0,.35),
+                       inset 0 1px 0 rgba(255,255,255,.05);
+  --shadow-glass-mid:  0 6px 16px rgba(0,0,0,.30),
+                       0 16px 36px -4px rgba(0,0,0,.45),
+                       inset 0 1px 0 rgba(255,255,255,.06);
+  --shadow-glass-high: 0 10px 24px rgba(0,0,0,.35),
+                       0 26px 52px -6px rgba(0,0,0,.55),
+                       inset 0 1px 0 rgba(255,255,255,.08);
+
   /* ── Blur ───────────────────────────────────────────────────── */
   --blur-glass:    blur(24px);
   --blur-smoke-sm: blur(80px);
@@ -346,6 +359,16 @@
   --shadow-task:   0 4px 12px rgba(0,0,0,.06),
                    0 10px 24px -2px rgba(0,0,0,.08),
                    inset 0 1px 0 rgba(255,255,255,.60);
+
+  --shadow-glass-low:  0 4px 12px rgba(0,0,0,.06),
+                       0 10px 24px -2px rgba(0,0,0,.08),
+                       inset 0 1px 0 rgba(255,255,255,.60);
+  --shadow-glass-mid:  0 6px 16px rgba(0,0,0,.08),
+                       0 16px 36px -4px rgba(0,0,0,.10),
+                       inset 0 1px 0 rgba(255,255,255,.70);
+  --shadow-glass-high: 0 10px 24px rgba(0,0,0,.10),
+                       0 26px 52px -6px rgba(0,0,0,.12),
+                       inset 0 1px 0 rgba(255,255,255,.80);
 }
 
 

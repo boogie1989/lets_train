@@ -44,7 +44,15 @@
       "Bash(node _shot8.mjs)",
       "Bash(lsof -ti:5175)",
       "Bash(git restore *)",
-      "Bash(npx vite-node *)"
+      "Bash(npx vite-node *)",
+      "Bash(rm -rf design_v2)",
+      "Bash(rsync -a --exclude node_modules --exclude dist --exclude .git design/ design_v2/)",
+      "Bash(xargs rm -rf)",
+      "Bash(rm -f components/SmokeLayer.jsx components/AnimatedSmokeLayer.jsx components/GlassCard.jsx)",
+      "Bash(rm -f assets/background/smoke_background.svg)",
+      "Bash(rmdir assets/background)",
+      "Bash(rmdir assets *)",
+      "Bash(perl -0pi -e \"s/\\\\s*backdropFilter:\\\\s*'blur\\\\\\([^\\)]*\\\\\\)',//g; s/\\\\s*WebkitBackdropFilter:\\\\s*'blur\\\\\\([^\\)]*\\\\\\)',//g;\" SelectDialog.jsx DropdownMenu.jsx MultiSelectDialog.jsx NavBar.jsx ConfirmDialog.jsx)"
     ],
     "additionalDirectories": [
       "/tmp",

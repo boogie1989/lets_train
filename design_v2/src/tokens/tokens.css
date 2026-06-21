@@ -1,0 +1,393 @@
+/* ================================================================
+   DESIGN_V2 — "CALM PERFORMANCE"  ·  Flutter-aware token system
+   ----------------------------------------------------------------
+   Data-first, de-glassed. The visual language is built from things
+   Flutter renders WELL (opaque surface ladder, single crisp shadow,
+   1px specular borders, static gradients, tabular figures) and avoids
+   what it renders BADLY (animated BackdropFilter, inset shadows,
+   stacked ambient+key+inner shadows, Opacity-widget layering).
+
+   MATERIAL 3 COLOR SCHEME · Seed: Slate #64748B · Tailwind Slate/Zinc/Emerald
+   Ref: https://api.flutter.dev/flutter/material/ColorScheme-class.html
+
+   Rule: app code uses var(--token) or rgba(var(--…-rgb), α) ONLY.
+   An alpha float is not a color; a literal rgb/hex is. No hex in code.
+   Switched at runtime via [data-theme="light"] on <html>.
+   ================================================================ */
+
+:root,
+[data-theme="dark"] {
+  /* ── Primary (slate-400 accent) ─────────────────────────────── */
+  --cs-primary:                #94A3B8;   /* slate-400  */
+  --cs-on-primary:             #0F172A;   /* slate-900  */
+  --cs-primary-container:      #1E293B;   /* slate-800  */
+  --cs-on-primary-container:   #CBD5E1;   /* slate-300  */
+
+  /* ── Secondary (slate-500) ──────────────────────────────────── */
+  --cs-secondary:              #64748B;   /* slate-500  */
+  --cs-on-secondary:           #0F172A;
+  --cs-secondary-container:    #334155;   /* slate-700  */
+  --cs-on-secondary-container: #CBD5E1;
+
+  /* ── Tertiary (emerald) ─────────────────────────────────────── */
+  --cs-tertiary:               #34D399;   /* emerald-400 */
+  --cs-on-tertiary:            #022C22;
+  --cs-tertiary-container:     #065F46;
+  --cs-on-tertiary-container:  #34D399;
+
+  /* ── Error ──────────────────────────────────────────────────── */
+  --cs-error:                  #F87171;
+  --cs-on-error:               #7F1D1D;
+  --cs-error-container:        #991B1B;
+  --cs-on-error-container:     #FCA5A5;
+
+  /* ── Surface roles (M3) ─────────────────────────────────────── */
+  --cs-surface:                     #000000;
+  --cs-on-surface:                  #FAFAFA;
+  --cs-on-surface-variant:          #B4B4B4;   /* secondary text, icons */
+  --cs-surface-dim:                 #09090B;
+  --cs-surface-bright:              #27272A;
+  --cs-surface-container-lowest:    #09090B;
+  --cs-surface-container-low:       #121214;
+  --cs-surface-container:           #18181B;   /* zinc-900 — default card */
+  --cs-surface-container-high:      #1F1F23;
+  --cs-surface-container-highest:   #27272A;   /* zinc-800 — raised */
+
+  /* ── Opaque ELEVATION LADDER (the v2 surface language) ──────────
+     Replaces the old translucent --glass-* set. Every step is fully
+     opaque so cards/sheets read WITHOUT backdrop blur. Maps 1:1 to
+     Flutter M3 surfaceContainer* roles. */
+  --surface-0:   #000000;   /* scaffold / phone background          */
+  --surface-1:   #121214;   /* chrome: header slab, sidebar         */
+  --surface-2:   #18181B;   /* default Card / tile                  */
+  --surface-3:   #1F1F23;   /* dialogs, bottom sheets, menus        */
+  --surface-4:   #27272A;   /* raised / popover / selected control  */
+
+  /* ── Borders (the new elevation language; replace inner highlights)
+     1px border = the "specular highlight" substitute. No inset shadows. */
+  --border-subtle:    rgba(var(--cs-outline-rgb),0.12);
+  --border-default:   rgba(var(--cs-outline-rgb),0.22);
+  --border-strong:    rgba(var(--cs-outline-rgb),0.40);
+  --border-highlight: rgba(var(--raise-rgb),0.06);   /* top gloss line */
+
+  /* ── Outline ────────────────────────────────────────────────── */
+  --cs-outline:                rgba(63,63,70,0.50);  /* zinc-700/50 */
+  --cs-outline-variant:        rgba(63,63,70,0.30);
+
+  /* ── Utility ────────────────────────────────────────────────── */
+  --cs-shadow:                 #000000;
+  --cs-scrim:                  rgba(0,0,0,0.55);
+  --cs-inverse-surface:        #F1F5F9;
+  --cs-inverse-on-surface:     #18181B;
+  --cs-inverse-primary:        #475569;   /* slate-600 */
+  --cs-surface-tint:           #94A3B8;
+
+  /* ── Status (custom, not in ColorScheme) ────────────────────── */
+  --cs-status-completed:       #10B981;   /* emerald-500 */
+  --cs-status-planned:         #64748B;   /* slate-500  */
+
+  /* ── Channel triplets — for rgba(var(--x-rgb), α) tints ─────── */
+  --cs-primary-rgb:            148,163,184;
+  --cs-surface-rgb:            0,0,0;
+  --cs-on-surface-rgb:         250,250,250;
+  --cs-on-surface-variant-rgb: 180,180,180;
+  --cs-outline-rgb:            63,63,70;
+  --cs-error-rgb:              248,113,113;
+  --cs-tertiary-rgb:           52,211,153;
+  --cs-shadow-rgb:             0,0,0;
+  --danger-rgb:                217,83,79;
+
+  /* Neutral overlays — the dark/light flip lives here.
+     overlay = fills / hairlines / dividers (contrast vs surface).
+     raise   = specular top-highlights / gloss (stays light both). */
+  --overlay-rgb:               255,255,255;
+  --raise-rgb:                 255,255,255;
+
+  /* ── One semantic accent ────────────────────────────────────── */
+  --accent:      var(--cs-primary);
+  --accent-rgb:  var(--cs-primary-rgb);
+
+  /* ── App chrome (playbook only) ─────────────────────────────── */
+  --app-bg:                    #0a0a0a;
+
+  /* ── Static screen background (quality-first, no blur/animation)
+     A baked multi-stop radial glow + bottom vignette over near-black.
+     In Flutter → a single DecoratedBox(LinearGradient/RadialGradient)
+     or a pre-rendered asset. */
+  --bg-gradient:
+    radial-gradient(125% 85% at 50% -12%, rgba(100,116,139,0.12) 0%, rgba(100,116,139,0) 52%),
+    radial-gradient(110% 70% at 50% 112%, rgba(15,23,42,0.55) 0%, rgba(15,23,42,0) 60%),
+    linear-gradient(180deg, #0B0B0D 0%, #000000 100%);
+
+  /* ── Category / focus palette (solids + channels) ───────────── */
+  --cat-green:      #34D399;   --cat-green-rgb:  52,211,153;
+  --cat-blue:       #60A5FA;   --cat-blue-rgb:   96,165,250;
+  --cat-amber:      #FBBF24;   --cat-amber-rgb:  251,191,36;
+  --cat-pink:       #F472B6;   --cat-pink-rgb:   244,114,182;
+  --cat-violet:     #A78BFA;   --cat-violet-rgb: 167,139,250;
+  --cat-cyan:       #22D3EE;   --cat-cyan-rgb:   34,211,238;
+}
+
+/* ================================================================
+   LIGHT THEME  (soft-neutral · zinc surfaces · slate accent)
+   ================================================================ */
+[data-theme="light"] {
+  /* ── Primary (slate-600 so tints read on light) ─────────────── */
+  --cs-primary:                #475569;
+  --cs-on-primary:             #FFFFFF;
+  --cs-primary-container:      #E2E8F0;   /* slate-200 */
+  --cs-on-primary-container:   #1E293B;
+
+  /* ── Secondary ──────────────────────────────────────────────── */
+  --cs-secondary:              #64748B;
+  --cs-on-secondary:           #FFFFFF;
+  --cs-secondary-container:    #E2E8F0;
+  --cs-on-secondary-container: #334155;
+
+  /* ── Tertiary (emerald-600) ─────────────────────────────────── */
+  --cs-tertiary:               #059669;
+  --cs-on-tertiary:            #FFFFFF;
+  --cs-tertiary-container:     #A7F3D0;
+  --cs-on-tertiary-container:  #064E3B;
+
+  /* ── Error ──────────────────────────────────────────────────── */
+  --cs-error:                  #DC2626;
+  --cs-on-error:               #FFFFFF;
+  --cs-error-container:        #FECACA;
+  --cs-on-error-container:     #7F1D1D;
+
+  /* ── Surface roles (M3) ─────────────────────────────────────── */
+  --cs-surface:                     #ECECEE;
+  --cs-on-surface:                  #18181B;
+  --cs-on-surface-variant:          #52525B;   /* zinc-600 */
+  --cs-surface-dim:                 #E4E4E7;
+  --cs-surface-bright:              #FFFFFF;
+  --cs-surface-container-lowest:    #FFFFFF;
+  --cs-surface-container-low:       #FAFAFA;
+  --cs-surface-container:           #FFFFFF;
+  --cs-surface-container-high:      #F4F4F5;
+  --cs-surface-container-highest:   #E4E4E7;
+
+  /* ── Opaque elevation ladder ────────────────────────────────── */
+  --surface-0:   #E8E8EA;   /* scaffold (slightly darker than cards) */
+  --surface-1:   #F4F4F5;   /* chrome                                */
+  --surface-2:   #FFFFFF;   /* default Card                          */
+  --surface-3:   #FFFFFF;   /* dialogs/sheets (separated by shadow)  */
+  --surface-4:   #FFFFFF;   /* raised/popover                        */
+
+  /* ── Borders ────────────────────────────────────────────────── */
+  --border-subtle:    rgba(var(--cs-outline-rgb),0.10);
+  --border-default:   rgba(var(--cs-outline-rgb),0.16);
+  --border-strong:    rgba(var(--cs-outline-rgb),0.28);
+  --border-highlight: rgba(var(--raise-rgb),0.80);
+
+  /* ── Outline ────────────────────────────────────────────────── */
+  --cs-outline:                rgba(0,0,0,0.22);
+  --cs-outline-variant:        rgba(0,0,0,0.12);
+
+  /* ── Utility ────────────────────────────────────────────────── */
+  --cs-shadow:                 #000000;
+  --cs-scrim:                  rgba(0,0,0,0.32);
+  --cs-inverse-surface:        #18181B;
+  --cs-inverse-on-surface:     #FAFAFA;
+  --cs-inverse-primary:        #94A3B8;
+  --cs-surface-tint:           #475569;
+
+  /* ── Status ─────────────────────────────────────────────────── */
+  --cs-status-completed:       #059669;
+  --cs-status-planned:         #64748B;
+
+  /* ── Channels ───────────────────────────────────────────────── */
+  --cs-primary-rgb:            71,85,105;
+  --cs-surface-rgb:            236,236,238;
+  --cs-on-surface-rgb:         24,24,27;
+  --cs-on-surface-variant-rgb: 82,82,91;
+  --cs-outline-rgb:            0,0,0;
+  --cs-error-rgb:              220,38,38;
+  --cs-tertiary-rgb:           5,150,105;
+  --cs-shadow-rgb:             0,0,0;
+  --danger-rgb:                220,38,38;
+
+  --overlay-rgb:               0,0,0;
+  --raise-rgb:                 255,255,255;
+
+  /* ── App chrome ─────────────────────────────────────────────── */
+  --app-bg:                    #E4E4E7;
+
+  /* ── Static screen background ───────────────────────────────── */
+  --bg-gradient:
+    radial-gradient(125% 85% at 50% -12%, rgba(148,163,184,0.20) 0%, rgba(148,163,184,0) 52%),
+    radial-gradient(110% 70% at 50% 112%, rgba(100,116,139,0.10) 0%, rgba(100,116,139,0) 60%),
+    linear-gradient(180deg, #F2F2F4 0%, #E4E4E7 100%);
+
+  /* ── Category (darkened for contrast on light) ──────────────── */
+  --cat-green:      #059669;   --cat-green-rgb:  5,150,105;
+  --cat-blue:       #2563EB;   --cat-blue-rgb:   37,99,235;
+  --cat-amber:      #D97706;   --cat-amber-rgb:  217,119,6;
+  --cat-pink:       #DB2777;   --cat-pink-rgb:   219,39,119;
+  --cat-violet:     #7C3AED;   --cat-violet-rgb: 124,58,237;
+  --cat-cyan:       #0891B2;   --cat-cyan-rgb:   8,145,178;
+}
+
+
+/* ================================================================
+   MATERIAL 3 TEXT THEME   (unchanged from v1)
+   Font: Inter 400 (Regular) / 500 (Medium)
+   height = Flutter TextStyle.height (line-height / font-size ratio)
+   ================================================================ */
+
+:root {
+  --tt-font-family: 'Inter', system-ui, sans-serif;
+
+  /* ── Display ────────────────────────────────────────────────── */
+  --tt-display-large-size:     57px;  --tt-display-large-weight:  400;
+  --tt-display-large-height:   1.12;  --tt-display-large-tracking:-0.25px;
+
+  --tt-display-medium-size:    45px;  --tt-display-medium-weight: 400;
+  --tt-display-medium-height:  1.16;  --tt-display-medium-tracking: 0px;
+
+  --tt-display-small-size:     36px;  --tt-display-small-weight:  400;
+  --tt-display-small-height:   1.22;  --tt-display-small-tracking: 0px;
+
+  /* ── Headline ───────────────────────────────────────────────── */
+  --tt-headline-large-size:    32px;  --tt-headline-large-weight: 500;
+  --tt-headline-large-height:  1.25;  --tt-headline-large-tracking: 0px;
+
+  --tt-headline-medium-size:   28px;  --tt-headline-medium-weight:500;
+  --tt-headline-medium-height: 1.29;  --tt-headline-medium-tracking:0px;
+
+  --tt-headline-small-size:    24px;  --tt-headline-small-weight: 500;
+  --tt-headline-small-height:  1.33;  --tt-headline-small-tracking:0px;
+
+  /* ── Title ──────────────────────────────────────────────────── */
+  --tt-title-large-size:       20px;  --tt-title-large-weight:    500;
+  --tt-title-large-height:     1.50;  --tt-title-large-tracking:  0px;
+
+  --tt-title-medium-size:      18px;  --tt-title-medium-weight:   500;
+  --tt-title-medium-height:    1.50;  --tt-title-medium-tracking: 0.15px;
+
+  --tt-title-small-size:       14px;  --tt-title-small-weight:    500;
+  --tt-title-small-height:     1.43;  --tt-title-small-tracking:  0.1px;
+
+  /* ── Body ───────────────────────────────────────────────────── */
+  --tt-body-large-size:        16px;  --tt-body-large-weight:     400;
+  --tt-body-large-height:      1.50;  --tt-body-large-tracking:   0.5px;
+
+  --tt-body-medium-size:       14px;  --tt-body-medium-weight:    400;
+  --tt-body-medium-height:     1.43;  --tt-body-medium-tracking:  0.25px;
+
+  --tt-body-small-size:        12px;  --tt-body-small-weight:     400;
+  --tt-body-small-height:      1.33;  --tt-body-small-tracking:   0.4px;
+
+  /* ── Label ──────────────────────────────────────────────────── */
+  --tt-label-large-size:       16px;  --tt-label-large-weight:    500;
+  --tt-label-large-height:     1.50;  --tt-label-large-tracking:  0.1px;
+
+  --tt-label-medium-size:      12px;  --tt-label-medium-weight:   500;
+  --tt-label-medium-height:    1.33;  --tt-label-medium-tracking: 0.5px;
+
+  --tt-label-small-size:       11px;  --tt-label-small-weight:    500;
+  --tt-label-small-height:     1.45;  --tt-label-small-tracking:  0.5px;
+}
+
+
+/* ================================================================
+   DESIGN SYSTEM EXTRAS  (spacing, radius, shadows, density)
+   ================================================================ */
+
+:root {
+  /* ── Radius ─────────────────────────────────────────────────── */
+  --radius-none: 0px;
+  --radius-sm:   6px;
+  --radius-md:   8px;
+  --radius-lg:  10px;
+  --radius-xl:  14px;
+  --radius-2xl: 16px;
+  --radius-3xl: 24px;
+  --radius-pill: 9999px;
+
+  /* ── Spacing (4 pt scale) ───────────────────────────────────── */
+  --sp-0:   0px;
+  --sp-1:   4px;
+  --sp-2:   8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+  --sp-20: 80px;
+
+  /* ── Elevation / shadows — TWO cheap tiers, single BoxShadow each.
+     No stacked ambient+key, no inset. Maps to one Flutter BoxShadow. */
+  --elev-1: 0 1px 2px rgba(var(--cs-shadow-rgb),0.30);   /* cards / tiles      */
+  --elev-2: 0 6px 18px rgba(var(--cs-shadow-rgb),0.38);  /* dialogs / sheets   */
+
+  /* ── Optional accent gradient (kept; default to flat --cs-primary).
+     Allowed where it adds quality; a single LinearGradient in Flutter. */
+  --gradient-slate-accent: linear-gradient(135deg, #94A3B8 0%, #475569 100%);
+
+  /* ── Density (comfortable default / [data-density="compact"]) ─── */
+  --density-row: 56px;
+  --density-gap: 14px;
+}
+
+[data-theme="light"] {
+  --elev-1: 0 1px 2px rgba(var(--cs-shadow-rgb),0.06);
+  --elev-2: 0 6px 18px rgba(var(--cs-shadow-rgb),0.12);
+  --gradient-slate-accent: linear-gradient(135deg, #64748B 0%, #334155 100%);
+}
+
+[data-density="compact"] {
+  --density-row: 48px;
+  --density-gap: 10px;
+}
+
+
+/* ================================================================
+   BACK-COMPAT ALIASES
+   Old v1 token names (--glass-*, --shadow-*) remapped to the new
+   OPAQUE surfaces / elevation so any not-yet-restyled component still
+   renders flat + legible. New code should use --surface-* / --elev-*.
+   (Components also have their literal backdropFilter blur removed.)
+   ================================================================ */
+:root, [data-theme="dark"], [data-theme="light"] {
+  --glass-slab:             var(--surface-1);
+  --glass-low-bg:           var(--surface-2);
+  --glass-mid-bg:           var(--surface-3);
+  --glass-high-bg:          var(--surface-4);
+  --glass-sidebar:          var(--surface-1);
+  --glass-popover:          var(--surface-3);
+  --glass-dialog-top:       var(--surface-3);
+  --glass-dialog-bottom:    var(--surface-3);
+  --glass-control:          var(--surface-2);
+  --glass-control-strong:   var(--surface-3);
+  --glass-control-stronger: var(--surface-4);
+  --node-center:            var(--surface-3);
+
+  --shadow-card:   var(--elev-1);
+  --shadow-fab:    var(--elev-2);
+  --shadow-header: var(--elev-1);
+  --shadow-task:   var(--elev-1);
+}
+
+
+/* ================================================================
+   GLOBAL RESET + UTILITIES
+   ================================================================ */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--tt-font-family);
+  background: var(--app-bg);
+  color: var(--cs-on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Tabular figures for numeric runs (weights/reps/kcal/AU/tonnage).
+   → Flutter: TextStyle(fontFeatures: [FontFeature.tabularFigures()]). */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }

@@ -1,0 +1,71 @@
+/* ================================================================
+   CUPERTINO (Apple HIG / iOS)  ·  scoped to [data-ds="cupertino"]
+   Exact iOS system colors, SF Pro, inset-grouped surfaces, hairlines,
+   vibrancy (backdrop blur). today is painted systemRed.
+   ================================================================ */
+[data-ds="cupertino"] {
+  /* backgrounds (dark) */
+  --ios-bg:                 #000000;   /* systemGroupedBackground */
+  --ios-grouped:            #000000;
+  --ios-card:               #1C1C1E;   /* secondarySystemGroupedBackground */
+  --ios-card-2:             #2C2C2E;   /* tertiarySystemGroupedBackground */
+  --ios-elevated:           #1C1C1E;
+
+  /* labels */
+  --ios-label:              #FFFFFF;
+  --ios-label-2:            rgba(235,235,245,0.60);
+  --ios-label-3:            rgba(235,235,245,0.30);
+  --ios-separator:          rgba(84,84,88,0.65);
+  --ios-fill:               rgba(120,120,128,0.36);
+  --ios-fill-2:             rgba(120,120,128,0.32);
+
+  /* accents */
+  --ios-blue:               #0A84FF;
+  --ios-red:                #FF453A;   /* today */
+  --ios-green:              #30D158;   /* completed */
+  --ios-orange:             #FF9F0A;
+  --ios-blue-rgb:           10,132,255;
+
+  /* materials (vibrancy) */
+  --ios-material:           rgba(30,30,32,0.72);   /* nav/tab bar fill behind blur */
+  --ios-material-thick:     rgba(28,28,30,0.82);   /* sheets */
+  --ios-blur:               saturate(180%) blur(22px);
+
+  --ios-r:                  10px;   /* controls */
+  --ios-r-card:             12px;   /* grouped sections */
+  --ios-r-sheet:            14px;   /* sheet top corners */
+
+  --ios-font: -apple-system, 'SF Pro Text', 'SF Pro Display', 'Inter', system-ui, sans-serif;
+
+  /* shared aliases */
+  --tt-font-family: var(--ios-font);
+  --cs-on-surface:  var(--ios-label);
+  --overlay-rgb:    255,255,255;
+  --ds-screen-bg:   var(--ios-bg);
+}
+
+[data-theme="light"] [data-ds="cupertino"] {
+  --ios-bg:                 #F2F2F7;
+  --ios-grouped:            #F2F2F7;
+  --ios-card:               #FFFFFF;
+  --ios-card-2:             #F2F2F7;
+  --ios-elevated:           #FFFFFF;
+
+  --ios-label:              #000000;
+  --ios-label-2:            rgba(60,60,67,0.60);
+  --ios-label-3:            rgba(60,60,67,0.30);
+  --ios-separator:          rgba(60,60,67,0.29);
+  --ios-fill:               rgba(120,120,128,0.20);
+  --ios-fill-2:             rgba(120,120,128,0.12);
+
+  --ios-blue:               #007AFF;
+  --ios-red:                #FF3B30;
+  --ios-green:              #34C759;
+  --ios-orange:             #FF9500;
+  --ios-blue-rgb:           0,122,255;
+
+  --ios-material:           rgba(255,255,255,0.72);
+  --ios-material-thick:     rgba(255,255,255,0.82);
+
+  --overlay-rgb:            0,0,0;
+}

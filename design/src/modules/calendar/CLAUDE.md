@@ -43,6 +43,7 @@ Left slide-in (scrim + 296-wide `--glass-popover` panel). Opened by the ☰ butt
 - Section padding `24px 16px`; card list gap `14`.
 - Type via tokens, weights **400/500 only** (600 only for primary action labels, matching FabMenu).
 - Status via 5px accent strip (`emerald` completed / `slate` planned) + quiet right label, not pills.
+- **Content containers (cards) must be lifted off the background with a shadow.** `GlassCard` carries this by default — each level has a built-in elevation shadow: `--shadow-glass-low` / `-mid` / `-high` (ambient + key + inner top-highlight), so a plain `<GlassCard level="Low" />` already reads as lifted. No per-usage `boxShadow` override needed. On the dark/smoke background a card with only a glass fill + faint border reads as flush; the shadow + 1px white inner highlight is what gives it volume and separation. For one-off containers that don't use `GlassCard` (e.g. the `card` const in `CalendarWidgets`), apply the matching `--shadow-glass-*` token directly. Don't rely on raising the surface fill alone — keep the fill at `--glass-low-bg` and let the shadow do the separating; don't use the flatter `--shadow-card` (that's for icon buttons).
 - Container transform (FabMenu + ItemDetailDialog): 0.32s `cubic-bezier(0.4,0,0.2,1)`, glass-control pill → glass-popover panel, content stagger 0.1s + 40ms·i.
 
 ## Shared deps

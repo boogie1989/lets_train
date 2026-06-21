@@ -1,0 +1,67 @@
+# Module: Calendar
+
+The home tab — week strip / inline month grid + the selected day's schedule (workouts + meals). This screen is the **visual reference (source of truth) for the whole design system**: when other modules look inconsistent, match them to Calendar.
+
+**Interaction model (locked):** the calendar is a **planning surface**. Tapping a card opens its **detail dialog**; workout completion NEVER happens here — it comes from the Workout Runner (a manual session log is future scope). The calendar's own ops are planning ops: move, delete, note, meal eaten. The earlier whole-card-tap-toggles-Completed pattern is gone — do not resurrect it.
+
+## v2 — "Calm Performance" (read first)
+This is the **design_v2** copy. Functionality and the data model are **unchanged**
+from `design/` (`calendarModel.js` is verbatim). Only the **visual layer** was
+rebuilt to be Flutter-friendly (see the root `design_v2/CLAUDE.md`):
+- Glass slab + `backdropFilter` blur → **opaque** `--surface-1` chrome + 1px `--border-subtle` + one `--elev-1` shadow.
+- Cards (DaySummary, ReadinessCard, TaskItem, MonthGrid) → `--surface-2` + border + `--elev-1` (no glass, no inner highlight).
+- DateCell / MonthGrid **selected = flat `--cs-primary`** fill (no gradient, no inset glow); **today = 1px primary ring**.
+- FabMenu + ItemDetailDialog: same morph, **blur removed** → maps to Material `OpenContainer`.
+- Undo snackbar + SideDrawer → `--surface-3` + `--elev-2` (no blur).
+- Numeric values (kg / AU / kcal / min / reps / dates) use **tabular figures**.
+- **SideDrawer library nav is stubbed** — the Libraries module is not in this iteration; rows just close the drawer.
+- Both **light + dark** themes (the old dark-only lock is lifted).
+Descriptions below that mention glass/blur are the v1 origin — the behaviour holds,
+the surface treatment is now opaque per the list above.
+
+## Files
+- `CalendarPage.jsx` — playbook wrapper. Five phones: `Today — week` (May 13) / `Light day` (May 14) / `Month open` / `Empty day` (May 16) / `Detail open` (May 13, `initialDetailId='d13-0'`). Renders `<CalendarScreen initialDay={…} initialMonthOpen={…} initialDetailId={…} />`.
+- `CalendarScreen.jsx` — the phone screen (state: month items, selected day, monthOpen, detailId, undo snack). Drawer/EmptyState/icons/snackbar live here.
+- `calendarModel.js` — **single source of demo data**: deterministic May 2026 (today = Wed 13), every day gets typed items (`kind: 'workout' | 'meal'`, meals carry kcal + p/c/f) with statuses, stable `id`s (`d{n}-{i}`, added items `u{k}`), workout `exercises[]` (deterministic name + sets×reps), optional `note`, plus a multi-factor readiness. Weekday templates: Mon/Wed/Fri full, Sun/Thu light, Tue/Sat empty; past days mostly done with deterministic gaps, future all planned. Items scheduled by the plan carry `fromPlan: true` (`PLAN.name` = "Push / Pull / Legs"); a couple per day are ad-hoc (Mobility, Yoga). `WEEKS` = 6 Sun-first rows with `null` placeholders. Derived helpers: `computeDayStats`, `computeNut`, `computeDayLoad`, `dayDot` (→ `{ kind, tier } | null`), `readinessScore`/`readinessTier`; ops (id-based, immutable, items kept sorted by time): `addItem`, `moveItem`, `deleteItem`, `setEaten` (meals only), `setNote`, `patchDay`. There is no toggle op — workout completion is the Runner's job.
+- `CalendarWidgets.jsx` — `SegmentBar`, `DaySummary`, `ReadinessCard`, `MonthGrid`.
+- `ItemDetailDialog.jsx` — the item detail dialog (see below).
+- `index.js` — exports `CalendarPage`, `CalendarScreen`.
+
+## Structure (top → bottom)
+1. **Glass slab header** (`NavBar` recipe): `--glass-slab` + `blur(8px)`, full-bleed, **no radius**.
+   - Top bar: 48×48 glass icon buttons (☰ opens the drawer; gear is a stub), centered title (`title-large`) + **"May 2026 ⌄" pill-button** — the week⇄month toggle (chevron rotates 180° when open; the faint `overlay 0.06` pill backing marks it as tappable without shouting). No separate controls row.
+   - **Date strip** below — one of two states **in place** (never a dialog), wrapped in a **horizontal swipe area** (pointer-drag with /2 resistance, ±70px clamp, 60px commit threshold; snaps back on release): week view swipes page **weeks**, month view swipes page **months**.
+     - *Week row* — 7 `DateCell`s of the week containing the selected day (null edge days render as empty 52×76 spacers). Tappable; `completed` dot derived live (all items checked → emerald). Selected-cell glow stays **reduced** (`0 3px 10px @0.25`) — same value in the month grid. **Edge-peek**: the adjacent weeks' nearest cells render as faint slivers (absolute at ±44px outside, opacity 0.25, non-interactive, clipped by the swipe wrapper) so the strip reads as swipeable (`weekPeek` helper).
+     - *Inline month grid* (`MonthGrid`) — **one quiet container**: a single `--cs-surface-container` panel with `radius-2xl`, weekday header in the DateCell weekday type, **transparent 46px day cells** inside. Accents: selected = DateCell gradient pill (`radius-lg`, reduced glow), today = 1px primary ring @0.35, status dot per day (emerald done / muted-error missed / slate has-items) whose **size is the per-day intensity tier** — 3/4/5px from completed sRPE AU (`dayDot().tier`; thresholds 600/1500 AU). Per-day weight only — weekly/monthly load trends live on a separate screen, NOT here (locked with the user). Tapping a day selects it and collapses back to the week row. Earlier explorations (bare transparent grid; per-cell surface tiles) read as foreign — don't resurrect.
+     - *Ghost months* — swiping the month grid left/right shows **April / June 2026** (`NEIGHBOR_MONTHS`): muted non-interactive numbers, header label follows; no demo data outside May by design. Offset resets on day select / view toggle.
+2. **Schedule section** — a **caption row**: quiet date caption (`body-medium`, on-surface-variant: "Wednesday, May 13") left + a **`Today` pill** right (appears only when the selection wandered off today; outline 0.25, overlay 0.05). Then **`ReadinessCard`**, then `DaySummary`, then `TaskItem` cards (gap 14; **tap opens the detail dialog**). Bottom padding 96 so the list clears the FAB footer. Empty state = centered placeholder card (summary hidden).
+   - **`ReadinessCard`** — multi-factor check-in `{ sleep, soreness, energy }`, each 1–5. Today, unanswered: "How are you today?" + three 5-segment tap scales (primary fill @0.75, value digit right); auto-collapses once all three are set. Answered: one quiet line `● Readiness 7 · Sleep 4 · Soreness 2 · Energy 5` (dot colored by tier: Good ≥7 tertiary / Okay ≥4 amber / Rough error) + `edit`. **Past days render the same line read-only** (history; deterministic in the model). Composite: `readinessScore` = (sleep + (6−soreness) + energy)/15 × 10.
+   - `DaySummary` — one glass card, two sections: **Workouts** (`n of N · m exercises`, collapsing to `Completed/Planned · m exercises` for a single workout; emerald segments, plus the load line below) and **Nutrition** (`n / goal kcal`, 1 segment per meal in `--cs-primary`, macro legend `P/C/F cur / goal g`).
+   - **Load line** — INSIDE the Workouts section, under the segment bar, with a quiet `Load ·` prefix (names the jargon for non-pro readers; details/decoding live in the item detail dialog). Shown only when ≥1 workout is completed: `Load · 7,862 kg · 799 AU · 110 min · 36 of 45 sets measured` (kg/AU emphasized 500). Two scales on purpose, external + internal load are never merged into one number: tonnage counts ONLY weight-logged sets (`setsMeasured` keeps it honest); AU = sRPE (session RPE × minutes, Foster). Data: completed workouts carry `result = { hardSets, setsMeasured, minutes, sessionRpe, tonnage }` (deterministic `makeResult`, pre-baked at init "as if after the Runner"); day aggregate = `computeDayLoad` (null → line hidden). Future e1RM engine raises `setsMeasured` coverage without schema changes.
+   - `TaskItem` — tap opens the detail dialog (quiet trailing chevron @0.3 marks the affordance, after the 10/500 right label: Done emerald / Missed muted error on past days). **Completed workouts show the actual session in the meta row** — `time · 2,940 kg · RPE 8` (from `result`) instead of the planned exercise count; planned cards keep `N exercises`. **Plan tag**: items with `fromPlan` get a third meta segment — mini calendar glyph + plan name in `--cs-primary`; ad-hoc items omit it.
+3. **FAB menu footer** — shared **`FabMenu`** (`components/FabMenu.jsx`). Actions: `Schedule workout` / `Schedule meal` (Planned ad-hoc) and `Log meal` (divider above; added **already Completed** — eaten now). Added items get auto ids + exercises and slot into the day sorted by time.
+4. **Item detail dialog** (`ItemDetailDialog.jsx`) — opened by card tap; **container transform per the FabMenu recipe**: one panel (anchored left/right 16, bottom 104) animates height/radius/background/shadow 0.32s `cubic-bezier(0.4,0,0.2,1)` from a 54px glass pill into `--glass-popover`, content sections stagger-fade (0.1s + 40ms·i), scrim fades, close (× / scrim) reverses the morph. Height = measured content (re-measured each render so inline expansions animate through the same transition), capped 716 with an inner scroller. Top edge = 5px **status accent strip** (same language as the card's left strip). Content:
+   - header: title 17/500, meta row (time · exercises/kcal · plan tag · quiet status label), ×;
+   - workout: **exercise list** (name + sets×reps, maxHeight 176 scroll); Completed → **Session result** 2×2 stat grid (Tonnage / Session RPE / Duration / Sets measured — the per-session numbers, not the day aggregate); Planned (non-missed) → quiet "Completes from the Workout Runner" caption; **note** — quiet uppercase `NOTE` label + text, tap to edit in place (textarea, blur/Enter saves via `setNote`), or `Add note…` when empty;
+   - meal: kcal 20/500 + P/C/F macro legend (DaySummary language);
+   - actions (FabMenu item recipe, divider above): meal → `Mark eaten`/`Mark not eaten` (primary), then `Reschedule` (expands an inline **`MonthGrid` picker** in place; picking a day = `moveItem`), `Delete` (muted error). No complete action for workouts — ever.
+   Move / delete / eaten show an **undo snackbar** (glass pill above the footer, 4s, `Undo` restores the previous month snapshot).
+5. Side drawer + Libraries overlay — unchanged (see below).
+
+## Side drawer (`SideDrawer` in `CalendarScreen.jsx`)
+Left slide-in (scrim + 296-wide `--glass-popover` panel). Opened by the ☰ button. Contents:
+- **Short profile** — gradient-ring avatar (initials) + name + email (demo `USER`); tap closes (stub).
+- **Libraries nav** — rows for `exercises · workouts · meals · plans` (`LIBS`); tapping opens that library full-overlay via `LibrariesView` (`mode='browse'`).
+
+## Reference tokens (reuse these everywhere)
+- Icon button: 48 top-level / 44 in-flow, radius-xl, glass bg + border 0.5 + `--shadow-card`.
+- Section padding `24px 16px`; card list gap `14`.
+- Type via tokens, weights **400/500 only** (600 only for primary action labels, matching FabMenu).
+- Status via 5px accent strip (`emerald` completed / `slate` planned) + quiet right label, not pills.
+- Container transform (FabMenu + ItemDetailDialog): 0.32s `cubic-bezier(0.4,0,0.2,1)`, glass-control pill → glass-popover panel, content stagger 0.1s + 40ms·i.
+
+## Shared deps
+`../../components`: `PhoneFrame`, `StatusBar`, `DateCell`, `TaskItem`, `FabMenu` (+ `GlassCard` transitively). Drawer nav reuses `LibrariesView` from `../libraries/`. `ScheduleHeader` is no longer used here (kept in components/ as the Figma reference).
+
+## Scope
+Dark mode only, slate accent, iPhone 15 Pro Max. One static month (May 2026) with deterministic demo data; real date logic and month paging are out of scope. **Weekly/monthly load aggregates and trends are a separate screen** — never add them to this one (user decision, 2026-06). Dropped explorations (do not resurrect without asking): header plan badge, week chevrons + pill ViewToggle row, FAB add-menu/quick-log, whole-card tap-to-toggle, nutrition bottom sheet, Partial status, runner integration, week-stats card, Progress module. (The item detail dialog WAS a dropped exploration — resurrected with explicit user approval as the container-transform dialog above.)

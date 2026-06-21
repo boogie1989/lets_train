@@ -1,0 +1,52 @@
+/* ================================================================
+   BASE — playbook chrome tokens + reset + shared scales.
+   The design languages (cupertino/hybrid.css) each
+   redefine the visual tokens under [data-ds="…"]. These :root values
+   serve the playbook chrome (top bar, ThemeToggle) only.
+   ================================================================ */
+:root {
+  --tt-font-family: 'Inter', system-ui, sans-serif;
+
+  /* playbook chrome (outside any phone) */
+  --page-bg:        #0e0e10;
+  --chrome-bg:      #161618;
+  --cs-on-surface:          #ECECEE;
+  --cs-on-surface-variant:  #9A9AA0;
+  --cs-primary:             #8AB4F8;
+  --cs-primary-rgb:         138,180,248;
+  --overlay-rgb:            255,255,255;
+  --cs-shadow-rgb:          0,0,0;
+  --radius-2xl:             16px;
+
+  /* shared 4pt spacing scale */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px;
+
+  /* macro palette (shared across languages for the nutrition legend) */
+  --cat-p: #60A5FA;  --cat-p-rgb: 96,165,250;
+  --cat-c: #FBBF24;  --cat-c-rgb: 251,191,36;
+  --cat-f: #F472B6;  --cat-f-rgb: 244,114,182;
+}
+
+[data-theme="light"] {
+  --page-bg:        #ECECEE;
+  --chrome-bg:      #FFFFFF;
+  --cs-on-surface:          #1A1A1C;
+  --cs-on-surface-variant:  #5A5A60;
+  --cs-primary:             #2563EB;
+  --cs-primary-rgb:         37,99,235;
+  --overlay-rgb:            0,0,0;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--tt-font-family);
+  background: var(--page-bg);
+  color: var(--cs-on-surface);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* tabular figures for numeric runs (kg / AU / kcal / reps / dates) */
+.tnum { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1; }

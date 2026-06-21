@@ -29,6 +29,22 @@ const cardSlab = {
   flexShrink: 0,
 }
 
+// block group — a quiet section label tight above its content block
+const blockGroup = { display: 'flex', flexDirection: 'column', gap: 8 }
+const sectionLabel = {
+  ...TT,
+  paddingLeft: 2,
+  fontSize: 11,
+  fontWeight: 600,
+  letterSpacing: '0.07em',
+  textTransform: 'uppercase',
+  color: 'var(--cs-on-surface-variant)',
+  opacity: 0.5,
+}
+function SectionLabel({ children }) {
+  return <span style={sectionLabel}>{children}</span>
+}
+
 const iconBtn = {
   width: 48, height: 48,
   borderRadius: 'var(--radius-xl)',
@@ -257,19 +273,30 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
         </div>
 
         {/* readiness — interactive check-in today, read-only history on past days */}
-        {isToday && <ReadinessCard value={day.readiness} onSet={v => setMonth(m => patchDay(m, selected, { readiness: v }))} />}
-        {isPast && day.readiness && <ReadinessCard value={day.readiness} readOnly />}
+        {(isToday || (isPast && day.readiness)) && (
+          <div style={blockGroup}>
+            <SectionLabel>How are you today?</SectionLabel>
+            {isToday && <ReadinessCard value={day.readiness} onSet={v => setMonth(m => patchDay(m, selected, { readiness: v }))} />}
+            {isPast && day.readiness && <ReadinessCard value={day.readiness} readOnly />}
+          </div>
+        )}
 
         {items.length > 0 ? (
           <>
-            <DaySummary stats={stats} load={dayLoad} nut={nut} />
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {items.map(task => (
-                <TaskItem key={task.id} {...task}
-                  plan={task.fromPlan ? PLAN.name : undefined}
-                  missed={isPast}
-                  onClick={() => setDetailId(task.id)} />
-              ))}
+            <div style={blockGroup}>
+              <SectionLabel>Summary</SectionLabel>
+              <DaySummary stats={stats} load={dayLoad} nut={nut} />
+            </div>
+            <div style={blockGroup}>
+              <SectionLabel>Schedule</SectionLabel>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {items.map(task => (
+                  <TaskItem key={task.id} {...task}
+                    plan={task.fromPlan ? PLAN.name : undefined}
+                    missed={isPast}
+                    onClick={() => setDetailId(task.id)} />
+                ))}
+              </div>
             </div>
           </>
         ) : (

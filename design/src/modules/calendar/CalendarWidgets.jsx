@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { WD, WEEKS, dayDot, TODAY, readinessScore, readinessTier } from './calendarModel.js'
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
-const card = { flexShrink: 0, background: 'var(--glass-low-bg)', borderRadius: 'var(--radius-2xl)', border: '1px solid rgba(var(--cs-outline-rgb),0.20)' }
+const card = { flexShrink: 0, background: 'var(--glass-low-bg)', borderRadius: 'var(--radius-2xl)', border: '1px solid rgba(var(--cs-outline-rgb),0.20)', boxShadow: 'var(--shadow-glass-low)' }
 const lbl = { ...TT, fontSize: 'var(--tt-title-small-size)', fontWeight: 'var(--tt-title-small-weight)', letterSpacing: 'var(--tt-title-small-tracking)', color: 'var(--cs-on-surface)' }
 const val = { ...TT, fontSize: 'var(--tt-body-small-size)', fontWeight: 'var(--tt-body-small-weight)', letterSpacing: 'var(--tt-body-small-tracking)', color: 'var(--cs-on-surface-variant)' }
 
@@ -134,7 +134,6 @@ export function ReadinessCard({ value, onSet, readOnly = false }) {
   }
   return (
     <div style={{ ...card, padding: '13px 16px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <span style={lbl}>How are you today?</span>
       {FACTORS.map(f => (
         <div key={f.key} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ ...val, width: 62, flexShrink: 0 }}>{f.label}</span>
