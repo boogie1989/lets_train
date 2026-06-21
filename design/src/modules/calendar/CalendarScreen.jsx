@@ -154,7 +154,7 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
   const logMeal = () => setMonth(m => addItem(m, selected, { kind: 'meal', title: 'Snack', time: '04:00 PM', kcal: 280, p: 18, c: 30, f: 9, status: 'Completed' }))
 
   return (
-    <PhoneFrame smokeVariant="animated">
+    <PhoneFrame smokeVariant="shader">
       {/* Calendar Card — unified glass slab, full-bleed from top, no border-radius */}
       <div style={cardSlab}>
         <StatusBar />

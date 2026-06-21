@@ -9,7 +9,8 @@ const PHONE_SCALE = 0.32  // 430×932 → ~138×298
 const SMOKE_VARIANTS = [
   { variant: 'slate',    label: 'Slate',    desc: 'Figma exact — upper left' },
   { variant: 'minimal',  label: 'Minimal',  desc: 'Barely visible' },
-  { variant: 'animated', label: 'Animated', desc: 'Spheres drift in real time' },
+  { variant: 'animated', label: 'Animated', desc: 'Spheres drift (CSS blur)' },
+  { variant: 'shader',   label: 'Shader',   desc: 'GPU · 1 draw call · ports to Flutter/RN' },
 ]
 
 const GLASS_LEVELS = [
@@ -105,6 +106,7 @@ export default function UiKitPage() {
           <GlassStage width={480} height={320} level={preview.payload} />
         </PreviewOverlay>
       )}
+
     </>
   )
 }

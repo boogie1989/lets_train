@@ -1,8 +1,9 @@
 import SmokeLayer from './SmokeLayer.jsx'
 import AnimatedSmokeLayer from './AnimatedSmokeLayer.jsx'
+import ShaderSmokeLayer from './ShaderSmokeLayer.jsx'
 
 // iPhone 15 Pro Max — 430 × 932, corner-radius 55, Dynamic Island 126×37 @ y=11
-// smokeVariant: 'center' | 'slate' | 'bottom' | 'scattered' | 'minimal' | 'animated'
+// smokeVariant: 'center' | 'slate' | 'bottom' | 'scattered' | 'minimal' | 'animated' | 'shader'
 export default function PhoneFrame({ children, smokeVariant = 'slate' }) {
   return (
     <div style={{
@@ -15,9 +16,11 @@ export default function PhoneFrame({ children, smokeVariant = 'slate' }) {
       flexShrink: 0,
       boxShadow: '0 0 0 1px rgba(var(--overlay-rgb),0.08), 0 32px 80px rgba(var(--cs-shadow-rgb),0.8)',
     }}>
-      {smokeVariant === 'animated'
-        ? <AnimatedSmokeLayer />
-        : <SmokeLayer variant={smokeVariant} />
+      {smokeVariant === 'shader'
+        ? <ShaderSmokeLayer />
+        : smokeVariant === 'animated'
+          ? <AnimatedSmokeLayer />
+          : <SmokeLayer variant={smokeVariant} />
       }
 
       {/* Dynamic Island */}
