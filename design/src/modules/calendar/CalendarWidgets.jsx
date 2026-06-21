@@ -228,7 +228,7 @@ export function MonthGrid({ month, selected, onSelect, ghost }) {
                   ? '0 3px 10px rgba(var(--cs-primary-rgb),0.25), inset 0 1px 0 rgba(var(--raise-rgb),0.20)'
                   : 'none',
               }}>
-                <span style={{ fontSize: 15, fontWeight: 'var(--tt-title-medium-weight)', lineHeight: 1, color: 'var(--cs-on-surface)' }}>{n}</span>
+                <span style={{ fontSize: 15, fontWeight: 'var(--tt-title-medium-weight)', lineHeight: 1, color: isSel ? 'rgba(var(--raise-rgb),1)' : 'var(--cs-on-surface)' }}>{n}</span>
                 {/* fixed 5px slot keeps the numbers aligned across dot sizes */}
                 <span style={{ height: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   {dot && <span style={{ width: DOT_SIZE[dot.tier], height: DOT_SIZE[dot.tier], borderRadius: '50%', background: DOT_COLOR[dot.kind] }} />}

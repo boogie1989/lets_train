@@ -144,7 +144,7 @@
   --cs-on-error-container:     #7F1D1D;
 
   /* ── Surface (off-white) ────────────────────────────────────── */
-  --cs-surface:                     #F4F4F5;   /* zinc-100 */
+  --cs-surface:                     #E0E0E0;   /* neutral light-gray canvas — glass + smoke read against it */
   --cs-on-surface:                  #18181B;
   --cs-on-surface-variant:          #52525B;   /* zinc-600 */
   --cs-surface-dim:                 #E4E4E7;
@@ -173,7 +173,7 @@
 
   /* ── Channels ───────────────────────────────────────────────── */
   --cs-primary-rgb:            71,85,105;       /* slate-600 */
-  --cs-surface-rgb:            244,244,245;     /* zinc-100, for surface fades */
+  --cs-surface-rgb:            224,224,224;     /* matches gray canvas, for fades */
   --cs-on-surface-rgb:         24,24,27;
   --cs-on-surface-variant-rgb: 82,82,91;
   --cs-outline-rgb:            0,0,0;
@@ -190,7 +190,7 @@
   --app-bg:                    #E4E4E7;
 
   /* ── Glass surfaces (translucent whites) ────────────────────── */
-  --glass-slab:                rgba(255,255,255,0.55);
+  --glass-slab:                rgba(255,255,255,0.55);   /* translucent glass — refracts the gray canvas + smoke */
   --glass-low-bg:              rgba(255,255,255,0.62);
   --glass-mid-bg:              rgba(255,255,255,0.78);
   --glass-high-bg:             rgba(255,255,255,0.92);
@@ -213,9 +213,9 @@
   --cat-cyan:       #0891B2;   --cat-cyan-rgb:   8,145,178;
 
   /* ── Smoke (subtle slate haze on light) ─────────────────────── */
-  --smoke-1: #94A3B8;  --smoke-2: #A1A1AA;  --smoke-3: #CBD5E1;
-  --smoke-4: #B4B4B4;  --smoke-5: #94A3B8;  --smoke-6: #CBD5E1;
-  --smoke-opacity: 0.16;
+  --smoke-1: #475569;  --smoke-2: #4B5563;  --smoke-3: #52525B;
+  --smoke-4: #5B6678;  --smoke-5: #475569;  --smoke-6: #64748B;
+  --smoke-opacity: 0.12;   /* DARKER than the gray bg — atmospheric haze (inverted from dark) */
 }
 
 
@@ -353,22 +353,22 @@
   --gradient-vignette-tr:  radial-gradient(ellipse at top right, rgba(100,116,139,.06) 0%, transparent 60%);
   --gradient-vignette-bl:  radial-gradient(ellipse at bottom left, rgba(148,163,184,.16) 0%, transparent 60%);
 
-  --shadow-card:   0 8px 24px rgba(0,0,0,.10);
-  --shadow-fab:    0 6px 16px rgba(71,85,105,.20);
-  --shadow-header: 0 8px 24px rgba(0,0,0,.10);
-  --shadow-task:   0 4px 12px rgba(0,0,0,.06),
-                   0 10px 24px -2px rgba(0,0,0,.08),
-                   inset 0 1px 0 rgba(255,255,255,.60);
+  --shadow-card:   0 8px 24px rgba(0,0,0,.16);
+  --shadow-fab:    0 6px 16px rgba(71,85,105,.26);
+  --shadow-header: 0 8px 24px rgba(0,0,0,.12);
+  --shadow-task:   0 4px 12px rgba(0,0,0,.12),
+                   0 12px 28px -2px rgba(0,0,0,.18),
+                   inset 0 1px 0 rgba(255,255,255,.75);
 
-  --shadow-glass-low:  0 4px 12px rgba(0,0,0,.06),
-                       0 10px 24px -2px rgba(0,0,0,.08),
-                       inset 0 1px 0 rgba(255,255,255,.60);
-  --shadow-glass-mid:  0 6px 16px rgba(0,0,0,.08),
-                       0 16px 36px -4px rgba(0,0,0,.10),
-                       inset 0 1px 0 rgba(255,255,255,.70);
-  --shadow-glass-high: 0 10px 24px rgba(0,0,0,.10),
-                       0 26px 52px -6px rgba(0,0,0,.12),
-                       inset 0 1px 0 rgba(255,255,255,.80);
+  --shadow-glass-low:  0 4px 12px rgba(0,0,0,.14),
+                       0 12px 28px -2px rgba(0,0,0,.20),
+                       inset 0 1px 0 rgba(255,255,255,.75);
+  --shadow-glass-mid:  0 6px 16px rgba(0,0,0,.16),
+                       0 18px 40px -4px rgba(0,0,0,.24),
+                       inset 0 1px 0 rgba(255,255,255,.85);
+  --shadow-glass-high: 0 10px 24px rgba(0,0,0,.20),
+                       0 28px 56px -6px rgba(0,0,0,.28),
+                       inset 0 1px 0 rgba(255,255,255,.85);
 }
 
 

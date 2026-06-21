@@ -370,7 +370,7 @@ function SideDrawer({ open, onClose, onNavigate }) {
         position: 'absolute', top: 0, bottom: 0, left: 0, width: 296, zIndex: 51,
         transform: open ? 'translateX(0)' : 'translateX(-100%)', transition: 'transform 0.34s cubic-bezier(0.32,0.72,0,1)',
         background: 'var(--glass-popover)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-        borderRight: '1px solid rgba(var(--overlay-rgb),0.08)', boxShadow: '8px 0 40px rgba(var(--cs-shadow-rgb),0.50)',
+        borderRight: '1px solid rgba(var(--overlay-rgb),0.08)', boxShadow: open ? '8px 0 40px rgba(var(--cs-shadow-rgb),0.50)' : 'none',
         display: 'flex', flexDirection: 'column', paddingTop: 54,
       }}>
         {/* short profile */}

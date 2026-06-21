@@ -32,11 +32,13 @@ export default function DateCell({ day, weekday, state = 'default', completed = 
         fontWeight: 'var(--tt-label-small-weight)',
         letterSpacing: 'var(--tt-label-small-tracking)',
         textTransform: 'uppercase',
-        color: (isSelected || isToday)
-          ? 'var(--cs-on-surface)'
-          : isOther
-            ? 'rgba(var(--cs-on-surface-variant-rgb),0.30)'
-            : 'var(--cs-on-surface-variant)',
+        color: isSelected
+          ? 'rgba(var(--raise-rgb),1)'
+          : isToday
+            ? 'var(--cs-on-surface)'
+            : isOther
+              ? 'rgba(var(--cs-on-surface-variant-rgb),0.30)'
+              : 'var(--cs-on-surface-variant)',
       }}>
         {weekday}
       </span>
@@ -47,7 +49,9 @@ export default function DateCell({ day, weekday, state = 'default', completed = 
         fontSize: 18,
         fontWeight: 'var(--tt-title-medium-weight)',
         lineHeight: 1,
-        color: isOther ? 'rgba(var(--cs-on-surface-rgb),0.25)' : 'var(--cs-on-surface)',
+        color: isSelected
+          ? 'rgba(var(--raise-rgb),1)'
+          : isOther ? 'rgba(var(--cs-on-surface-rgb),0.25)' : 'var(--cs-on-surface)',
       }}>
         {day}
       </span>
