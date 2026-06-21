@@ -87,7 +87,7 @@
 
   /* ── Glass surfaces (full value flips per theme) ────────────── */
   --glass-slab:                rgba(24,24,27,0.30);   /* full-bleed header/calendar slab */
-  --glass-low-bg:              rgba(16,16,18,0.55);
+  --glass-low-bg:              rgba(24,24,28,0.55);   /* cards a touch lighter */
   --glass-mid-bg:              rgba(24,24,27,0.72);
   --glass-high-bg:             rgba(31,31,35,0.88);
   --glass-sidebar:             rgba(24,24,27,0.80);   /* playbook chrome */
