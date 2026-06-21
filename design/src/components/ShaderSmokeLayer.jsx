@@ -54,6 +54,16 @@ void over(inout vec3 pre, inout float trans, vec2 p, vec2 c, float sigma, vec3 c
   trans *= (1.0 - ai);
 }
 
+float hash(vec2 p, vec2 k) { return fract(sin(dot(p, k)) * 43758.5453); }
+
+// Triangular-PDF dither (two hashes differenced) at ±1 LSB. This is the proper
+// debanding technique: over a near-black gradient the alpha steps by 1/255 and
+// read as concentric "contour lines"; the noise scatters those steps so the
+// gradient reads perfectly smooth. Amplitude is still below the visual floor.
+float dither(vec2 p) {
+  return hash(p, vec2(12.9898, 78.233)) - hash(p, vec2(39.346, 11.135));
+}
+
 void main() {
   // p in units of (px / height), origin top-left → matches the design's
   // top-down sphere coordinates. x spans 0..aspect, y spans 0..1.
@@ -61,23 +71,29 @@ void main() {
   float t = uTime;
   float o = uOpacity;
 
-  // gentle drift + opacity "breathing", mirroring AnimatedSmokeLayer's motion
+  // Each sphere floats on a slow, large-amplitude path so the cluster roams the
+  // FULL height (top↔bottom) and width — phases are spread so they never sync.
   #define DRIFT(ax, sx, px, ay, sy, py) (vec2((ax) * sin(t * (sx) + (px)), (ay) * cos(t * (sy) + (py))))
   #define BREATHE(sp, ph) (0.80 + 0.40 * sin(t * (sp) + (ph)))
 
   vec3  pre   = vec3(0.0);
   float trans = 1.0;
 
-  // centers = original slate sphere centers (cx/932, cy/932); sigma ≈ (w/2+blur)/932
-  over(pre, trans, p, vec2(0.272, 0.320) + DRIFT(0.030,0.42,0.0, 0.022,0.37,1.1), 0.35, uColors[0], o * BREATHE(0.50,0.0));
-  over(pre, trans, p, vec2(0.270, 0.377) + DRIFT(0.026,0.31,2.0, 0.030,0.45,0.4), 0.29, uColors[1], o * BREATHE(0.45,1.0));
-  over(pre, trans, p, vec2(0.264, 0.676) + DRIFT(0.030,0.39,4.0, 0.020,0.29,2.3), 0.27, uColors[2], o * BREATHE(0.55,2.0));
-  over(pre, trans, p, vec2(0.262, 0.798) + DRIFT(0.022,0.27,1.5, 0.028,0.41,3.1), 0.27, uColors[3], o * BREATHE(0.50,3.0));
-  over(pre, trans, p, vec2(0.228, 0.498) + DRIFT(0.026,0.47,3.3, 0.026,0.33,0.7), 0.37, uColors[4], o * BREATHE(0.40,0.5));
-  over(pre, trans, p, vec2(0.252, 0.160) + DRIFT(0.026,0.35,5.0, 0.022,0.49,1.9), 0.20, uColors[5], o * BREATHE(0.60,1.5));
+  // shared slow sweep — carries the whole cluster the full height (top↔bottom)
+  // and a touch sideways; per-sphere DRIFT below adds organic variation on top.
+  vec2 sweep = vec2(0.06 * sin(t * 0.09 + 1.0), 0.34 * sin(t * 0.15));
+
+  //   base(x,y)        + sweep + DRIFT(ax, sx, phase, ay, sy, phase)      sigma  color      breathe
+  over(pre, trans, p, vec2(0.20, 0.46) + sweep + DRIFT(0.08,0.23,0.0, 0.14,0.15,1.1), 0.35, uColors[0], o * BREATHE(0.20,0.0));
+  over(pre, trans, p, vec2(0.30, 0.54) + sweep + DRIFT(0.07,0.19,2.1, 0.16,0.13,3.4), 0.29, uColors[1], o * BREATHE(0.17,1.0));
+  over(pre, trans, p, vec2(0.22, 0.44) + sweep + DRIFT(0.09,0.27,4.2, 0.18,0.17,0.6), 0.30, uColors[2], o * BREATHE(0.23,2.0));
+  over(pre, trans, p, vec2(0.34, 0.56) + sweep + DRIFT(0.06,0.21,1.3, 0.14,0.12,5.0), 0.27, uColors[3], o * BREATHE(0.19,3.0));
+  over(pre, trans, p, vec2(0.14, 0.50) + sweep + DRIFT(0.08,0.25,3.3, 0.16,0.16,2.2), 0.37, uColors[4], o * BREATHE(0.15,0.5));
+  over(pre, trans, p, vec2(0.26, 0.48) + sweep + DRIFT(0.07,0.18,5.1, 0.18,0.14,4.1), 0.24, uColors[5], o * BREATHE(0.26,1.5));
 
   float alpha = 1.0 - trans;                       // total coverage
   vec3  rgb   = pre / max(alpha, 1e-4);            // un-premultiply → straight color
+  alpha += dither(gl_FragCoord.xy) / 255.0;        // deband
   gl_FragColor = vec4(rgb, alpha);
 }
 `
