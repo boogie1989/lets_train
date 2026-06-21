@@ -64,7 +64,7 @@ const weekPeek = (month, wi, edge) => {
   return { weekday: month[n].weekday, day: String(n), state: 'default' }
 }
 
-export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = false, initialDetailId = null }) {
+export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = false, initialDetailId = null, timeline = true }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [lib, setLib] = useState(null)
   const [month, setMonth] = useState(initMonth)
@@ -289,36 +289,51 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
             </div>
             <div style={blockGroup}>
               <SectionLabel>Schedule</SectionLabel>
-              {/* timeline — time gutter + status-node rail, cards on the right */}
-              <div style={{ display: 'flex', flexDirection: 'column' }}>
-                {items.map((task, i) => {
-                  const [hhmm, mer] = task.time.split(' ')
-                  const isFirst = i === 0
-                  const isLast = i === items.length - 1
-                  return (
-                    <div key={task.id} style={{ display: 'flex' }}>
-                      {/* time gutter */}
-                      <div style={{ width: 52, flexShrink: 0, height: 88, alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', paddingRight: 8 }}>
-                        <span style={{ ...TT, fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', lineHeight: 1.2, color: 'var(--cs-on-surface)' }}>{hhmm}</span>
-                        {mer && <span style={{ ...TT, fontSize: 10, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--cs-on-surface-variant)', opacity: 0.7 }}>{mer}</span>}
+              {timeline ? (
+                /* timeline — time gutter + status-node rail, cards on the right */
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  {items.map((task, i) => {
+                    const nodeColor = task.status === 'Completed'
+                      ? 'var(--cs-status-completed)'
+                      : isPast ? 'rgba(var(--cs-error-rgb),0.65)' : 'var(--cs-status-planned)'
+                    const [hhmm, mer] = task.time.split(' ')
+                    const isFirst = i === 0
+                    const isLast = i === items.length - 1
+                    return (
+                      <div key={task.id} style={{ display: 'flex' }}>
+                        {/* time gutter */}
+                        <div style={{ width: 52, flexShrink: 0, height: 88, alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', paddingRight: 8 }}>
+                          <span style={{ ...TT, fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', lineHeight: 1.2, color: 'var(--cs-on-surface)' }}>{hhmm}</span>
+                          {mer && <span style={{ ...TT, fontSize: 10, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--cs-on-surface-variant)', opacity: 0.7 }}>{mer}</span>}
+                        </div>
+                        {/* rail with status node */}
+                        <div style={{ width: 22, flexShrink: 0, position: 'relative' }}>
+                          {!isFirst && <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 0, height: 44, width: 2, background: 'rgba(var(--overlay-rgb),0.13)' }} />}
+                          {!isLast && <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 44, bottom: 0, width: 2, background: 'rgba(var(--overlay-rgb),0.13)' }} />}
+                          <div style={{ position: 'absolute', left: '50%', top: 44, transform: 'translate(-50%,-50%)', width: 11, height: 11, borderRadius: '50%', background: nodeColor, boxShadow: '0 0 0 3px var(--cs-surface)', zIndex: 1 }} />
+                        </div>
+                        {/* card (time lives in the gutter now) */}
+                        <div style={{ flex: 1, minWidth: 0, paddingBottom: isLast ? 0 : 14 }}>
+                          <TaskItem {...task} hideTime hideAccent
+                            plan={task.fromPlan ? PLAN.name : undefined}
+                            missed={isPast}
+                            onClick={() => setDetailId(task.id)} />
+                        </div>
                       </div>
-                      {/* rail with status node */}
-                      <div style={{ width: 22, flexShrink: 0, position: 'relative' }}>
-                        {!isFirst && <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 0, height: 44, width: 2, background: 'rgba(var(--overlay-rgb),0.13)' }} />}
-                        {!isLast && <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 44, bottom: 0, width: 2, background: 'rgba(var(--overlay-rgb),0.13)' }} />}
-                        <div style={{ position: 'absolute', left: '50%', top: 44, transform: 'translate(-50%,-50%)', width: 12, height: 12, borderRadius: '50%', background: 'var(--cs-surface)', border: '2px solid rgba(var(--overlay-rgb),0.40)', zIndex: 1 }} />
-                      </div>
-                      {/* card (time lives in the gutter now) */}
-                      <div style={{ flex: 1, minWidth: 0, paddingBottom: isLast ? 0 : 14 }}>
-                        <TaskItem {...task} hideTime
-                          plan={task.fromPlan ? PLAN.name : undefined}
-                          missed={isPast}
-                          onClick={() => setDetailId(task.id)} />
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                /* plain list — original tiles with time + status accent strip */
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  {items.map(task => (
+                    <TaskItem key={task.id} {...task}
+                      plan={task.fromPlan ? PLAN.name : undefined}
+                      missed={isPast}
+                      onClick={() => setDetailId(task.id)} />
+                  ))}
+                </div>
+              )}
             </div>
           </>
         ) : (

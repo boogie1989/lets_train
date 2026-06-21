@@ -11,7 +11,8 @@ import GlassCard from './GlassCard.jsx'
 // quiet third meta segment; ad-hoc items simply omit it.
 // missed: the item's day is in the past — uncompleted items get a muted "Missed" label.
 // hideTime: drop the in-card time (used when a timeline gutter shows it instead).
-export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'workout', status = 'Planned', onClick, plan, missed = false, result, hideTime = false }) {
+// hideAccent: drop the 5px status strip (used when a timeline node shows status instead).
+export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'workout', status = 'Planned', onClick, plan, missed = false, result, hideTime = false, hideAccent = false }) {
   const completed = status === 'Completed'
   const label = completed
     ? { text: 'Done', color: 'var(--cs-tertiary)', opacity: 1 }
@@ -31,8 +32,8 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
       flexShrink: 0,
       cursor: onClick ? 'pointer' : 'default',
     }}>
-      {/* 5px accent strip */}
-      <div style={{ width: 5, background: accentColor, flexShrink: 0 }}/>
+      {/* 5px accent strip (status colour) — hidden when a timeline node carries it */}
+      <div style={{ width: 5, background: hideAccent ? 'transparent' : accentColor, flexShrink: 0 }}/>
 
       {/* Content */}
       <div style={{

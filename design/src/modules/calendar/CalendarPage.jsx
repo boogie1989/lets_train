@@ -6,6 +6,7 @@ import CalendarScreen from './CalendarScreen.jsx'
 // itself happens in the Workout Runner, not here).
 const STATES = [
   { id: 'today', label: 'Today — week', props: { initialDay: 13 } },
+  { id: 'list', label: 'No timeline', props: { initialDay: 13, timeline: false } },
   { id: 'light', label: 'Light day', props: { initialDay: 14 } },
   { id: 'month', label: 'Month open', props: { initialDay: 13, initialMonthOpen: true } },
   { id: 'empty', label: 'Empty day', props: { initialDay: 16 } },
