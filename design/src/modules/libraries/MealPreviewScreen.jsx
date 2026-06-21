@@ -83,7 +83,7 @@ export function MealPreviewView({ meal = DEFAULT_MEAL, onClose, cta = '+ Add to 
 }
 
 export default function MealPreviewScreen(props) {
-  return <PhoneFrame smokeVariant="animated"><MealPreviewView {...props} /></PhoneFrame>
+  return <PhoneFrame smokeVariant="shader"><MealPreviewView {...props} /></PhoneFrame>
 }
 
 // ── shared bits ──

@@ -29,7 +29,7 @@ export default function FabMenu({ open, setOpen, actions, width = 264 }) {
           borderRadius: open ? 'var(--radius-2xl)' : 'var(--radius-xl)',
           background: open ? 'var(--glass-popover)' : 'var(--glass-control)',
           border: '1px solid rgba(var(--cs-outline-rgb),0.50)',
-          boxShadow: open ? '0 12px 32px rgba(var(--cs-shadow-rgb),0.6)' : 'var(--shadow-card)',
+          boxShadow: open ? '0 12px 32px rgba(var(--cs-shadow-rgb),0.6)' : '0 8px 20px rgba(var(--cs-shadow-rgb),0.45)',
           backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
           overflow: 'hidden',
           transition: `width 0.32s ${ease}, height 0.32s ${ease}, border-radius 0.32s ${ease}, background 0.32s ${ease}, box-shadow 0.32s ${ease}`,

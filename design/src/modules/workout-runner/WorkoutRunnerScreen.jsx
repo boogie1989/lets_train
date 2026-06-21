@@ -228,7 +228,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
 
   // ─── Render ────────────────────────────────────────────────
   return (
-    <PhoneFrame smokeVariant="animated">
+    <PhoneFrame smokeVariant="shader">
 
       {/* ══ CALENDAR (+ CHOICE scrim) ══ */}
       {(step === 'calendar' || step === 'choice') && (

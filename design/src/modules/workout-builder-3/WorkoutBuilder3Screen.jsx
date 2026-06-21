@@ -67,7 +67,7 @@ export default function WorkoutBuilder3Screen({ initialStep = 'preview' }) {
   const editItem = editIndex >= 0 ? items[editIndex] : null
 
   return (
-    <PhoneFrame smokeVariant="animated">
+    <PhoneFrame smokeVariant="shader">
       <div style={{ position: 'absolute', inset: 0, overflow: 'hidden' }}>
         <div style={{
           position: 'absolute', top: 0, bottom: 0, left: 0, width: '200%', display: 'flex',

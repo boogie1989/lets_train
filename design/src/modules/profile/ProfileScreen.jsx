@@ -85,7 +85,7 @@ export default function ProfileScreen({ initialAuthed = true }) {
   const kcalPct = Math.min(100, Math.round((NUT.kcal / NUT.goal) * 100))
 
   return (
-    <PhoneFrame smokeVariant="minimal">
+    <PhoneFrame smokeVariant="shader">
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
         <NavBar>
           <StatusBar />

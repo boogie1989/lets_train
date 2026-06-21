@@ -10,7 +10,8 @@ import GlassCard from './GlassCard.jsx'
 // plan (optional): name of the training plan that scheduled this item — shown as a
 // quiet third meta segment; ad-hoc items simply omit it.
 // missed: the item's day is in the past — uncompleted items get a muted "Missed" label.
-export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'workout', status = 'Planned', onClick, plan, missed = false, result }) {
+// hideTime: drop the in-card time (used when a timeline gutter shows it instead).
+export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'workout', status = 'Planned', onClick, plan, missed = false, result, hideTime = false }) {
   const completed = status === 'Completed'
   const label = completed
     ? { text: 'Done', color: 'var(--cs-tertiary)', opacity: 1 }
@@ -23,7 +24,7 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
 
   return (
     <GlassCard level="Low" onClick={onClick} style={{
-      width: 398,
+      width: '100%',
       height: 88,
       display: 'flex',
       overflow: 'hidden',
@@ -53,19 +54,22 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
         </span>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-            <ClockIcon />
-            <span style={{
-              fontFamily: 'var(--tt-font-family)',
-              fontSize: 13,
-              fontWeight: 500,
-              color: 'var(--cs-on-surface-variant)',
-            }}>
-              {time}
-            </span>
-          </div>
-
-          <Dot />
+          {!hideTime && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                <ClockIcon />
+                <span style={{
+                  fontFamily: 'var(--tt-font-family)',
+                  fontSize: 13,
+                  fontWeight: 500,
+                  color: 'var(--cs-on-surface-variant)',
+                }}>
+                  {time}
+                </span>
+              </div>
+              <Dot />
+            </>
+          )}
 
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
             {kind === 'meal' ? <MealIcon /> : <ActivityIcon />}

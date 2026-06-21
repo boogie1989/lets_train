@@ -27,7 +27,7 @@ export default function ExercisePreviewScreen() {
   const [mediaIndex, setMediaIndex] = useState(0)
 
   return (
-    <PhoneFrame smokeVariant="animated">
+    <PhoneFrame smokeVariant="shader">
 
       {/* ── Media (extends to cover status bar area) ── */}
       <div style={{ height: 324, flexShrink: 0, position: 'relative', overflow: 'hidden' }}>

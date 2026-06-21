@@ -66,7 +66,7 @@ export function WorkoutPreviewView({ workout = DEFAULT_WORKOUT, onClose, cta = '
 }
 
 export default function WorkoutPreviewScreen(props) {
-  return <PhoneFrame smokeVariant="animated"><WorkoutPreviewView {...props} /></PhoneFrame>
+  return <PhoneFrame smokeVariant="shader"><WorkoutPreviewView {...props} /></PhoneFrame>
 }
 
 // ── shared bits ──

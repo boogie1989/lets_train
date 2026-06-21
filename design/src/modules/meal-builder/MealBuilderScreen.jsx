@@ -50,7 +50,7 @@ export default function MealBuilderScreen({ initialStep = 'edit' }) {
   const upIng = (id, patch) => setMeal(m => M.updateIngredient(m, id, patch))
 
   return (
-    <PhoneFrame smokeVariant="minimal">
+    <PhoneFrame smokeVariant="shader">
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
         <NavBar>
           <StatusBar />

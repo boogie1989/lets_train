@@ -79,7 +79,7 @@ export default function PlanBuilderScreen({ initialStep = 'plan' }) {
   }
 
   return (
-    <PhoneFrame smokeVariant="animated">
+    <PhoneFrame smokeVariant="shader">
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
         <NavBar>
           <StatusBar />

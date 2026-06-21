@@ -289,13 +289,35 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
             </div>
             <div style={blockGroup}>
               <SectionLabel>Schedule</SectionLabel>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {items.map(task => (
-                  <TaskItem key={task.id} {...task}
-                    plan={task.fromPlan ? PLAN.name : undefined}
-                    missed={isPast}
-                    onClick={() => setDetailId(task.id)} />
-                ))}
+              {/* timeline — time gutter + status-node rail, cards on the right */}
+              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                {items.map((task, i) => {
+                  const [hhmm, mer] = task.time.split(' ')
+                  const isFirst = i === 0
+                  const isLast = i === items.length - 1
+                  return (
+                    <div key={task.id} style={{ display: 'flex' }}>
+                      {/* time gutter */}
+                      <div style={{ width: 52, flexShrink: 0, height: 88, alignSelf: 'flex-start', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', justifyContent: 'center', paddingRight: 8 }}>
+                        <span style={{ ...TT, fontSize: 13, fontWeight: 600, fontVariantNumeric: 'tabular-nums', lineHeight: 1.2, color: 'var(--cs-on-surface)' }}>{hhmm}</span>
+                        {mer && <span style={{ ...TT, fontSize: 10, fontWeight: 500, letterSpacing: '0.04em', color: 'var(--cs-on-surface-variant)', opacity: 0.7 }}>{mer}</span>}
+                      </div>
+                      {/* rail with status node */}
+                      <div style={{ width: 22, flexShrink: 0, position: 'relative' }}>
+                        {!isFirst && <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 0, height: 44, width: 2, background: 'rgba(var(--overlay-rgb),0.13)' }} />}
+                        {!isLast && <div style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 44, bottom: 0, width: 2, background: 'rgba(var(--overlay-rgb),0.13)' }} />}
+                        <div style={{ position: 'absolute', left: '50%', top: 44, transform: 'translate(-50%,-50%)', width: 12, height: 12, borderRadius: '50%', background: 'var(--cs-surface)', border: '2px solid rgba(var(--overlay-rgb),0.40)', zIndex: 1 }} />
+                      </div>
+                      {/* card (time lives in the gutter now) */}
+                      <div style={{ flex: 1, minWidth: 0, paddingBottom: isLast ? 0 : 14 }}>
+                        <TaskItem {...task} hideTime
+                          plan={task.fromPlan ? PLAN.name : undefined}
+                          missed={isPast}
+                          onClick={() => setDetailId(task.id)} />
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </>
@@ -307,7 +329,7 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
       </div>
 
       {/* ── Footer — FAB menu (shared FabMenu, same recipe as Workout Builder) ── */}
-      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 40, padding: '12px 16px 28px', background: 'linear-gradient(0deg, rgba(var(--cs-surface-rgb),0.92) 55%, transparent)', pointerEvents: 'none' }}>
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 40, padding: '12px 16px 28px', pointerEvents: 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', pointerEvents: 'auto' }}>
           <FabMenu open={fabOpen} setOpen={setFabOpen} actions={[
             { label: 'Schedule workout', icon: <BarbellGlyph />, onClick: scheduleWorkout },

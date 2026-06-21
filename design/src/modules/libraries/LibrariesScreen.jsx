@@ -296,7 +296,7 @@ export function LibrariesView({ initialLibrary = 'exercises', mode = 'browse', i
 
 export default function LibrariesScreen(props) {
   return (
-    <PhoneFrame smokeVariant="animated">
+    <PhoneFrame smokeVariant="shader">
       <LibrariesView {...props} />
     </PhoneFrame>
   )

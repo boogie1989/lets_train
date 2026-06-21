@@ -1944,7 +1944,7 @@ export default function WorkoutBuilder2Screen({ initialStep = 'list' }) {
   }
 
   return (
-    <PhoneFrame smokeVariant="animated">
+    <PhoneFrame smokeVariant="shader">
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
         <NavBar>
           <StatusBar />

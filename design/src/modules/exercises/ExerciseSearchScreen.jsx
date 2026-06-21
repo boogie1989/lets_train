@@ -159,7 +159,7 @@ export default function ExerciseSearchScreen() {
   }
 
   return (
-    <PhoneFrame smokeVariant="animated">
+    <PhoneFrame smokeVariant="shader">
 
       {/* ── Search header (StatusBar lives here, shares glass bg) ── */}
       <div style={{
