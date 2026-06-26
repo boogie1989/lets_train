@@ -8,8 +8,10 @@ import NavBar from '../../components/NavBar.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import GlassCard from '../../components/GlassCard.jsx'
 import DropdownMenu from '../../components/DropdownMenu.jsx'
+import IconButton from '../../components/IconButton.jsx'
+import SectionLabel from '../../components/SectionLabel.jsx'
 import {
-  TT, iconBtnSt, glassPopoverSt, ALL_EXERCISES, EXERCISE_HISTORY,
+  TT, glassPopoverSt, ALL_EXERCISES, EXERCISE_HISTORY,
   ChevLeftIcon, ChevLeftSmIcon, ChevRightSmIcon, PlusIcon, HistoryIcon, NoteIcon,
   Thumb, ValueField, RowMenu, RestDivider, RestPickerPopover, NoteRow, TempoRow, StructureRow, CompactSets,
   SetNumber, MarkerCell, TYPE_INFO, SET_TYPES, MAX_DROPS, WEIGHT_UNITS, REPS_UNITS,
@@ -19,7 +21,8 @@ import {
 // table grid — SET · LOAD · × · REPS · ⋮ (rest lives on dividers between rows)
 const GRID = { display: 'grid', gridTemplateColumns: '28px 1fr 10px 1fr 34px', columnGap: 6, alignItems: 'center' }
 
-const microLblSt = { ...TT, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--cs-on-surface-variant)', opacity: 0.45 }
+// inline column / chip-row header — weight 500 (block labels use <SectionLabel>)
+const microLblSt = { ...TT, fontSize: 9, fontWeight: 500, letterSpacing: '0.06em', color: 'var(--cs-on-surface-variant)', opacity: 0.45 }
 
 // superset main-row ring (matches v1's hollow main node)
 const ringSt = {
@@ -99,7 +102,7 @@ function HistoryCard({ hist, defaults, onPrefill }) {
     <GlassCard level="Low" style={{ padding: '12px 16px 14px', marginBottom: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 8 }}>
         <span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)', opacity: 0.50 }}><HistoryIcon /></span>
-        <span style={microLblSt}>LAST SESSION</span>
+        <SectionLabel>Last session</SectionLabel>
         <span style={{ ...TT, marginLeft: 'auto', fontSize: 11, color: 'var(--cs-on-surface-variant)', opacity: 0.60 }}>{hist.date}</span>
       </div>
       <CompactSets item={{ type: 'solo', sets: hist.sets }} defaults={defaults} />
@@ -346,7 +349,7 @@ export default function ExerciseEditView({
       <NavBar>
         <StatusBar />
         <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 8px', gap: 10 }}>
-          <button onClick={onBack} style={iconBtnSt}><ChevLeftIcon /></button>
+          <IconButton size="lg" aria-label="Back" onClick={onBack} icon={<ChevLeftIcon />} />
           {!isSuper && activeEx && <Thumb muscle={activeEx.muscle} size={36} />}
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ ...TT, fontSize: 15, fontWeight: 600, color: 'var(--cs-on-surface)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -443,9 +446,7 @@ export default function ExerciseEditView({
                     <span style={{ width: 28, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
                       <SetNumber n={i + 1} circled />
                     </span>
-                    <span style={{ ...TT, flex: 1, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--cs-on-surface-variant)', opacity: 0.50 }}>
-                      ROUND {i + 1}
-                    </span>
+                    <SectionLabel style={{ flex: 1 }}>Round {i + 1}</SectionLabel>
                     <DropdownMenu
                       items={[
                         { label: 'Duplicate round', onClick: () => dupSet(i) },
@@ -554,7 +555,7 @@ export default function ExerciseEditView({
 
         {/* exercise settings — visible form rows, nothing buried */}
         <GlassCard level="Low" style={{ padding: '12px 16px 14px', marginBottom: 14, overflow: 'visible' }}>
-          <p style={{ ...microLblSt, margin: '0 0 4px' }}>EXERCISE SETTINGS</p>
+          <SectionLabel style={{ marginBottom: 4 }}>Exercise settings</SectionLabel>
           <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 0' }}>
             <span style={{ ...TT, flex: 1, fontSize: 13, color: 'var(--cs-on-surface-variant)', opacity: 0.7 }}>
               Rest between {isSuper ? 'rounds' : 'sets'}

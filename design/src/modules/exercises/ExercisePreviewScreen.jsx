@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
-import Button from '../../components/Button.jsx'
+import { Button, GlassCard, IconButton, SectionLabel } from '../../components/index.js'
 
 const stepTint = ch => `linear-gradient(160deg, rgba(var(${ch}),0.22) 0%, rgba(var(${ch}),0.04) 100%), var(--cs-surface-container)`
 const MEDIA = [
@@ -55,9 +55,12 @@ export default function ExercisePreviewScreen() {
         </div>
 
         {/* Back button — below status bar */}
-        <button style={glassBtn({ top: 58, left: 16 })}>
-          <ChevronLeft />
-        </button>
+        <IconButton
+          size="md"
+          aria-label="Back"
+          icon={<ChevronLeft />}
+          style={{ position: 'absolute', top: 58, left: 16, zIndex: 2 }}
+        />
 
 
         {/* Pager dots */}
@@ -87,19 +90,16 @@ export default function ExercisePreviewScreen() {
         </div>
 
         {/* Quick stats */}
-        <div style={{
+        <GlassCard level="Low" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-around',
           padding: '12px 8px',
-          background: 'var(--glass-low-bg)',
-          borderRadius: 'var(--radius-xl)',
-          border: '1px solid rgba(var(--cs-outline-rgb),0.20)',
         }}>
           <StatItem icon={<MuscleIcon />} label="5 muscles" />
           <Divider />
           <StatItem icon={<EquipmentIcon />} label="3 items" />
           <Divider />
           <StatItem icon={<SetsIcon />} label="3–5 sets" />
-        </div>
+        </GlassCard>
 
         {/* Instructions */}
         <Block title="Instructions">
@@ -107,9 +107,10 @@ export default function ExercisePreviewScreen() {
             <div key={i} style={{
               display: 'flex', gap: 12, alignItems: 'flex-start',
               padding: '10px 14px',
-              background: 'var(--glass-slab)',
+              background: 'var(--glass-low-bg)',
               borderRadius: 'var(--radius-lg)',
-              border: '1px solid rgba(var(--cs-outline-rgb),0.18)',
+              border: '1px solid rgba(var(--overlay-rgb),0.04)',
+              boxShadow: 'var(--shadow-glass-low)',
             }}>
               <span style={{
                 width: 22, height: 22, borderRadius: 11, flexShrink: 0,
@@ -164,12 +165,7 @@ export default function ExercisePreviewScreen() {
 function Block({ title, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <span style={{
-        fontFamily: 'var(--tt-font-family)',
-        fontSize: 11, fontWeight: 500, letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        color: 'var(--cs-on-surface-variant)', opacity: 0.55,
-      }}>{title}</span>
+      <SectionLabel>{title}</SectionLabel>
       {children}
     </div>
   )
@@ -230,17 +226,6 @@ const equipChip = {
   background: 'var(--glass-control-strong)', border: '1px solid rgba(var(--cs-outline-rgb),0.35)',
   fontFamily: 'var(--tt-font-family)', fontSize: 12, fontWeight: 500,
   color: 'var(--cs-on-surface-variant)',
-}
-
-function glassBtn({ top, left, right } = {}) {
-  return {
-    position: 'absolute', top, left, right,
-    width: 44, height: 44, borderRadius: 'var(--radius-xl)', padding: 0,
-    background: 'var(--glass-control)',
-    border: '1px solid rgba(var(--cs-outline-rgb),0.50)',
-    boxShadow: '0 4px 16px rgba(var(--cs-shadow-rgb),0.35)',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-  }
 }
 
 // ─── SVG Icons ────────────────────────────────

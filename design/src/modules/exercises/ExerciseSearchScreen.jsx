@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import SearchInput from '../../components/SearchInput.jsx'
-import GlassCard from '../../components/GlassCard.jsx'
+import { GlassCard, IconButton, SectionLabel } from '../../components/index.js'
 
 
 const EXERCISES = [
@@ -176,13 +176,7 @@ export default function ExerciseSearchScreen() {
         {/* Search row: back · search input · filter button */}
         <div style={{ display: 'flex', gap: 8, padding: '12px 16px' }}>
           {/* Back button */}
-          <button style={{
-            width: 44, height: 44, borderRadius: 'var(--radius-2xl)', padding: 0, flexShrink: 0,
-            background: 'var(--glass-control)', border: '1px solid rgba(var(--cs-outline-rgb),0.40)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-          }}>
-            <BackChevron />
-          </button>
+          <IconButton size="md" aria-label="Back" icon={<BackChevron />} />
           <div style={{ flex: 1 }}>
             <SearchInput
               placeholder="Search exercises..."
@@ -191,28 +185,27 @@ export default function ExerciseSearchScreen() {
               onChange={e => setQuery(e.target.value)}
             />
           </div>
-          <button
-            onClick={() => setSheetOpen(o => !o)}
-            style={{
-              width: 44, height: 44, borderRadius: 'var(--radius-2xl)', padding: 0,
-              background: sheetOpen || activeCount > 0 ? 'rgba(var(--cs-primary-rgb),0.15)' : 'var(--cs-surface-container-highest)',
-              border: sheetOpen || activeCount > 0 ? '1px solid rgba(var(--cs-primary-rgb),0.35)' : '1px solid var(--cs-outline)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', flexShrink: 0, position: 'relative',
-            }}
-          >
-            <FilterIcon active={sheetOpen || activeCount > 0} />
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <IconButton
+              size="md"
+              aria-label="Filters"
+              onClick={() => setSheetOpen(o => !o)}
+              icon={<FilterIcon active={sheetOpen || activeCount > 0} />}
+              style={sheetOpen || activeCount > 0
+                ? { background: 'rgba(var(--cs-primary-rgb),0.15)', border: '1px solid rgba(var(--cs-primary-rgb),0.35)' }
+                : undefined}
+            />
             {activeCount > 0 && (
               <span style={{
-                position: 'absolute', top: -5, right: -5,
+                position: 'absolute', top: -5, right: -5, pointerEvents: 'none',
                 minWidth: 17, height: 17, borderRadius: 9,
                 background: 'var(--cs-primary)', color: 'var(--cs-on-primary)',
-                fontSize: 9, fontWeight: 700,
+                fontSize: 9, fontWeight: 500,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 padding: '0 4px', border: '1.5px solid var(--cs-surface)',
               }}>{activeCount}</span>
             )}
-          </button>
+          </div>
         </div>
 
         {/* Muscle quick-chips */}
@@ -253,7 +246,7 @@ export default function ExerciseSearchScreen() {
               }}
             >
               {/* accent strip */}
-              <div style={{ width: 4, flexShrink: 0, background: isSel ? 'var(--cs-primary)' : 'transparent', transition: 'background 0.15s' }} />
+              <div style={{ width: 5, flexShrink: 0, background: isSel ? 'var(--cs-primary)' : 'transparent', transition: 'background 0.15s' }} />
               {/* content */}
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 14px' }}>
                 <div style={{
@@ -335,7 +328,7 @@ export default function ExerciseSearchScreen() {
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 31,
         height: 462,
         transform: sheetOpen ? 'translateY(0)' : 'translateY(100%)',
-        transition: 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)',
+        transition: 'transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)',
         background: 'var(--glass-popover)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
@@ -357,7 +350,7 @@ export default function ExerciseSearchScreen() {
         <div style={{ flex: 1, overflowY: 'auto', padding: '2px 16px 0' }}>
 
           {/* Equipment grid */}
-          <SectionLabel>Equipment</SectionLabel>
+          <SectionLabel style={sheetLabelSt}>Equipment</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 18 }}>
             {EQUIPMENT_DEFS.map(({ key, label }) => {
               const on = filters.equipment.includes(key)
@@ -380,7 +373,7 @@ export default function ExerciseSearchScreen() {
           </div>
 
           {/* Type segmented */}
-          <SectionLabel>Type</SectionLabel>
+          <SectionLabel style={sheetLabelSt}>Type</SectionLabel>
           <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
             {TYPE_OPTS.map(t => {
               const on = filters.type === t
@@ -398,7 +391,7 @@ export default function ExerciseSearchScreen() {
           </div>
 
           {/* Difficulty dots */}
-          <SectionLabel>Difficulty</SectionLabel>
+          <SectionLabel style={sheetLabelSt}>Difficulty</SectionLabel>
           <div style={{ display: 'flex', gap: 8, marginBottom: 18 }}>
             {DIFFICULTY_OPTS.map(({ key, dots }) => {
               const on = filters.difficulty === key
@@ -442,7 +435,7 @@ export default function ExerciseSearchScreen() {
             Advanced
           </button>
           <div style={{ maxHeight: advancedOpen ? 160 : 0, overflow: 'hidden', transition: 'max-height 0.22s ease' }}>
-            <SectionLabel>Force</SectionLabel>
+            <SectionLabel style={sheetLabelSt}>Force</SectionLabel>
             <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
               {FORCE_OPTS.map(f => {
                 const on = filters.force.includes(f)
@@ -458,7 +451,7 @@ export default function ExerciseSearchScreen() {
                 )
               })}
             </div>
-            <SectionLabel>Mechanic</SectionLabel>
+            <SectionLabel style={sheetLabelSt}>Mechanic</SectionLabel>
             <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
               {MECHANIC_OPTS.map(m => {
                 const on = filters.mechanic.includes(m)
@@ -505,13 +498,12 @@ export default function ExerciseSearchScreen() {
 
           {/* Top bar */}
           <div style={{ height: 56, flexShrink: 0, display: 'flex', alignItems: 'center', padding: '0 16px', gap: 12 }}>
-            <button onClick={() => { setEditOpen(false); setReorderMode(false); setCheckedIds(new Set()); setCheckedGroups(new Set()) }} style={{
-              width: 44, height: 44, borderRadius: 'var(--radius-2xl)', padding: 0,
-              background: 'var(--glass-control)', border: '1px solid rgba(var(--cs-outline-rgb),0.40)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-            }}>
-              <ChevronLeft />
-            </button>
+            <IconButton
+              size="md"
+              aria-label="Back"
+              icon={<ChevronLeft />}
+              onClick={() => { setEditOpen(false); setReorderMode(false); setCheckedIds(new Set()); setCheckedGroups(new Set()) }}
+            />
             <span style={{ flex: 1, fontFamily: 'var(--tt-font-family)', fontSize: 18, fontWeight: 500, color: 'var(--cs-on-surface)' }}>
               Edit Selection
             </span>
@@ -545,7 +537,7 @@ export default function ExerciseSearchScreen() {
                     ...(checked && { background: 'rgba(var(--cs-primary-rgb),0.14)' }),
                     transition: 'background 0.15s',
                   }}>
-                    <div style={{ width: 4, flexShrink: 0, background: checked ? 'var(--cs-primary)' : 'transparent', transition: 'background 0.15s' }} />
+                    <div style={{ width: 5, flexShrink: 0, background: checked ? 'var(--cs-primary)' : 'transparent', transition: 'background 0.15s' }} />
                     <ExerciseRow id={entry.id} leading={leading} />
                   </GlassCard>
                 )
@@ -560,13 +552,14 @@ export default function ExerciseSearchScreen() {
                   borderRadius: 'var(--radius-2xl)',
                   background: 'rgba(var(--cs-primary-rgb),0.05)',
                   border: '1px solid rgba(var(--cs-primary-rgb),0.18)',
+                  boxShadow: 'var(--shadow-glass-low)',
                   overflow: 'hidden', position: 'relative',
                 }}>
-                  <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 3, background: 'var(--cs-primary)' }} />
+                  <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 5, background: 'var(--cs-primary)' }} />
                   {/* Superset header */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px 6px 14px' }}>
                     {groupLeading}
-                    <span style={{ fontFamily: 'var(--tt-font-family)', fontSize: 10, fontWeight: 700, letterSpacing: '0.6px', color: 'var(--cs-primary)', opacity: 0.80 }}>SUPERSET</span>
+                    <SectionLabel style={{ color: 'var(--cs-primary)', opacity: 0.8 }}>Superset</SectionLabel>
                   </div>
                   {/* Exercises inside superset */}
                   {entry.ids.map((id, idx) => {
@@ -628,6 +621,8 @@ export default function ExerciseSearchScreen() {
 
 // ─── Helpers ──────────────────────────────────
 
+const sheetLabelSt = { display: 'block', marginBottom: 8 }
+
 function chipSt(active) {
   return {
     flexShrink: 0, padding: '5px 12px', borderRadius: 'var(--radius-2xl)',
@@ -637,17 +632,6 @@ function chipSt(active) {
     color: active ? 'var(--cs-primary)' : 'var(--cs-on-surface-variant)',
     cursor: 'pointer', whiteSpace: 'nowrap', transition: 'all 0.15s',
   }
-}
-
-function SectionLabel({ children }) {
-  return (
-    <span style={{
-      display: 'block', marginBottom: 8,
-      fontFamily: 'var(--tt-font-family)', fontSize: 10, fontWeight: 500,
-      letterSpacing: '0.08em', textTransform: 'uppercase',
-      color: 'var(--cs-on-surface-variant)', opacity: 0.45,
-    }}>{children}</span>
-  )
 }
 
 function ChevronSmall({ open }) {

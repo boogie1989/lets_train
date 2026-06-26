@@ -3,6 +3,7 @@ import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import SearchInput from '../../components/SearchInput.jsx'
 import Segmented from '../../components/Segmented.jsx'
+import IconButton from '../../components/IconButton.jsx'
 import { LIBRARIES } from './configs/index.js'
 import {
   SectionLabel, chipSt, gridBtnSt, segBtnSt, dotsBtnSt, wrapChipSt, DIFF_COLORS,
@@ -52,7 +53,7 @@ function FilterControl({ filter, filters, toggleMulti, setSingle }) {
   const opts = filter.options.map(normOpt)
   return (
     <div style={{ marginBottom: 18 }}>
-      <SectionLabel>{filter.label}</SectionLabel>
+      <SectionLabel style={{ display: 'flex', marginBottom: 8 }}>{filter.label}</SectionLabel>
 
       {filter.control === 'grid' && (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
@@ -178,23 +179,30 @@ export function LibrariesView({ initialLibrary = 'exercises', mode = 'browse', i
 
         {/* search row */}
         <div style={{ display: 'flex', gap: 8, padding: '12px 16px 10px' }}>
-          <button onClick={onClose} style={{ width: 44, height: 44, borderRadius: 'var(--radius-2xl)', padding: 0, flexShrink: 0, background: 'var(--glass-control)', border: '1px solid rgba(var(--cs-outline-rgb),0.50)', boxShadow: 'var(--shadow-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-            <BackChevron />
-          </button>
+          <IconButton size="md" onClick={onClose} aria-label="Back" icon={<BackChevron />} />
           <div style={{ flex: 1 }}>
             <SearchInput placeholder={config.searchPlaceholder} value={query} state={query ? 'filled' : 'default'} onChange={e => setQuery(e.target.value)} />
           </div>
-          <button onClick={() => setSheetOpen(o => !o)} style={{
-            width: 44, height: 44, borderRadius: 'var(--radius-2xl)', padding: 0, flexShrink: 0, position: 'relative',
-            background: sheetOpen || activeCount > 0 ? 'rgba(var(--cs-primary-rgb),0.15)' : 'var(--glass-control)',
-            border: sheetOpen || activeCount > 0 ? '1px solid rgba(var(--cs-primary-rgb),0.35)' : '1px solid rgba(var(--cs-outline-rgb),0.50)',
-            boxShadow: 'var(--shadow-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
-          }}>
-            <FilterIcon active={sheetOpen || activeCount > 0} />
-            {activeCount > 0 && (
-              <span style={{ position: 'absolute', top: -5, right: -5, minWidth: 17, height: 17, borderRadius: 9, background: 'var(--cs-primary)', color: 'var(--cs-on-primary)', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', border: '1.5px solid var(--cs-surface)' }}>{activeCount}</span>
+          <IconButton
+            size="md"
+            onClick={() => setSheetOpen(o => !o)}
+            aria-label="Filters"
+            style={{
+              position: 'relative',
+              ...(sheetOpen || activeCount > 0 ? {
+                background: 'rgba(var(--cs-primary-rgb),0.15)',
+                border: '1px solid rgba(var(--cs-primary-rgb),0.35)',
+              } : {}),
+            }}
+            icon={(
+              <>
+                <FilterIcon active={sheetOpen || activeCount > 0} />
+                {activeCount > 0 && (
+                  <span style={{ position: 'absolute', top: -5, right: -5, minWidth: 17, height: 17, borderRadius: 9, background: 'var(--cs-primary)', color: 'var(--cs-on-primary)', fontSize: 9, fontWeight: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px', border: '1.5px solid var(--cs-surface)' }}>{activeCount}</span>
+                )}
+              </>
             )}
-          </button>
+          />
         </div>
 
         {/* library switcher (hidden when used as a focused picker) */}
@@ -250,7 +258,7 @@ export function LibrariesView({ initialLibrary = 'exercises', mode = 'browse', i
       <div onClick={() => setSheetOpen(false)} style={{ position: 'absolute', inset: 0, zIndex: 30, background: 'rgba(var(--cs-shadow-rgb),0.45)', opacity: sheetOpen ? 1 : 0, pointerEvents: sheetOpen ? 'auto' : 'none', transition: 'opacity 0.3s ease' }} />
       <div style={{
         position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 31, height: 470,
-        transform: sheetOpen ? 'translateY(0)' : 'translateY(100%)', transition: 'transform 0.32s cubic-bezier(0.32, 0.72, 0, 1)',
+        transform: sheetOpen ? 'translateY(0)' : 'translateY(100%)', transition: 'transform 0.32s cubic-bezier(0.4, 0, 0.2, 1)',
         background: 'var(--glass-popover)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
         borderTop: '1px solid rgba(var(--cs-outline-rgb),0.35)', borderRadius: '18px 18px 0 0', overflow: 'hidden',
         display: 'flex', flexDirection: 'column',

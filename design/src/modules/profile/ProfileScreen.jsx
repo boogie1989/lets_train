@@ -3,14 +3,14 @@ import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import NavBar from '../../components/NavBar.jsx'
 import GlassCard from '../../components/GlassCard.jsx'
+import { IconButton, SectionLabel } from '../../components/index.js'
 import { GearIcon, UserGlyph, DumbbellIcon, FlameIcon, ClockIcon, ChevRightIcon, EditIcon, HelpIcon, LogOutIcon } from './icons.jsx'
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
 
-const iconBtnSt = { width: 40, height: 40, borderRadius: 'var(--radius-2xl)', flexShrink: 0, background: 'var(--glass-control)', border: '1px solid rgba(var(--cs-outline-rgb),0.50)', boxShadow: 'var(--shadow-card)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, color: 'var(--cs-on-surface-variant)' }
 const primaryBtnSt = { ...TT, fontWeight: 500, color: 'var(--cs-on-primary)', cursor: 'pointer', background: 'linear-gradient(180deg, rgba(var(--raise-rgb),0.09) 0%, rgba(var(--cs-shadow-rgb),0.08) 100%), var(--cs-primary)', border: '1px solid rgba(var(--overlay-rgb),0.18)', boxShadow: 'inset 0 1px 0 rgba(var(--raise-rgb),0.22), 0 8px 24px rgba(var(--cs-primary-rgb),0.22)' }
 const ghostBtnSt = { ...TT, fontWeight: 500, cursor: 'pointer', background: 'rgba(var(--overlay-rgb),0.05)', border: '1px solid rgba(var(--overlay-rgb),0.10)', color: 'var(--cs-on-surface)' }
-const labelSt = { ...TT, display: 'block', margin: '0 2px 10px', fontSize: 10, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.45 }
+const sectionLabelSt = { display: 'block', margin: '0 0 10px' }
 
 // demo content
 const USER = { name: 'Serhii Buhai', email: 'serhii.work@gmail.com', initials: 'SB', plan: 'Free plan' }
@@ -32,7 +32,7 @@ function StatTile({ icon, ch, value, label, muted }) {
     <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 9, padding: '12px 12px 13px', borderRadius: 'var(--radius-xl)', background: 'rgba(var(--overlay-rgb),0.03)', border: '1px solid rgba(var(--overlay-rgb),0.06)' }}>
       <span style={{ width: 30, height: 30, borderRadius: 9, display: 'flex', alignItems: 'center', justifyContent: 'center', background: `rgba(var(${ch}),0.14)`, color: muted ? 'var(--cs-on-surface-variant)' : `rgba(var(${ch}),1)`, opacity: muted ? 0.5 : 1 }}>{icon}</span>
       <div>
-        <div style={{ ...TT, fontSize: 18, fontWeight: 600, lineHeight: 1.1, color: muted ? 'var(--cs-on-surface-variant)' : 'var(--cs-on-surface)', opacity: muted ? 0.5 : 1 }}>{muted ? '—' : value}</div>
+        <div style={{ ...TT, fontSize: 18, fontWeight: 500, lineHeight: 1.1, color: muted ? 'var(--cs-on-surface-variant)' : 'var(--cs-on-surface)', opacity: muted ? 0.5 : 1 }}>{muted ? '—' : value}</div>
         <div style={{ ...TT, fontSize: 10.5, color: 'var(--cs-on-surface-variant)', opacity: 0.55, marginTop: 3 }}>{label}</div>
       </div>
     </div>
@@ -59,7 +59,7 @@ function MacroBar({ label, g, ch, total, muted }) {
   const pct = total ? Math.round((g / total) * 100) : 0
   return (
     <div style={{ flex: 1 }}>
-      <span style={{ ...TT, display: 'block', fontSize: 14, fontWeight: 600, marginBottom: 6, color: muted ? 'var(--cs-on-surface-variant)' : 'var(--cs-on-surface)', opacity: muted ? 0.5 : 1 }}>{muted ? '—' : `${g}g`}</span>
+      <span style={{ ...TT, display: 'block', fontSize: 14, fontWeight: 500, marginBottom: 6, color: muted ? 'var(--cs-on-surface-variant)' : 'var(--cs-on-surface)', opacity: muted ? 0.5 : 1 }}>{muted ? '—' : `${g}g`}</span>
       <div style={{ height: 4, borderRadius: 2, background: 'rgba(var(--overlay-rgb),0.06)', overflow: 'hidden', marginBottom: 6 }}>
         <div style={{ width: muted ? '0%' : `${pct}%`, height: '100%', background: `rgba(var(${ch}),1)`, opacity: 0.85 }} />
       </div>
@@ -90,8 +90,8 @@ export default function ProfileScreen({ initialAuthed = true }) {
         <NavBar>
           <StatusBar />
           <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 12px', gap: 8 }}>
-            <span style={{ ...TT, flex: 1, fontSize: 20, fontWeight: 600, color: 'var(--cs-on-surface)' }}>Profile</span>
-            <button style={iconBtnSt} aria-label="Settings"><GearIcon /></button>
+            <span style={{ ...TT, flex: 1, fontSize: 20, fontWeight: 500, color: 'var(--cs-on-surface)' }}>Profile</span>
+            <IconButton size="lg" icon={<GearIcon />} aria-label="Settings" />
           </div>
         </NavBar>
 
@@ -103,16 +103,16 @@ export default function ProfileScreen({ initialAuthed = true }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <Avatar authed />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ ...TT, fontSize: 18, fontWeight: 600, color: 'var(--cs-on-surface)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{USER.name}</div>
+                  <div style={{ ...TT, fontSize: 18, fontWeight: 500, color: 'var(--cs-on-surface)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{USER.name}</div>
                   <div style={{ ...TT, fontSize: 12.5, color: 'var(--cs-on-surface-variant)', opacity: 0.7, marginTop: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{USER.email}</div>
-                  <span style={{ ...TT, display: 'inline-block', marginTop: 9, fontSize: 10.5, fontWeight: 600, padding: '3px 9px', borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.14)', border: '1px solid rgba(var(--cs-primary-rgb),0.30)', color: 'var(--cs-primary)' }}>{USER.plan}</span>
+                  <span style={{ ...TT, display: 'inline-block', marginTop: 9, fontSize: 10.5, fontWeight: 500, padding: '3px 9px', borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.14)', border: '1px solid rgba(var(--cs-primary-rgb),0.30)', color: 'var(--cs-primary)' }}>{USER.plan}</span>
                 </div>
-                <button aria-label="Edit profile" style={{ ...iconBtnSt, width: 36, height: 36, boxShadow: 'none', background: 'rgba(var(--overlay-rgb),0.05)', border: '1px solid rgba(var(--overlay-rgb),0.09)' }}><EditIcon /></button>
+                <IconButton size="md" icon={<EditIcon />} aria-label="Edit profile" />
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 4 }}>
                 <Avatar authed={false} />
-                <div style={{ ...TT, fontSize: 18, fontWeight: 600, color: 'var(--cs-on-surface)', marginTop: 10 }}>You're a guest</div>
+                <div style={{ ...TT, fontSize: 18, fontWeight: 500, color: 'var(--cs-on-surface)', marginTop: 10 }}>You're a guest</div>
                 <p style={{ ...TT, fontSize: 13, lineHeight: 1.5, color: 'var(--cs-on-surface-variant)', opacity: 0.7, margin: '0 0 8px', maxWidth: 260 }}>Create an account to sync your workouts, plans & progress across devices.</p>
                 <button onClick={() => setAuthed(true)} style={{ ...primaryBtnSt, width: '100%', height: 48, borderRadius: 'var(--radius-2xl)', fontSize: 15 }}>Create account</button>
                 <button onClick={() => setAuthed(true)} style={{ ...ghostBtnSt, width: '100%', height: 46, borderRadius: 'var(--radius-2xl)', fontSize: 14, marginTop: 8 }}>Log in</button>
@@ -121,7 +121,7 @@ export default function ProfileScreen({ initialAuthed = true }) {
           </GlassCard>
 
           {/* ── Workout stats ── */}
-          <span style={labelSt}>Workouts · this week</span>
+          <SectionLabel style={sectionLabelSt}>Workouts · this week</SectionLabel>
           <GlassCard level="Low" style={{ padding: 14, marginBottom: 18 }}>
             <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
               <StatTile icon={<DumbbellIcon />} ch="--cs-primary-rgb" value={WK.workouts} label="Workouts" muted={!authed} />
@@ -132,14 +132,14 @@ export default function ProfileScreen({ initialAuthed = true }) {
           </GlassCard>
 
           {/* ── Nutrition stats ── */}
-          <span style={labelSt}>Nutrition · today</span>
+          <SectionLabel style={sectionLabelSt}>Nutrition · today</SectionLabel>
           <GlassCard level="Low" style={{ padding: 16, marginBottom: authed ? 18 : 6 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-                <span style={{ ...TT, fontSize: 28, fontWeight: 600, lineHeight: 1, color: authed ? 'var(--cs-on-surface)' : 'var(--cs-on-surface-variant)', opacity: authed ? 1 : 0.5 }}>{authed ? NUT.kcal.toLocaleString() : '—'}</span>
+                <span style={{ ...TT, fontSize: 28, fontWeight: 500, lineHeight: 1, color: authed ? 'var(--cs-on-surface)' : 'var(--cs-on-surface-variant)', opacity: authed ? 1 : 0.5 }}>{authed ? NUT.kcal.toLocaleString() : '—'}</span>
                 <span style={{ ...TT, fontSize: 13, color: 'var(--cs-on-surface-variant)', opacity: 0.6 }}>/ {NUT.goal.toLocaleString()} kcal</span>
               </div>
-              {authed && <span style={{ ...TT, fontSize: 11, fontWeight: 600, color: 'var(--cs-tertiary)' }}>{kcalPct}%</span>}
+              {authed && <span style={{ ...TT, fontSize: 11, fontWeight: 500, color: 'var(--cs-tertiary)' }}>{kcalPct}%</span>}
             </div>
             <div style={{ height: 6, borderRadius: 3, background: 'rgba(var(--overlay-rgb),0.06)', overflow: 'hidden', marginBottom: 16 }}>
               <div style={{ width: authed ? `${kcalPct}%` : '0%', height: '100%', borderRadius: 3, background: 'var(--cs-tertiary)', opacity: 0.85 }} />
@@ -154,7 +154,7 @@ export default function ProfileScreen({ initialAuthed = true }) {
           {/* ── Account (authed) / sign-in nudge (anon) ── */}
           {authed ? (
             <>
-              <span style={labelSt}>Account</span>
+              <SectionLabel style={sectionLabelSt}>Account</SectionLabel>
               <GlassCard level="Low" style={{ padding: 4, overflow: 'hidden' }}>
                 <AccountRow icon={<EditIcon />} label="Edit profile" onClick={() => {}} />
                 <Divider />

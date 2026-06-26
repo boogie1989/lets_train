@@ -1,22 +1,31 @@
-// size: 'sm'(32) | 'md'(40) | 'lg'(48)   state: 'default' | 'disabled'
-const dimMap = { sm: 32, md: 40, lg: 48 }
+// Canonical icon button — matches the Calendar reference recipe
+// (CalendarScreen.jsx `iconBtn`): glass-control fill, 0.5 outline border,
+// card shadow, radius-xl. Use this everywhere instead of per-module copies.
+//
+// size: 'sm'(32) | 'md'(44, in-flow) | 'lg'(48, top-level)   default 'lg'
+// state: 'default' | 'disabled'
+// Passes through onClick / aria-label / other button props.
+const dimMap = { sm: 32, md: 44, lg: 48 }
 
-export default function IconButton({ icon, size = 'lg', state = 'default', style: extra }) {
+export default function IconButton({ icon, size = 'lg', state = 'default', style: extra, ...rest }) {
   const dim = dimMap[size] ?? 48
+  const disabled = state === 'disabled'
   return (
     <button
-      disabled={state === 'disabled'}
+      disabled={disabled}
       style={{
         width: dim, height: dim,
         borderRadius: 'var(--radius-xl)',
-        background: 'var(--cs-surface-container-highest)',
-        border: 'none',
+        background: 'var(--glass-control)',
+        border: '1px solid rgba(var(--cs-outline-rgb),0.5)',
+        boxShadow: 'var(--shadow-card)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        cursor: state === 'disabled' ? 'not-allowed' : 'pointer',
-        opacity: state === 'disabled' ? 0.4 : 1,
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.4 : 1,
         flexShrink: 0, padding: 0,
         ...extra,
       }}
+      {...rest}
     >
       {icon || <HamburgerIcon />}
     </button>

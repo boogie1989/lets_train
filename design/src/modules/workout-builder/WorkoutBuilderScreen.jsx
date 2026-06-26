@@ -5,6 +5,8 @@ import NavBar from '../../components/NavBar.jsx'
 import GlassCard from '../../components/GlassCard.jsx'
 import DropdownMenu from '../../components/DropdownMenu.jsx'
 import FabMenu from '../../components/FabMenu.jsx'
+import IconButton from '../../components/IconButton.jsx'
+import SectionLabel from '../../components/SectionLabel.jsx'
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -60,15 +62,6 @@ const thumbTint = ch => `linear-gradient(150deg, rgba(var(${ch}),0.22) 0%, rgba(
 const THUMB_COLORS = {
   Legs: thumbTint('--cat-blue-rgb'), Back: thumbTint('--cat-violet-rgb'), Chest: thumbTint('--cat-pink-rgb'),
   Arms: thumbTint('--cat-cyan-rgb'), Core: thumbTint('--cs-tertiary-rgb'), Shoulders: thumbTint('--cat-amber-rgb'),
-}
-
-// Shared glass icon-button recipe — matches CalendarScreen / WorkoutRunner
-const iconBtnSt = {
-  width: 44, height: 44, borderRadius: 'var(--radius-xl)', flexShrink: 0,
-  background: 'var(--glass-control)', border: '1px solid rgba(var(--cs-outline-rgb),0.50)',
-  boxShadow: 'var(--shadow-card)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0,
 }
 
 // Preset workout tags (chosen via picker — no free typing)
@@ -282,7 +275,7 @@ function RpeField({ value, dim = false, onChange, onMenuLift }) {
               <button key={v} onClick={() => { onChange(v); setOpen(false) }} style={{
                 height: 34, borderRadius: 'var(--radius-lg)', border: 'none', cursor: 'pointer', padding: 0,
                 background: v === value ? 'rgba(var(--cs-primary-rgb),0.18)' : 'transparent',
-                ...TT, fontSize: 14, fontWeight: v === value ? 600 : 400,
+                ...TT, fontSize: 14, fontWeight: v === value ? 500 : 400,
                 color: v === value ? 'var(--cs-primary)' : 'var(--cs-on-surface)',
               }}>{v}</button>
             ))}
@@ -528,11 +521,11 @@ const REST_SECS = [0, 15, 30, 45]
 
 function RestPickerPopover({ value, onChange, onClose, align = 'center', onApplyAll }) {
   const m = Math.floor(value / 60), s = value % 60
-  const colLblSt = { ...TT, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textAlign: 'center', color: 'var(--cs-on-surface-variant)', opacity: 0.45, padding: '2px 0 4px' }
+  const colLblSt = { ...TT, fontSize: 9, fontWeight: 500, letterSpacing: '0.06em', textAlign: 'center', color: 'var(--cs-on-surface-variant)', opacity: 0.45, padding: '2px 0 4px' }
   const optSt = on => ({
     width: 44, height: 30, borderRadius: 'var(--radius-lg)', border: 'none', cursor: 'pointer', padding: 0,
     background: on ? 'rgba(var(--cs-primary-rgb),0.18)' : 'transparent',
-    ...TT, fontSize: 13, fontWeight: on ? 600 : 400,
+    ...TT, fontSize: 13, fontWeight: on ? 500 : 400,
     color: on ? 'var(--cs-primary)' : 'var(--cs-on-surface)',
   })
   return (
@@ -567,7 +560,7 @@ function RestPickerPopover({ value, onChange, onClose, align = 'center', onApply
             <button onClick={() => { onApplyAll(value); onClose() }} style={{
               ...TT, width: '100%', border: 'none', background: 'transparent', cursor: 'pointer',
               padding: '6px 4px', borderRadius: 'var(--radius-lg)', textAlign: 'center',
-              fontSize: 12, fontWeight: 600, color: 'var(--cs-primary)',
+              fontSize: 12, fontWeight: 500, color: 'var(--cs-primary)',
             }}>Apply to all sets</button>
           </>
         )}
@@ -584,7 +577,7 @@ function RestDivider({ value, onChange, onApplyAll, onMenuLift }) {
   const chip = (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
       <span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)', opacity: 0.40 }}><ClockIcon size={11} /></span>
-      <span style={{ ...TT, fontSize: 11, fontWeight: 600, color: 'var(--cs-on-surface-variant)', opacity: 0.70 }}>{fmtRest(value)}</span>
+      <span style={{ ...TT, fontSize: 11, fontWeight: 500, color: 'var(--cs-on-surface-variant)', opacity: 0.70 }}>{fmtRest(value)}</span>
     </span>
   )
   return (
@@ -670,7 +663,7 @@ function TempoRow({ value, onChange, onClear, onMenuLift, style }) {
     ...TT, width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px',
     background: 'transparent', border: 'none', borderRadius: 'var(--radius-lg)', textAlign: 'left', cursor: 'pointer',
   }
-  const digitsSt = { ...TT, fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--cs-on-surface)' }
+  const digitsSt = { ...TT, fontSize: 12, fontWeight: 500, letterSpacing: '0.08em', color: 'var(--cs-on-surface)' }
   const hintSt = { ...TT, marginLeft: 'auto', fontSize: 11, color: 'var(--cs-on-surface-variant)', opacity: 0.55 }
 
   return (
@@ -679,7 +672,7 @@ function TempoRow({ value, onChange, onClear, onMenuLift, style }) {
         display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', cursor: 'pointer', padding: 0,
       }}>
         <span style={{ display: 'flex', flexShrink: 0, color: 'var(--cs-on-surface-variant)', opacity: 0.40 }}><MetronomeIcon /></span>
-        <span style={{ ...TT, fontSize: 12, fontWeight: 600, letterSpacing: '0.08em', color: 'var(--cs-on-surface-variant)', opacity: value ? 0.8 : 0.5 }}>
+        <span style={{ ...TT, fontSize: 12, fontWeight: 500, letterSpacing: '0.08em', color: 'var(--cs-on-surface-variant)', opacity: value ? 0.8 : 0.5 }}>
           {value || 'Tempo…'}
         </span>
       </button>
@@ -779,7 +772,7 @@ function WorkoutDefaultsCard({ defaults, setDefaults }) {
     <div style={{ position: 'relative' }}>
       <button onClick={() => setOpenKey(openKey === key ? null : key)} style={rowBtnSt}>
         <span style={{ ...TT, flex: 1, textAlign: 'left', fontSize: 13, color: 'var(--cs-on-surface-variant)', opacity: 0.7 }}>{label}</span>
-        <span style={{ ...TT, fontSize: 13, fontWeight: 600, color: 'var(--cs-on-surface)' }}>{valueLabel}</span>
+        <span style={{ ...TT, fontSize: 13, fontWeight: 500, color: 'var(--cs-on-surface)' }}>{valueLabel}</span>
         <span style={{ fontSize: 8, color: 'var(--cs-on-surface-variant)', opacity: 0.5 }}>▼</span>
       </button>
       {openKey === key && popover}
@@ -788,9 +781,7 @@ function WorkoutDefaultsCard({ defaults, setDefaults }) {
 
   return (
     <GlassCard level="Low" style={{ padding: '12px 16px 6px', marginBottom: 14 }}>
-      <p style={{ ...TT, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--cs-on-surface-variant)', opacity: 0.45, margin: '0 0 2px' }}>
-        WORKOUT DEFAULTS
-      </p>
+      <SectionLabel style={{ margin: '0 0 2px' }}>Workout defaults</SectionLabel>
       {row('w', 'Load unit', defaults.weightUnit,
         <UnitListPopover options={WEIGHT_UNITS} value={defaults.weightUnit}
           onSelect={u => { upd({ weightUnit: u }); close() }} onClose={close} />)}
@@ -905,7 +896,7 @@ function SetNumber({ n, circled, ch }) {
       minWidth: 22, height: 22, padding: '0 5px', boxSizing: 'border-box', borderRadius: 999,
       border: `1px solid ${circled ? (ch ? `rgba(var(${ch}),0.35)` : 'rgba(var(--cs-primary-rgb),0.45)') : 'transparent'}`,
       display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-      ...TT, fontSize: 11, fontWeight: 600,
+      ...TT, fontSize: 11, fontWeight: 500,
       color: ch ? `rgba(var(${ch}),0.65)` : 'var(--cs-on-surface-variant)',
       opacity: circled ? 0.80 : 0.45,
     }}>{n}</span>
@@ -937,7 +928,7 @@ function SetTypeMarker({ type, n, onMenuLift }) {
             borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
             boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)', padding: '10px 12px',
           }}>
-            <div style={{ ...TT, fontSize: 12, fontWeight: 600, color: `rgba(var(${info.ch}),0.85)` }}>{info.title}</div>
+            <div style={{ ...TT, fontSize: 12, fontWeight: 500, color: `rgba(var(${info.ch}),0.85)` }}>{info.title}</div>
             <div style={{ ...TT, fontSize: 11, lineHeight: 1.45, color: 'var(--cs-on-surface-variant)', opacity: 0.8, marginTop: 3 }}>{info.text}</div>
           </div>
         </>
@@ -1397,9 +1388,7 @@ function SupersetCard({ item, open, onToggle, onChange, onDelete, onEdit, onDupl
       {/* Header (tap to expand) */}
       <div onClick={onToggle} style={{ cursor: 'pointer' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px 6px 14px' }}>
-          <span style={{ ...TT, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--cs-primary)', opacity: 0.80, flex: 1 }}>
-            SUPERSET · {item.sets.length} sets each
-          </span>
+          <SectionLabel count={`${item.sets.length} sets each`} style={{ color: 'var(--cs-primary)', opacity: 0.80, flex: 1 }}>Superset</SectionLabel>
           <span style={{ color: 'var(--cs-on-surface-variant)', opacity: 0.45, display: 'flex' }}><ChevDownIcon open={open} /></span>
           <span onClick={e => e.stopPropagation()} style={{ display: 'flex', flexShrink: 0 }}>
             <DropdownMenu onOpenChange={setMenuOpen}
@@ -1472,6 +1461,13 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
   const [description, setDescription] = useState('Heavy lower-body day — squats, hinges, and accessory work.')
   const [tags, setTags] = useState([])
   const [tagDialogOpen, setTagDialogOpen] = useState(false)
+  // drives the tag sheet's container-transform enter (mount → next frame → in)
+  const [tagSheetIn, setTagSheetIn] = useState(false)
+  useEffect(() => {
+    if (!tagDialogOpen) { setTagSheetIn(false); return }
+    const id = requestAnimationFrame(() => setTagSheetIn(true))
+    return () => cancelAnimationFrame(id)
+  }, [tagDialogOpen])
   const [tagQuery, setTagQuery] = useState('')
   const [items, setItems] = useState(seedItems)
   const [expandedId, setExpandedId] = useState(seedExpanded)
@@ -1585,9 +1581,10 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
         <NavBar>
           <StatusBar />
           <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 12px', gap: 8 }}>
-            <button style={iconBtnSt}><ChevLeftIcon /></button>
+            <IconButton size="md" aria-label="Back" icon={<ChevLeftIcon />} />
             <div style={{ flex: 1 }} />
-            <button style={{ ...iconBtnSt, background: 'var(--cs-primary)', border: 'none', color: 'var(--cs-on-primary)' }}><CheckIcon /></button>
+            <IconButton size="md" aria-label="Save workout" icon={<CheckIcon />}
+              style={{ background: 'var(--cs-primary)', border: 'none', color: 'var(--cs-on-primary)' }} />
           </div>
         </NavBar>
 
@@ -1713,13 +1710,16 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
         {tagDialogOpen && (
           <>
             <div onClick={() => setTagDialogOpen(false)}
-              style={{ position: 'absolute', inset: 0, zIndex: 40, background: 'rgba(var(--cs-shadow-rgb),0.55)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)' }} />
+              style={{ position: 'absolute', inset: 0, zIndex: 40, background: 'rgba(var(--cs-shadow-rgb),0.55)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
+                opacity: tagSheetIn ? 1 : 0, transition: 'opacity 0.32s cubic-bezier(0.4,0,0.2,1)' }} />
             <div style={{
               position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 41, height: 600,
               display: 'flex', flexDirection: 'column',
               background: 'var(--glass-popover)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-              borderTop: '1px solid rgba(var(--overlay-rgb),0.08)', borderRadius: '18px 18px 0 0',
+              borderTop: '1px solid rgba(var(--overlay-rgb),0.08)', borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0',
               boxShadow: '0 -8px 32px rgba(var(--cs-shadow-rgb),0.55)',
+              transform: tagSheetIn ? 'translateY(0)' : 'translateY(100%)',
+              transition: 'transform 0.32s cubic-bezier(0.4,0,0.2,1)',
             }}>
               {/* handle */}
               <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', flexShrink: 0 }}>

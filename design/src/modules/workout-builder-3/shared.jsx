@@ -63,14 +63,6 @@ export const THUMB_COLORS = {
   Arms: thumbTint('--cat-cyan-rgb'), Core: thumbTint('--cs-tertiary-rgb'), Shoulders: thumbTint('--cat-amber-rgb'),
 }
 
-export const iconBtnSt = {
-  width: 44, height: 44, borderRadius: 'var(--radius-xl)', flexShrink: 0,
-  background: 'var(--glass-control)', border: '1px solid rgba(var(--cs-outline-rgb),0.50)',
-  boxShadow: 'var(--shadow-card)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0,
-}
-
 export const glassPopoverSt = {
   background: 'var(--glass-popover)', border: '1px solid rgba(var(--overlay-rgb),0.10)',
   borderRadius: 'var(--radius-xl)', backdropFilter: 'blur(12px)', WebkitBackdropFilter: 'blur(12px)',
@@ -650,7 +642,7 @@ const REST_SECS = [0, 15, 30, 45]
 
 export function RestPickerPopover({ value, onChange, onClose, align = 'center', onApplyAll }) {
   const m = Math.floor(value / 60), s = value % 60
-  const colLblSt = { ...TT, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', textAlign: 'center', color: 'var(--cs-on-surface-variant)', opacity: 0.45, padding: '2px 0 4px' }
+  const colLblSt = { ...TT, fontSize: 9, fontWeight: 500, letterSpacing: '0.06em', textAlign: 'center', color: 'var(--cs-on-surface-variant)', opacity: 0.45, padding: '2px 0 4px' }
   const optSt = on => ({
     width: 44, height: 30, borderRadius: 'var(--radius-lg)', border: 'none', cursor: 'pointer', padding: 0,
     background: on ? 'rgba(var(--cs-primary-rgb),0.18)' : 'transparent',
@@ -844,7 +836,7 @@ export function StructureRow({ structure, onChange, onClear, style }) {
     ...TT, fontSize: 12, fontWeight: on ? 600 : 400,
     color: on ? 'var(--cs-primary)' : 'var(--cs-on-surface)',
   })
-  const lblSt = { ...TT, fontSize: 9, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--cs-on-surface-variant)', opacity: 0.45 }
+  const lblSt = { ...TT, fontSize: 9, fontWeight: 500, letterSpacing: '0.06em', color: 'var(--cs-on-surface-variant)', opacity: 0.45 }
   return (
     <div style={{ position: 'relative', ...style }}>
       <button onClick={() => setOpen(!open)} style={{ display: 'flex', alignItems: 'center', gap: 7, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>

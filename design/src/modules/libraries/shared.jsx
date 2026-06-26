@@ -1,7 +1,10 @@
 // Shared primitives + styles for the Libraries module (used by the shell and
 // every library config). No imports from configs — keeps the graph acyclic.
 import GlassCard from '../../components/GlassCard.jsx'
+import SectionLabel from '../../components/SectionLabel.jsx'
 import { ThumbGlyph } from './icons.jsx'
+
+export { SectionLabel }
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
 
@@ -24,7 +27,7 @@ export function Card({ accent = 'transparent', selected = false, onClick, childr
       ...(selected && { background: 'rgba(var(--cs-primary-rgb),0.14)' }),
       transition: 'background 0.15s',
     }}>
-      <div style={{ width: 4, flexShrink: 0, background: selected ? 'var(--cs-primary)' : accent, transition: 'background 0.15s' }} />
+      <div style={{ width: 5, flexShrink: 0, background: selected ? 'var(--cs-primary)' : accent, transition: 'background 0.15s' }} />
       <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px' }}>
         {children}
       </div>
@@ -60,15 +63,7 @@ export function DiffDot({ level }) {
 
 export function MetaTag({ children }) {
   return (
-    <span style={{ ...TT, flexShrink: 0, fontSize: 10, fontWeight: 600, letterSpacing: '0.04em', padding: '3px 9px', borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.12)', border: '1px solid rgba(var(--cs-primary-rgb),0.22)', color: 'var(--cs-primary)', whiteSpace: 'nowrap' }}>
-      {children}
-    </span>
-  )
-}
-
-export function SectionLabel({ children }) {
-  return (
-    <span style={{ ...TT, display: 'block', marginBottom: 8, fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.45 }}>
+    <span style={{ ...TT, flexShrink: 0, fontSize: 10, fontWeight: 500, letterSpacing: '0.04em', padding: '3px 9px', borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.12)', border: '1px solid rgba(var(--cs-primary-rgb),0.22)', color: 'var(--cs-primary)', whiteSpace: 'nowrap' }}>
       {children}
     </span>
   )

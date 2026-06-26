@@ -8,8 +8,10 @@ import StatusBar from '../../components/StatusBar.jsx'
 import GlassCard from '../../components/GlassCard.jsx'
 import DropdownMenu from '../../components/DropdownMenu.jsx'
 import FabMenu from '../../components/FabMenu.jsx'
+import IconButton from '../../components/IconButton.jsx'
+import SectionLabel from '../../components/SectionLabel.jsx'
 import {
-  TT, iconBtnSt, ALL_EXERCISES, calcStats, muscleVolume, fmtRest,
+  TT, ALL_EXERCISES, calcStats, muscleVolume, fmtRest,
   ChevLeftIcon, ChevRightSmIcon, CheckIcon, PlusIcon, SupersetIcon, ClockIcon,
   Thumb, buildSetRows, RestDivider, RestPickerPopover, kebabTriggerSt,
   WEIGHT_UNITS, REPS_UNITS,
@@ -42,7 +44,6 @@ function DefaultsRow({ defaults, onOpen }) {
 function DefaultsSheet({ defaults, setDefaults, onClose }) {
   const upd = patch => setDefaults(d => ({ ...d, ...patch }))
   const [restKey, setRestKey] = useState(null) // 'rs' | 'rg'
-  const lblSt = { ...TT, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--cs-on-surface-variant)', opacity: 0.45 }
   const chipSt = on => ({
     ...TT, height: 30, padding: '0 12px', borderRadius: 'var(--radius-2xl)', border: 'none', cursor: 'pointer',
     background: on ? 'rgba(var(--cs-primary-rgb),0.16)' : 'rgba(var(--overlay-rgb),0.05)',
@@ -74,7 +75,7 @@ function DefaultsSheet({ defaults, setDefaults, onClose }) {
         </div>
         <span style={{ ...TT, fontSize: 16, fontWeight: 600, color: 'var(--cs-on-surface)' }}>Workout defaults</span>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <span style={lblSt}>LOAD UNIT</span>
+          <SectionLabel>Load unit</SectionLabel>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {WEIGHT_UNITS.map(u => (
               <button key={u} onClick={() => upd({ weightUnit: u })} style={chipSt(defaults.weightUnit === u)}>{u}</button>
@@ -82,7 +83,7 @@ function DefaultsSheet({ defaults, setDefaults, onClose }) {
           </div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-          <span style={lblSt}>REPS UNIT</span>
+          <SectionLabel>Reps unit</SectionLabel>
           <div style={{ display: 'flex', gap: 6 }}>
             {REPS_UNITS.map(u => (
               <button key={u} onClick={() => upd({ repsUnit: u })} style={chipSt(defaults.repsUnit === u)}>{u}</button>
@@ -184,16 +185,14 @@ function PreviewCard({ item, defaults, onEdit, onDelete, onDuplicate }) {
 
   if (isSuper) {
     return (
-      <div onClick={onEdit} style={{
-        borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.05)',
-        border: '1px solid rgba(var(--cs-primary-rgb),0.18)', overflow: menuOpen ? 'visible' : 'hidden',
-        position: 'relative', zIndex: menuOpen ? 30 : 'auto', boxShadow: 'var(--shadow-card)', cursor: 'pointer',
+      <GlassCard level="Low" onClick={onEdit} style={{
+        background: 'rgba(var(--cs-primary-rgb),0.05)', border: '1px solid rgba(var(--cs-primary-rgb),0.18)',
+        overflow: menuOpen ? 'visible' : 'hidden',
+        position: 'relative', zIndex: menuOpen ? 30 : 'auto', cursor: 'pointer',
       }}>
-        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 3, background: 'var(--cs-primary)', borderRadius: 'var(--radius-2xl) 0 0 var(--radius-2xl)' }} />
+        <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 5, background: 'var(--cs-primary)', borderRadius: 'var(--radius-2xl) 0 0 var(--radius-2xl)' }} />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 8px 0 14px' }}>
-          <span style={{ ...TT, fontSize: 10, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--cs-primary)', opacity: 0.80, flex: 1 }}>
-            SUPERSET · {item.sets.length} rounds
-          </span>
+          <SectionLabel count={`${item.sets.length} rounds`} style={{ flex: 1, color: 'var(--cs-primary)', opacity: 0.8 }}>Superset</SectionLabel>
           {kebab}
         </div>
         {exercises.map(ex => (
@@ -209,7 +208,7 @@ function PreviewCard({ item, defaults, onEdit, onDelete, onDuplicate }) {
           <div style={{ height: 1, background: 'rgba(var(--cs-primary-rgb),0.10)', marginBottom: 8 }} />
           <PreviewSets item={item} defaults={defaults} limit={SET_CLAMP} />
         </div>
-      </div>
+      </GlassCard>
     )
   }
 
@@ -217,7 +216,7 @@ function PreviewCard({ item, defaults, onEdit, onDelete, onDuplicate }) {
   if (!ex) return null
   return (
     <GlassCard level="Low" style={{ display: 'flex', overflow: menuOpen ? 'visible' : 'hidden', position: 'relative', zIndex: menuOpen ? 30 : 'auto', cursor: 'pointer' }}>
-      <div style={{ width: 4, flexShrink: 0, background: 'var(--cs-primary)', opacity: 0.55, borderRadius: 'var(--radius-2xl) 0 0 var(--radius-2xl)' }} />
+      <div style={{ width: 5, flexShrink: 0, background: 'var(--cs-primary)', opacity: 0.55, borderRadius: 'var(--radius-2xl) 0 0 var(--radius-2xl)' }} />
       <div onClick={onEdit} style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 8px 0 14px' }}>
           <Thumb muscle={ex.muscle} size={40} />
@@ -326,9 +325,10 @@ export default function PreviewView({
       <NavBar>
         <StatusBar />
         <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 12px', gap: 8 }}>
-          <button style={iconBtnSt}><ChevLeftIcon /></button>
+          <IconButton size="lg" aria-label="Back" icon={<ChevLeftIcon />} />
           <div style={{ flex: 1 }} />
-          <button style={{ ...iconBtnSt, background: 'var(--cs-primary)', border: 'none', color: 'var(--cs-on-primary)' }}><CheckIcon /></button>
+          <IconButton size="lg" aria-label="Save workout" icon={<CheckIcon />}
+            style={{ background: 'var(--cs-primary)', border: 'none', color: 'var(--cs-on-primary)' }} />
         </div>
       </NavBar>
 
@@ -370,7 +370,7 @@ export default function PreviewView({
                     color: 'var(--cs-on-surface)',
                   }}>
                     <span style={{ opacity: 0.75 }}>{muscle}</span>
-                    <span style={{ fontWeight: 700, color: `rgba(var(${ch}),0.9)` }}>{n}</span>
+                    <span style={{ fontWeight: 500, color: `rgba(var(${ch}),0.9)` }}>{n}</span>
                   </span>
                 )
               })}

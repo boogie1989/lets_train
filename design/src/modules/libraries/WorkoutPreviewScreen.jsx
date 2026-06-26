@@ -1,5 +1,7 @@
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
+import GlassCard from '../../components/GlassCard.jsx'
+import SectionLabel from '../../components/SectionLabel.jsx'
 import workoutsConfig from './configs/workouts.jsx'
 import ReadonlyExerciseList, { buildSampleContent } from './ReadonlyExerciseList.jsx'
 
@@ -39,13 +41,13 @@ export function WorkoutPreviewView({ workout = DEFAULT_WORKOUT, onClose, cta = '
           <span style={{ ...TT, padding: '5px 12px', borderRadius: 'var(--radius-2xl)', flexShrink: 0, background: d.bg, border: `1px solid ${d.border}`, fontSize: 12, fontWeight: 500, color: d.color }}>{workout.difficulty}</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '12px 8px', background: 'var(--glass-low-bg)', borderRadius: 'var(--radius-2xl)', border: '1px solid rgba(var(--cs-outline-rgb),0.20)' }}>
+        <GlassCard level="Low" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '12px 8px' }}>
           <Stat label="Focus" value={workout.focus} />
           <Divider />
           <Stat label="Exercises" value={workout.exercises} />
           <Divider />
           <Stat label="Duration" value={`~${workout.minutes}m`} />
-        </div>
+        </GlassCard>
 
         {workout.tags?.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
@@ -54,7 +56,7 @@ export function WorkoutPreviewView({ workout = DEFAULT_WORKOUT, onClose, cta = '
           </div>
         )}
 
-        <Block title={`Exercises · ${workout.exercises}`}>
+        <Block title="Exercises" count={workout.exercises}>
           <ReadonlyExerciseList items={content} />
         </Block>
         <div style={{ height: 8 }} />
@@ -70,10 +72,10 @@ export default function WorkoutPreviewScreen(props) {
 }
 
 // ── shared bits ──
-function Block({ title, children }) {
+function Block({ title, count, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <span style={{ ...TT, fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.55 }}>{title}</span>
+      <SectionLabel count={count} style={{ display: 'flex' }}>{title}</SectionLabel>
       {children}
     </div>
   )

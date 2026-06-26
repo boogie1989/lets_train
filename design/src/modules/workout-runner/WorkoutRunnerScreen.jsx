@@ -5,6 +5,7 @@ import NavBar from '../../components/NavBar.jsx'
 import GlassCard from '../../components/GlassCard.jsx'
 import DateCell from '../../components/DateCell.jsx'
 import TaskItem from '../../components/TaskItem.jsx'
+import { IconButton, SectionLabel } from '../../components/index.js'
 
 // ─── Demo data ────────────────────────────────────────────────────────────────
 
@@ -60,14 +61,6 @@ const REPS_UNITS     = ['reps', 'failure', 'time']
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
 
-
-const iconBtnSt = {
-  width: 44, height: 44, borderRadius: 'var(--radius-xl)',
-  background: 'var(--glass-control)', border: '1px solid rgba(var(--cs-outline-rgb),0.50)',
-  boxShadow: 'var(--shadow-card)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  flexShrink: 0, cursor: 'pointer', padding: 0,
-}
 
 const adjustBtnSt = {
   width: 32, height: 32, borderRadius: 8, padding: 0,
@@ -239,12 +232,12 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
             <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 24 }}>
               {/* Top bar */}
               <div style={{ height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ ...iconBtnSt, cursor: 'default' }}><MenuIcon /></div>
+                <IconButton size="lg" icon={<MenuIcon />} aria-label="Menu" style={{ cursor: 'default' }} />
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                   <span style={{ ...TT, fontSize: 20, fontWeight: 500, color: 'var(--cs-on-surface)' }}>Calendar</span>
                   <span style={{ ...TT, fontSize: 12, color: 'var(--cs-on-surface-variant)', opacity: 0.55 }}>May 2026</span>
                 </div>
-                <div style={{ ...iconBtnSt, cursor: 'default' }}><SettingsIcon /></div>
+                <IconButton size="lg" icon={<SettingsIcon />} aria-label="Settings" style={{ cursor: 'default' }} />
               </div>
               {/* Date row */}
               <div style={{ display: 'flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
@@ -288,19 +281,26 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
           position: 'absolute', inset: 0,
           background: 'rgba(var(--cs-shadow-rgb),0.55)',
           display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+          animation: 'wrChoiceScrim 0.32s cubic-bezier(0.4,0,0.2,1)',
         }}>
+          <style>{`
+            @keyframes wrChoiceScrim { from { opacity: 0 } to { opacity: 1 } }
+            @keyframes wrChoiceSheet {
+              from { transform: translateY(100%); opacity: 0.4 }
+              to   { transform: translateY(0);    opacity: 1 }
+            }
+          `}</style>
           <div style={{
             background: 'var(--glass-popover)',
             backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-            borderRadius: '20px 20px 0 0',
+            borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0',
             borderTop: '1px solid rgba(var(--overlay-rgb),0.07)',
             padding: '16px 16px 44px',
             display: 'flex', flexDirection: 'column', gap: 10,
+            animation: 'wrChoiceSheet 0.32s cubic-bezier(0.4,0,0.2,1)',
           }}>
             <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(var(--overlay-rgb),0.15)', alignSelf: 'center', marginBottom: 4 }} />
-            <span style={{ ...TT, fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.40, textAlign: 'center', marginBottom: 2 }}>
-              Start Workout
-            </span>
+            <SectionLabel style={{ display: 'flex', justifyContent: 'center', paddingLeft: 0, marginBottom: 2 }}>Start Workout</SectionLabel>
 
             {/* Dynamic Workout */}
             <button
@@ -308,7 +308,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
               style={{
                 width: '100%', padding: '14px 16px', textAlign: 'left', cursor: 'pointer',
                 background: 'var(--glass-popover)', border: '1px solid rgba(var(--cs-primary-rgb),0.15)',
-                borderRadius: 'var(--radius-xl)',
+                borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-glass-low)',
                 display: 'flex', alignItems: 'center', gap: 14,
               }}
             >
@@ -332,7 +332,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
               style={{
                 width: '100%', padding: '14px 16px', textAlign: 'left', cursor: 'not-allowed',
                 background: 'var(--glass-popover)', border: '1px solid rgba(var(--cs-outline-rgb),0.25)',
-                borderRadius: 'var(--radius-xl)',
+                borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-glass-low)',
                 display: 'flex', alignItems: 'center', gap: 14,
                 opacity: 0.32,
               }}
@@ -370,7 +370,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
           <NavBar>
             <StatusBar />
             <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 14px', gap: 10 }}>
-              <button onClick={() => setStep('choice')} style={iconBtnSt}><ChevLeftIcon /></button>
+              <IconButton size="md" icon={<ChevLeftIcon />} aria-label="Back" onClick={() => setStep('choice')} />
               <span style={{ ...TT, flex: 1, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)' }}>
                 {DEMO_WORKOUT.title}
               </span>
@@ -402,7 +402,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
                 const ex = DEMO_EXERCISES.find(e => e.id === item.id)
                 return (
                   <GlassCard key={idx} level="Low" style={{ display: 'flex', overflow: 'hidden' }}>
-                    <div style={{ width: 4, flexShrink: 0, background: 'var(--cs-primary)', opacity: 0.50 }} />
+                    <div style={{ width: 5, flexShrink: 0, background: 'var(--cs-primary)', opacity: 0.50 }} />
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px' }}>
                       <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: THUMB_COLORS[ex?.muscle] ?? thumbTint('--cs-primary-rgb'), display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(var(--cs-outline-rgb),0.25)' }}>
                         <SmallBarbellIcon />
@@ -417,12 +417,12 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
                 )
               }
               return (
-                <div key={idx} style={{ borderRadius: 'var(--radius-xl)', background: 'rgba(var(--cs-primary-rgb),0.05)', border: '1px solid rgba(var(--cs-primary-rgb),0.18)', overflow: 'hidden', position: 'relative' }}>
-                  <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 3, background: 'var(--cs-primary)' }} />
+                <div key={idx} style={{ borderRadius: 'var(--radius-xl)', background: 'rgba(var(--cs-primary-rgb),0.05)', border: '1px solid rgba(var(--cs-primary-rgb),0.18)', boxShadow: 'var(--shadow-glass-low)', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{ position: 'absolute', top: 0, bottom: 0, left: 0, width: 5, background: 'var(--cs-primary)' }} />
                   <div style={{ padding: '8px 14px 6px 14px' }}>
-                    <span style={{ ...TT, fontSize: 10, fontWeight: 700, letterSpacing: '0.6px', color: 'var(--cs-primary)', opacity: 0.80 }}>
-                      SUPERSET · {item.sets} sets each
-                    </span>
+                    <SectionLabel count={`${item.sets} sets each`} style={{ color: 'var(--cs-primary)', opacity: 0.8 }}>
+                      Superset
+                    </SectionLabel>
                   </div>
                   {item.ids.map((id, i) => {
                     const ex = DEMO_EXERCISES.find(e => e.id === id)
@@ -471,7 +471,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
           <NavBar>
             <StatusBar />
             <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 14px', gap: 10 }}>
-              <button onClick={() => setStep('preview')} style={iconBtnSt}><ChevLeftIcon /></button>
+              <IconButton size="md" icon={<ChevLeftIcon />} aria-label="Back" onClick={() => setStep('preview')} />
               <span style={{ ...TT, flex: 1, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)' }}>
                 {DEMO_WORKOUT.title}
               </span>
@@ -482,9 +482,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
           </NavBar>
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 28, padding: '0 32px 44px' }}>
-          <span style={{ ...TT, fontSize: 11, fontWeight: 500, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.40 }}>
-            Get Ready
-          </span>
+          <SectionLabel>Get Ready</SectionLabel>
 
           <div style={{ position: 'relative', width: 128, height: 128, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <svg width="128" height="128" style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
@@ -527,7 +525,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
           <NavBar>
             <StatusBar />
             <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 14px', gap: 10 }}>
-              <button onClick={resetAll} style={iconBtnSt}><ChevLeftIcon /></button>
+              <IconButton size="md" icon={<ChevLeftIcon />} aria-label="Back" onClick={resetAll} />
               <span style={{ ...TT, flex: 1, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)' }}>
                 {DEMO_WORKOUT.title}
               </span>
@@ -551,7 +549,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
 
             {isSupersetItem && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ ...TT, fontSize: 10, fontWeight: 700, letterSpacing: '0.6px', color: 'var(--cs-primary)', opacity: 0.80 }}>SUPERSET</span>
+                <SectionLabel style={{ color: 'var(--cs-primary)', opacity: 0.8 }}>Superset</SectionLabel>
                 <div style={{ flex: 1, height: 1, background: 'rgba(var(--cs-primary-rgb),0.10)' }} />
                 <span style={{ ...TT, fontSize: 11, color: 'var(--cs-on-surface-variant)', opacity: 0.40 }}>
                   with {DEMO_EXERCISES.find(e => e.id === currentItem.ids[subIdx === 0 ? 1 : 0])?.name}
@@ -560,7 +558,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
             )}
 
             <GlassCard level="Low" style={{ display: 'flex', overflow: 'hidden', flexShrink: 0 }}>
-              <div style={{ width: 4, flexShrink: 0, background: 'var(--cs-primary)' }} />
+              <div style={{ width: 5, flexShrink: 0, background: 'var(--cs-primary)' }} />
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 14px' }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, background: THUMB_COLORS[currentEx?.muscle] ?? thumbTint('--cs-primary-rgb'), display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(var(--cs-outline-rgb),0.25)' }}>
                   <SmallBarbellIcon />
@@ -575,7 +573,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
 
             {loggedSets.length > 0 && (
               <div>
-                <span style={{ ...TT, fontSize: 10, fontWeight: 500, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.30 }}>Previous Sets</span>
+                <SectionLabel>Previous Sets</SectionLabel>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
                   {loggedSets.map((s, i) => {
                     const mainCount = loggedSets.slice(0, i + 1).filter(x => !x.isDrop).length
@@ -667,9 +665,9 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
               <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ flex: 1, height: 1, background: 'rgba(var(--cs-primary-rgb),0.08)' }} />
-                  <span style={{ ...TT, fontSize: 10, fontWeight: 700, letterSpacing: '0.5px', color: 'var(--cs-primary)', opacity: 0.65 }}>
-                    DROP SET{dropSetForms.length > 1 ? ` ${idx + 1}` : ''}
-                  </span>
+                  <SectionLabel style={{ color: 'var(--cs-primary)', opacity: 0.65 }}>
+                    Drop Set{dropSetForms.length > 1 ? ` ${idx + 1}` : ''}
+                  </SectionLabel>
                   <div style={{ flex: 1, height: 1, background: 'rgba(var(--cs-primary-rgb),0.08)' }} />
                 </div>
                 <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
@@ -746,7 +744,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
           <NavBar>
             <StatusBar />
             <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 14px', gap: 10 }}>
-              <button onClick={resetAll} style={iconBtnSt}><ChevLeftIcon /></button>
+              <IconButton size="md" icon={<ChevLeftIcon />} aria-label="Back" onClick={resetAll} />
               <span style={{ ...TT, flex: 1, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)' }}>
                 {DEMO_WORKOUT.title}
               </span>
@@ -767,9 +765,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
           </NavBar>
 
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 28, padding: '0 32px 36px' }}>
-            <span style={{ ...TT, fontSize: 11, fontWeight: 500, letterSpacing: '0.10em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.35 }}>
-              {restType === 'set' ? 'Rest between sets' : 'Rest between exercises'}
-            </span>
+            <SectionLabel>{restType === 'set' ? 'Rest between sets' : 'Rest between exercises'}</SectionLabel>
 
             <div style={{ position: 'relative', width: 160, height: 160, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="160" height="160" style={{ position: 'absolute', inset: 0, transform: 'rotate(-90deg)' }}>
@@ -824,7 +820,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
           <NavBar>
             <StatusBar />
             <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 14px', gap: 10 }}>
-              <button onClick={resetAll} style={iconBtnSt}><ChevLeftIcon /></button>
+              <IconButton size="md" icon={<ChevLeftIcon />} aria-label="Back" onClick={resetAll} />
               <span style={{ ...TT, flex: 1, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)' }}>
                 {DEMO_WORKOUT.title}
               </span>
@@ -877,7 +873,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
           <NavBar>
             <StatusBar />
             <div style={{ display: 'flex', alignItems: 'center', padding: '4px 16px 14px', gap: 10 }}>
-              <button onClick={resetAll} style={iconBtnSt}><ChevLeftIcon /></button>
+              <IconButton size="md" icon={<ChevLeftIcon />} aria-label="Back" onClick={resetAll} />
               <span style={{ ...TT, flex: 1, fontSize: 17, fontWeight: 500, color: 'var(--cs-on-surface)' }}>Timer</span>
             </div>
           </NavBar>

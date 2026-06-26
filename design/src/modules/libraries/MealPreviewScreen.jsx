@@ -1,5 +1,7 @@
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
+import GlassCard from '../../components/GlassCard.jsx'
+import SectionLabel from '../../components/SectionLabel.jsx'
 import mealsConfig from './configs/meals.jsx'
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
@@ -49,9 +51,9 @@ export function MealPreviewView({ meal = DEFAULT_MEAL, onClose, cta = '+ Add to 
         </div>
 
         {/* macro block */}
-        <div style={{ padding: '16px', background: 'var(--glass-low-bg)', borderRadius: 'var(--radius-2xl)', border: '1px solid rgba(var(--cs-outline-rgb),0.20)' }}>
+        <GlassCard level="Low" style={{ padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
-            <span style={{ ...TT, fontSize: 30, fontWeight: 600, color: 'var(--cs-on-surface)', lineHeight: 1 }}>{meal.kcal}</span>
+            <span style={{ ...TT, fontSize: 30, fontWeight: 500, color: 'var(--cs-on-surface)', lineHeight: 1 }}>{meal.kcal}</span>
             <span style={{ ...TT, fontSize: 13, color: 'var(--cs-on-surface-variant)' }}>kcal</span>
           </div>
           <div style={{ display: 'flex', gap: 18 }}>
@@ -59,7 +61,7 @@ export function MealPreviewView({ meal = DEFAULT_MEAL, onClose, cta = '+ Add to 
             <Macro label="Carbs"   g={meal.c} color={MACRO_COLORS.c} total={meal.p + meal.c + meal.f} />
             <Macro label="Fat"     g={meal.f} color={MACRO_COLORS.f} total={meal.p + meal.c + meal.f} />
           </div>
-        </div>
+        </GlassCard>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <span style={chip}>{meal.diet}</span>
@@ -68,7 +70,7 @@ export function MealPreviewView({ meal = DEFAULT_MEAL, onClose, cta = '+ Add to 
 
         <Block title="Ingredients">
           {ingredientsFor(meal).map(ing => (
-            <div key={ing} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'rgba(var(--overlay-rgb),0.04)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(var(--cs-outline-rgb),0.18)' }}>
+            <div key={ing} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '11px 14px', background: 'var(--glass-low-bg)', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(var(--overlay-rgb),0.04)', boxShadow: 'var(--shadow-glass-low)' }}>
               <span style={{ width: 6, height: 6, borderRadius: '50%', background: `rgba(var(${ACCENT}),1)`, opacity: 0.7, flexShrink: 0 }} />
               <span style={{ ...TT, fontSize: 13, color: 'var(--cs-on-surface)' }}>{ing}</span>
             </div>
@@ -92,7 +94,7 @@ function Macro({ label, g, color, total }) {
   return (
     <div style={{ flex: 1 }}>
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginBottom: 6 }}>
-        <span style={{ ...TT, fontSize: 16, fontWeight: 600, color: 'var(--cs-on-surface)' }}>{g}</span>
+        <span style={{ ...TT, fontSize: 16, fontWeight: 500, color: 'var(--cs-on-surface)' }}>{g}</span>
         <span style={{ ...TT, fontSize: 11, color: 'var(--cs-on-surface-variant)', opacity: 0.6 }}>g</span>
       </div>
       <div style={{ height: 4, borderRadius: 2, background: 'rgba(var(--overlay-rgb),0.06)', overflow: 'hidden', marginBottom: 6 }}>
@@ -105,7 +107,7 @@ function Macro({ label, g, color, total }) {
 function Block({ title, children }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <span style={{ ...TT, fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.55 }}>{title}</span>
+      <SectionLabel style={{ display: 'flex' }}>{title}</SectionLabel>
       {children}
     </div>
   )

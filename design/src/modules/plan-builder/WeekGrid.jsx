@@ -1,4 +1,6 @@
 import { useState, useRef } from 'react'
+import GlassCard from '../../components/GlassCard.jsx'
+import IconButton from '../../components/IconButton.jsx'
 import { DAYS, cellInfo, cellHasMeals, getWorkout, getMeal, FOCUS_COLORS } from './planModel.js'
 import { DotsIcon, PlusIcon, XIcon, GripIcon } from './icons.jsx'
 
@@ -36,8 +38,8 @@ function DayCell({ cell, active, onClick, onMenu }) {
   }
   return (
     <button {...press} title={info.name} style={{ ...base, background: `rgba(var(${info.color}),0.14)`, border: `1px solid rgba(var(${info.color}),0.40)` }}>
-      <span style={{ fontSize: 11, fontWeight: 700, color: `rgba(var(${info.color}),1)`, letterSpacing: '0.02em' }}>{FOCUS_ABBR[info.focus] ?? info.focus.slice(0, 2)}</span>
-      {info.extra > 0 && <span style={{ fontSize: 8, fontWeight: 600, color: `rgba(var(${info.color}),0.7)` }}>+{info.extra}</span>}
+      <span style={{ fontSize: 11, fontWeight: 500, color: `rgba(var(${info.color}),1)`, letterSpacing: '0.02em' }}>{FOCUS_ABBR[info.focus] ?? info.focus.slice(0, 2)}</span>
+      {info.extra > 0 && <span style={{ fontSize: 8, fontWeight: 500, color: `rgba(var(${info.color}),0.7)` }}>+{info.extra}</span>}
       {mealDot}
     </button>
   )
@@ -50,7 +52,7 @@ function ItemRow({ kind, item, onOpen, onRemove, draggable, onDragStart, onDragE
     : `${item.kcal} kcal · ${item.p}P ${item.c}C ${item.f}F`
   return (
     <div draggable={draggable} onDragStart={onDragStart} onDragEnter={onDragEnter} onDragOver={e => e.preventDefault()} onDrop={onDrop}
-      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px 9px 8px', borderRadius: 'var(--radius-lg)', background: 'rgba(var(--overlay-rgb),0.03)', border: '1px solid rgba(var(--overlay-rgb),0.06)' }}>
+      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px 9px 8px', borderRadius: 'var(--radius-lg)', background: 'var(--glass-low-bg)', border: '1px solid rgba(var(--overlay-rgb),0.04)', boxShadow: 'var(--shadow-glass-low)' }}>
       <span style={{ color: 'rgba(var(--cs-primary-rgb),0.4)', flexShrink: 0, padding: '0 2px' }}><GripIcon /></span>
       <span style={{ width: 6, height: 6, borderRadius: '50%', background: `rgba(var(${colorCh}),1)`, opacity: 0.8, flexShrink: 0 }} />
       <button onClick={onOpen} style={{ ...TT, flex: 1, minWidth: 0, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>
@@ -73,16 +75,13 @@ function DayPanel({ plan, week, day, on }) {
     .filter(x => x.data)
 
   return (
-    <div style={{ background: 'rgba(var(--overlay-rgb),0.025)', border: '1px solid rgba(var(--overlay-rgb),0.07)', borderRadius: 'var(--radius-2xl)', padding: '14px 14px 16px', marginTop: 8 }}>
+    <GlassCard level="Low" style={{ padding: '14px 14px 16px', marginTop: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
-        <p style={{ ...TT, flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--cs-on-surface)', margin: 0 }}>
+        <p style={{ ...TT, flex: 1, fontSize: 13, fontWeight: 500, color: 'var(--cs-on-surface)', margin: 0 }}>
           {DAY_FULL[day]} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--cs-on-surface-variant)', opacity: 0.55 }}>· Week {week + 1}</span>
         </p>
-        <button onClick={() => on.dayMenu && on.dayMenu(week, day)} aria-label="Day actions" style={{
-          width: 28, height: 28, flexShrink: 0, padding: 0, borderRadius: 'var(--radius-lg)', cursor: 'pointer',
-          background: 'rgba(var(--overlay-rgb),0.05)', border: '1px solid rgba(var(--overlay-rgb),0.08)',
-          color: 'var(--cs-on-surface-variant)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}><DotsIcon /></button>
+        <IconButton size="sm" aria-label="Day actions" onClick={() => on.dayMenu && on.dayMenu(week, day)}
+          icon={<span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)' }}><DotsIcon /></span>} />
       </div>
 
       {/* one ordered list — workouts + meals reorder freely among each other */}
@@ -102,7 +101,7 @@ function DayPanel({ plan, week, day, on }) {
         <button onClick={() => on.addWorkout(week, day)} style={addBtnSt}><PlusIcon size={12} /> Workout</button>
         <button onClick={() => on.addMeal(week, day)} style={addBtnSt}><PlusIcon size={12} /> Meal</button>
       </div>
-    </div>
+    </GlassCard>
   )
 }
 
@@ -113,7 +112,7 @@ export default function WeekGrid({ plan, expanded, weekRefs, onCellTap, onWeekMe
       <div style={{ display: 'grid', gridTemplateColumns: '34px repeat(7, 1fr)', columnGap: 5, marginBottom: 7 }}>
         <span />
         {DAYS.map(d => (
-          <span key={d} style={{ ...TT, fontSize: 9, fontWeight: 600, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.4, textAlign: 'center' }}>{d}</span>
+          <span key={d} style={{ ...TT, fontSize: 9, fontWeight: 500, letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.4, textAlign: 'center' }}>{d}</span>
         ))}
       </div>
 
@@ -123,7 +122,7 @@ export default function WeekGrid({ plan, expanded, weekRefs, onCellTap, onWeekMe
           <div key={w} ref={el => { if (weekRefs) weekRefs.current[w] = el }}>
             <div style={{ display: 'grid', gridTemplateColumns: '34px repeat(7, 1fr)', columnGap: 5, alignItems: 'center' }}>
               <button onClick={() => onWeekMenu(w)} style={{ ...TT, height: 42, padding: 0, background: 'none', border: 'none', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, color: 'var(--cs-on-surface-variant)' }}>
-                <span style={{ fontSize: 11, fontWeight: 600, opacity: 0.75 }}>W{w + 1}</span>
+                <span style={{ fontSize: 11, fontWeight: 500, opacity: 0.75 }}>W{w + 1}</span>
                 <span style={{ opacity: 0.4, display: 'flex' }}><DotsIcon /></span>
               </button>
               {week.map((cell, d) => (
