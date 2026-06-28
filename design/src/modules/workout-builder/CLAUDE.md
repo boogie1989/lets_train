@@ -79,5 +79,8 @@ Outer grid `32px 1fr`: col1 = circled number + connector line bracketing the rou
 ## Open threads
 `onEdit` (Change exercise) is a stub (`editItem`) — wire it to the Exercises search/picker when connected.
 
+## Details card (name · description · tags)
+The top card uses shared `components/` primitives so it matches the Meal Builder exactly: **`TitleDescription`** (name input · hairline · description textarea) and the **`TagField`** row (icon · chips · chevron) → **`TagPickerSheet`** bottom sheet (search · create · multi-select; `TAG_PRESETS` seeds the pool, free-create allowed). The screen owns `tags` + `tagDialogOpen`; the sheet is rendered at the phone-container level (never inside the scroll area). Both are showcased on the UiKit page.
+
 ## Shared deps
-`../../components`: `PhoneFrame`, `StatusBar`, `NavBar`, `GlassCard`, `DropdownMenu`, `FabMenu`. Icons + steppers are local.
+`../../components`: `PhoneFrame`, `StatusBar`, `NavBar`, `GlassCard`, `DropdownMenu`, `FabMenu`, `TitleDescription`, `TagField`/`TagPickerSheet`. Other icons + steppers are local.

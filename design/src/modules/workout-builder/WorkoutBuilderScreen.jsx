@@ -7,6 +7,8 @@ import DropdownMenu from '../../components/DropdownMenu.jsx'
 import FabMenu from '../../components/FabMenu.jsx'
 import IconButton from '../../components/IconButton.jsx'
 import SectionLabel from '../../components/SectionLabel.jsx'
+import TitleDescription from '../../components/TitleDescription.jsx'
+import TagField, { TagPickerSheet } from '../../components/TagField.jsx'
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -64,38 +66,8 @@ const THUMB_COLORS = {
   Arms: thumbTint('--cat-cyan-rgb'), Core: thumbTint('--cs-tertiary-rgb'), Shoulders: thumbTint('--cat-amber-rgb'),
 }
 
-// Preset workout tags (chosen via picker — no free typing)
+// Preset workout tags — seed the shared TagPickerSheet's suggestion pool (free-create allowed)
 const TAG_PRESETS = ['Strength', 'Hypertrophy', 'Endurance', 'Push', 'Pull', 'Upper body', 'Lower body', 'Full body', 'Cardio', 'Mobility']
-
-const tagChipSt = {
-  fontFamily: 'var(--tt-font-family)', display: 'inline-flex', alignItems: 'center',
-  height: 26, padding: '0 11px', borderRadius: 'var(--radius-2xl)',
-  background: 'rgba(var(--cs-primary-rgb),0.14)', border: '1px solid rgba(var(--cs-primary-rgb),0.28)',
-  fontSize: 12, fontWeight: 500, color: 'var(--cs-primary)',
-}
-// removable selected chip (inside the dialog)
-const tagChipRemovableSt = { ...tagChipSt, gap: 6, padding: '0 5px 0 11px' }
-const tagXSt = {
-  width: 16, height: 16, borderRadius: '50%', flexShrink: 0, padding: 0,
-  background: 'rgba(var(--cs-primary-rgb),0.20)', border: 'none', cursor: 'pointer', color: 'var(--cs-primary)',
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-}
-// the tags row inside the details card — opens the tag dialog
-const tagFieldSt = {
-  fontFamily: 'var(--tt-font-family)', width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-  minHeight: 28, padding: 0, background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left',
-}
-const tagRowSt = on => ({
-  fontFamily: 'var(--tt-font-family)', width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-  padding: '11px 12px', borderRadius: 'var(--radius-lg)', cursor: 'pointer', border: 'none',
-  background: on ? 'rgba(var(--cs-primary-rgb),0.10)' : 'transparent',
-})
-const tagCreateRowSt = {
-  fontFamily: 'var(--tt-font-family)', width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-  padding: '11px 12px', borderRadius: 'var(--radius-lg)', cursor: 'pointer',
-  background: 'rgba(var(--cs-primary-rgb),0.08)', border: '1px solid rgba(var(--cs-primary-rgb),0.22)',
-  fontSize: 14, fontWeight: 500, color: 'var(--cs-primary)',
-}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -179,23 +151,6 @@ function CheckIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12" />
-    </svg>
-  )
-}
-
-function TagIcon({ size = 14 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
-      <line x1="7" y1="7" x2="7.01" y2="7" />
-    </svg>
-  )
-}
-
-function ChevRightIcon({ size = 16 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 18 15 12 9 6" />
     </svg>
   )
 }
@@ -1461,14 +1416,6 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
   const [description, setDescription] = useState('Heavy lower-body day — squats, hinges, and accessory work.')
   const [tags, setTags] = useState([])
   const [tagDialogOpen, setTagDialogOpen] = useState(false)
-  // drives the tag sheet's container-transform enter (mount → next frame → in)
-  const [tagSheetIn, setTagSheetIn] = useState(false)
-  useEffect(() => {
-    if (!tagDialogOpen) { setTagSheetIn(false); return }
-    const id = requestAnimationFrame(() => setTagSheetIn(true))
-    return () => cancelAnimationFrame(id)
-  }, [tagDialogOpen])
-  const [tagQuery, setTagQuery] = useState('')
   const [items, setItems] = useState(seedItems)
   const [expandedId, setExpandedId] = useState(seedExpanded)
   // rest between exercises is keyed by GAP POSITION, not by item (see DEMO_GAPS note)
@@ -1487,12 +1434,6 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
   const dragState = useRef(null)
 
   const { exCount, setCount, estMin } = calcStats(items, restGaps, defaults)
-
-  // tag dialog: search + create. List shows only NOT-yet-selected tags
-  // (selected ones live as removable chips above the list).
-  const tagPool   = [...new Set([...TAG_PRESETS, ...tags])]
-  const tagMatches = tagPool.filter(t => !tags.includes(t) && t.toLowerCase().includes(tagQuery.trim().toLowerCase()))
-  const showCreate = tagQuery.trim() && !tagPool.some(t => t.toLowerCase() === tagQuery.trim().toLowerCase())
 
   function toggle(id) { setExpandedId(cur => cur === id ? null : id) }
   function updateItem(updated) { setItems(p => p.map(it => it.id === updated.id ? updated : it)) }
@@ -1568,13 +1509,6 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
     dragState.current = null
     setDragIdx(null); setDragY(0)
   }
-  function toggleTag(t) { setTags(p => p.includes(t) ? p.filter(x => x !== t) : [...p, t]) }
-  function createTag(name) {
-    const t = name.trim()
-    if (t && !tags.some(x => x.toLowerCase() === t.toLowerCase())) setTags(p => [...p, t])
-    setTagQuery('')
-  }
-
   return (
     <PhoneFrame smokeVariant="shader">
       <div style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column' }}>
@@ -1591,32 +1525,12 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 90px' }}>
           {/* Workout details card — name · description · tags grouped as a form */}
           <GlassCard level="Low" style={{ padding: '14px 16px', marginBottom: 14 }}>
-            <input
-              value={workoutName}
-              onChange={e => setWorkoutName(e.target.value)}
-              placeholder="Workout name"
-              style={{ ...TT, fontSize: 'var(--tt-title-medium-size)', fontWeight: 500, color: 'var(--cs-on-surface)', background: 'none', border: 'none', outline: 'none', padding: 0, width: '100%', boxSizing: 'border-box' }}
+            <TitleDescription
+              name={workoutName} onNameChange={setWorkoutName} namePlaceholder="Workout name"
+              description={description} onDescriptionChange={setDescription} descriptionPlaceholder="Add a description…"
             />
             <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '11px 0' }} />
-            <textarea
-              value={description}
-              onChange={e => setDescription(e.target.value)}
-              placeholder="Add a description…"
-              rows={2}
-              style={{ ...TT, fontSize: 'var(--tt-body-small-size)', lineHeight: 'var(--tt-body-small-height)', letterSpacing: 'var(--tt-body-small-tracking)', color: 'var(--cs-on-surface-variant)', background: 'none', border: 'none', outline: 'none', resize: 'none', padding: 0, width: '100%', boxSizing: 'border-box', display: 'block' }}
-            />
-            <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '11px 0' }} />
-
-            {/* Tags — empty by default; the row opens the tag dialog */}
-            <button onClick={() => { setTagQuery(''); setTagDialogOpen(true) }} style={tagFieldSt}>
-              <span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)', opacity: 0.45, flexShrink: 0 }}><TagIcon /></span>
-              <div style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                {tags.length === 0
-                  ? <span style={{ ...TT, fontSize: 13, color: 'var(--cs-on-surface-variant)', opacity: 0.5 }}>Add tags</span>
-                  : tags.map(t => <span key={t} style={tagChipSt}>{t}</span>)}
-              </div>
-              <span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)', opacity: 0.4, flexShrink: 0 }}><ChevRightIcon /></span>
-            </button>
+            <TagField tags={tags} onOpen={() => setTagDialogOpen(true)} />
           </GlassCard>
 
           {/* Workout defaults — base units + rests that sets/exercises inherit */}
@@ -1706,92 +1620,9 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
           </div>
         )}
 
-        {/* ── Tag dialog — search · create · multi-select ── */}
-        {tagDialogOpen && (
-          <>
-            <div onClick={() => setTagDialogOpen(false)}
-              style={{ position: 'absolute', inset: 0, zIndex: 40, background: 'rgba(var(--cs-shadow-rgb),0.55)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)',
-                opacity: tagSheetIn ? 1 : 0, transition: 'opacity 0.32s cubic-bezier(0.4,0,0.2,1)' }} />
-            <div style={{
-              position: 'absolute', left: 0, right: 0, bottom: 0, zIndex: 41, height: 600,
-              display: 'flex', flexDirection: 'column',
-              background: 'var(--glass-popover)', backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
-              borderTop: '1px solid rgba(var(--overlay-rgb),0.08)', borderRadius: 'var(--radius-2xl) var(--radius-2xl) 0 0',
-              boxShadow: '0 -8px 32px rgba(var(--cs-shadow-rgb),0.55)',
-              transform: tagSheetIn ? 'translateY(0)' : 'translateY(100%)',
-              transition: 'transform 0.32s cubic-bezier(0.4,0,0.2,1)',
-            }}>
-              {/* handle */}
-              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0 4px', flexShrink: 0 }}>
-                <div style={{ width: 36, height: 4, borderRadius: 2, background: 'rgba(var(--overlay-rgb),0.16)' }} />
-              </div>
-              {/* header */}
-              <div style={{ display: 'flex', alignItems: 'center', padding: '4px 14px 12px', flexShrink: 0 }}>
-                <span style={{ ...TT, flex: 1, fontSize: 16, fontWeight: 600, color: 'var(--cs-on-surface)' }}>Tags</span>
-                <button onClick={() => setTagDialogOpen(false)} style={{ width: 30, height: 30, borderRadius: 'var(--radius-lg)', padding: 0, background: 'rgba(var(--overlay-rgb),0.05)', border: 'none', cursor: 'pointer', color: 'var(--cs-on-surface-variant)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <XIcon size={13} />
-                </button>
-              </div>
-              {/* search / create input */}
-              <div style={{ padding: '0 16px 12px', flexShrink: 0 }}>
-                <input
-                  value={tagQuery}
-                  onChange={e => setTagQuery(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && showCreate) createTag(tagQuery) }}
-                  placeholder="Search or create a tag…"
-                  autoFocus
-                  style={{ ...TT, width: '100%', height: 42, boxSizing: 'border-box', padding: '0 14px', borderRadius: 'var(--radius-xl)', background: 'rgba(var(--overlay-rgb),0.04)', border: '1px solid rgba(var(--overlay-rgb),0.08)', outline: 'none', fontSize: 14, color: 'var(--cs-on-surface)' }}
-                />
-              </div>
-
-              {/* selected tags — removable chips, right after the field */}
-              {tags.length > 0 && (
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, padding: '0 16px 12px', flexShrink: 0 }}>
-                  {tags.map(t => (
-                    <span key={t} style={tagChipRemovableSt}>
-                      {t}
-                      <button onClick={() => toggleTag(t)} style={tagXSt}><XIcon size={9} /></button>
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', flexShrink: 0, margin: '0 16px 4px' }} />
-
-              {/* list — only not-yet-selected tags, no selection highlight */}
-              <div style={{ flex: 1, overflowY: 'auto', padding: '4px 12px 12px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                {showCreate && (
-                  <button onClick={() => createTag(tagQuery)} style={tagCreateRowSt}>
-                    <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, background: 'rgba(var(--cs-primary-rgb),0.20)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--cs-primary)' }}><PlusIcon size={12} /></span>
-                    Create “{tagQuery.trim()}”
-                  </button>
-                )}
-                {tagMatches.map(t => (
-                  <button key={t} onClick={() => toggleTag(t)} style={tagRowSt(false)}>
-                    <span style={{ ...TT, flex: 1, textAlign: 'left', fontSize: 14, fontWeight: 400, color: 'var(--cs-on-surface)' }}>{t}</span>
-                    <span style={{ color: 'var(--cs-on-surface-variant)', opacity: 0.4, display: 'flex' }}><PlusIcon size={13} /></span>
-                  </button>
-                ))}
-                {tagMatches.length === 0 && !showCreate && (
-                  <p style={{ ...TT, textAlign: 'center', padding: '28px 0', fontSize: 13, color: 'var(--cs-on-surface-variant)', opacity: 0.45 }}>
-                    {tagQuery.trim() ? 'No more tags' : 'All tags added'}
-                  </p>
-                )}
-              </div>
-              {/* done */}
-              <div style={{ padding: '10px 16px 24px', flexShrink: 0, borderTop: '1px solid rgba(var(--overlay-rgb),0.06)' }}>
-                <button onClick={() => setTagDialogOpen(false)} style={{
-                  ...TT, width: '100%', height: 48, borderRadius: 'var(--radius-xl)', cursor: 'pointer',
-                  background: 'linear-gradient(180deg, rgba(var(--raise-rgb),0.09) 0%, rgba(var(--cs-shadow-rgb),0.08) 100%), var(--cs-primary)',
-                  border: '1px solid rgba(var(--overlay-rgb),0.18)', color: 'var(--cs-on-primary)', fontSize: 15, fontWeight: 500,
-                  boxShadow: 'inset 0 1px 0 rgba(var(--raise-rgb),0.22), 0 8px 24px rgba(var(--cs-primary-rgb),0.22)',
-                }}>
-                  Done{tags.length ? ` · ${tags.length}` : ''}
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+        {/* ── Tag picker — shared bottom sheet (search · create · multi-select) ── */}
+        <TagPickerSheet open={tagDialogOpen} onClose={() => setTagDialogOpen(false)}
+          tags={tags} onChange={setTags} presets={TAG_PRESETS} />
       </div>
     </PhoneFrame>
   )

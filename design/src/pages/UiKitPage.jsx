@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { PhoneFrame, GlassCard, ListTile, Button, IconButton, FAB, ConfirmDialog, SelectDialog, MultiSelectDialog, DropdownMenu, NavBar } from '../components/index.js'
+import { PhoneFrame, GlassCard, ListTile, Button, IconButton, FAB, ConfirmDialog, SelectDialog, MultiSelectDialog, DropdownMenu, NavBar, TitleDescription, TagField, TagPickerSheet } from '../components/index.js'
 import AnimatedSmokeLayer from '../components/AnimatedSmokeLayer.jsx'
 
 // ── Config ────────────────────────────────────────────────────────
@@ -63,6 +63,11 @@ export default function UiKitPage() {
         {/* Dialogs */}
         <Section title="Dialogs">
           <DialogShowcase />
+        </Section>
+
+        {/* Form fields — title · description · tags (shared by Workout & Meal builders) */}
+        <Section title="Form fields · title · description · tags">
+          <FormFieldsShowcase />
         </Section>
 
         {/* Containers */}
@@ -664,6 +669,46 @@ function ZoomBtn({ onClick, children }) {
     >
       {children}
     </button>
+  )
+}
+
+// ── FormFieldsShowcase ────────────────────────────────────────────
+
+const SHOWCASE_TAG_PRESETS = ['Strength', 'Hypertrophy', 'Endurance', 'Push', 'Pull', 'Upper body', 'Lower body', 'Full body', 'Cardio', 'Mobility']
+
+function FormFieldsShowcase() {
+  const [name, setName] = useState('Leg Day')
+  const [desc, setDesc] = useState('Heavy lower-body day — squats, hinges, and accessory work.')
+  const [tags, setTags] = useState(['Strength', 'Lower body'])
+  const [open, setOpen] = useState(false)
+
+  return (
+    <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* phone-proportioned stage so the bottom sheet is bounded */}
+        <div style={{
+          width: 320, height: 600, borderRadius: 'var(--radius-2xl)', background: 'var(--cs-surface)',
+          border: '1px solid rgba(var(--overlay-rgb),0.05)', position: 'relative', overflow: 'hidden',
+        }}>
+          <AnimatedSmokeLayer />
+          <div style={{ position: 'relative', zIndex: 1, padding: 16 }}>
+            <GlassCard level="Low" style={{ padding: '14px 16px' }}>
+              <TitleDescription
+                name={name} onNameChange={setName} namePlaceholder="Workout name"
+                description={desc} onDescriptionChange={setDesc} descriptionPlaceholder="Add a description…"
+              />
+              <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '11px 0' }} />
+              <TagField tags={tags} onOpen={() => setOpen(true)} />
+            </GlassCard>
+          </div>
+          <TagPickerSheet open={open} onClose={() => setOpen(false)} tags={tags} onChange={setTags} presets={SHOWCASE_TAG_PRESETS} />
+        </div>
+        <div>
+          <p style={{ fontFamily: 'var(--tt-font-family)', fontSize: 12, fontWeight: 500, color: 'var(--cs-on-surface)', lineHeight: 1 }}>TitleDescription · TagField · TagPickerSheet</p>
+          <p style={{ fontFamily: 'var(--tt-font-family)', fontSize: 10, color: 'var(--cs-on-surface-variant)', opacity: 0.5, marginTop: 3 }}>Tap the tags row → search / create bottom sheet. Shared by Workout & Meal builders.</p>
+        </div>
+      </div>
+    </div>
   )
 }
 

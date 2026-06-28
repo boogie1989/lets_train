@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ThemePage, UiKitPage } from './pages/index.js'
-import { CalendarPage, ExercisesPage, WorkoutRunnerPage, WorkoutBuilderPage, WorkoutBuilder2Page, WorkoutBuilder3Page, LibrariesPage, PlanBuilderPage, MealBuilderPage, ProfilePage } from './modules/index.js'
+import { CalendarPage, ExercisesPage, WorkoutRunnerPage, WorkoutBuilderPage, LibrariesPage, PlanBuilderPage, MealBuilderPage, ProfilePage } from './modules/index.js'
 import { ThemeToggle } from './components/index.js'
 
 const NAV = [
@@ -12,8 +12,6 @@ const NAV = [
   { id: 'exercises', label: 'Exercises',       group: 'Screens', component: ExercisesPage     },
   { id: 'workout',   label: 'Workout Runner',  group: 'Screens', component: WorkoutRunnerPage },
   { id: 'builder',   label: 'Workout Builder', group: 'Screens', component: WorkoutBuilderPage },
-  { id: 'builder2',  label: 'Workout Builder 2', group: 'Screens', component: WorkoutBuilder2Page },
-  { id: 'builder3',  label: 'Workout Builder 3', group: 'Screens', component: WorkoutBuilder3Page },
   { id: 'plan',      label: 'Plan Builder',    group: 'Screens', component: PlanBuilderPage    },
   { id: 'meal',      label: 'Meal Builder',    group: 'Screens', component: MealBuilderPage    },
 ]

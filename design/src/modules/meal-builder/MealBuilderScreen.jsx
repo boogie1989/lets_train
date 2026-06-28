@@ -7,10 +7,11 @@ import IconButton from '../../components/IconButton.jsx'
 import SectionLabel from '../../components/SectionLabel.jsx'
 import FabMenu from '../../components/FabMenu.jsx'
 import Segmented from '../../components/Segmented.jsx'
-import MultiSelectDialog from '../../components/MultiSelectDialog.jsx'
 import ConfirmDialog from '../../components/ConfirmDialog.jsx'
+import TitleDescription from '../../components/TitleDescription.jsx'
+import TagField, { TagPickerSheet } from '../../components/TagField.jsx'
 import * as M from './mealModel.js'
-import { ChevLeftIcon, CheckIcon, PlusIcon, MinusIcon, XIcon, ChevDownIcon, GripIcon, CameraIcon, TagIcon } from './icons.jsx'
+import { ChevLeftIcon, CheckIcon, PlusIcon, MinusIcon, XIcon, ChevDownIcon, GripIcon, CameraIcon } from './icons.jsx'
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
 const MORPH = 'cubic-bezier(0.4,0,0.2,1)'
@@ -73,11 +74,10 @@ export default function MealBuilderScreen({ initialStep = 'edit' }) {
 
           {/* ── Details ── */}
           <GlassCard level="Low" style={{ padding: '14px 16px', margin: '14px 0' }}>
-            <input value={meal.name} onChange={e => up({ name: e.target.value })} placeholder="Meal name"
-              style={{ ...TT, fontSize: 'var(--tt-title-medium-size)', fontWeight: 500, color: 'var(--cs-on-surface)', background: 'none', border: 'none', outline: 'none', padding: 0, width: '100%' }} />
-            <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '11px 0' }} />
-            <textarea value={meal.description} onChange={e => up({ description: e.target.value })} placeholder="Add a short description…" rows={2}
-              style={{ ...TT, fontSize: 'var(--tt-body-small-size)', lineHeight: 'var(--tt-body-small-height)', color: 'var(--cs-on-surface-variant)', background: 'none', border: 'none', outline: 'none', resize: 'none', padding: 0, width: '100%', display: 'block' }} />
+            <TitleDescription
+              name={meal.name} onNameChange={v => up({ name: v })} namePlaceholder="Meal name"
+              description={meal.description} onDescriptionChange={v => up({ description: v })} descriptionPlaceholder="Add a short description…"
+            />
             <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '11px 0 14px' }} />
 
             <span style={labelSt}>Meal type</span>
@@ -91,18 +91,8 @@ export default function MealBuilderScreen({ initialStep = 'edit' }) {
               <MetaStepper label="Cook" value={meal.cookMin} suffix="m" step={5} onChange={n => setMeal(m => M.setMinutes(m, 'cookMin', n))} />
             </div>
 
-            <span style={labelSt}>Tags</span>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7 }}>
-              {meal.tags.map(t => (
-                <span key={t} style={{ ...TT, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '5px 6px 5px 11px', borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--cs-primary-rgb),0.14)', border: '1px solid rgba(var(--cs-primary-rgb),0.30)', fontSize: 12, fontWeight: 500, color: 'var(--cs-primary)' }}>
-                  {t}
-                  <button onClick={() => up({ tags: meal.tags.filter(x => x !== t) })} style={{ display: 'flex', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--cs-primary)', padding: 2, opacity: 0.7 }}><XIcon size={10} /></button>
-                </span>
-              ))}
-              <button onClick={() => setTagOpen(true)} style={{ ...TT, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--overlay-rgb),0.04)', border: '1px dashed rgba(var(--overlay-rgb),0.16)', fontSize: 12, fontWeight: 500, color: 'var(--cs-on-surface-variant)', cursor: 'pointer' }}>
-                <TagIcon size={12} /> Add tags
-              </button>
-            </div>
+            <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '0 0 14px' }} />
+            <TagField tags={meal.tags} onOpen={() => setTagOpen(true)} />
           </GlassCard>
 
           {/* ── Nutrition (auto) ── */}
@@ -180,16 +170,9 @@ export default function MealBuilderScreen({ initialStep = 'edit' }) {
           </div>
         </div>
 
-        {/* tag dialog — container-transform morph in */}
-        {tagOpen && (
-          <div style={{ position: 'absolute', inset: 0, zIndex: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(var(--cs-shadow-rgb),0.55)' }}>
-            <div style={{ width: '100%', display: 'flex', justifyContent: 'center', animation: `mb-morph 0.32s ${MORPH}` }}>
-              <MultiSelectDialog title="Diet & tags" subtitle="Tap to toggle" options={M.DIETS} values={meal.tags}
-                onToggle={t => up({ tags: meal.tags.includes(t) ? meal.tags.filter(x => x !== t) : [...meal.tags, t] })}
-                onCancel={() => setTagOpen(false)} onConfirm={() => setTagOpen(false)} confirmLabel="Done" />
-            </div>
-          </div>
-        )}
+        {/* tag picker — shared bottom sheet (search · create · multi-select) */}
+        <TagPickerSheet open={tagOpen} onClose={() => setTagOpen(false)}
+          tags={meal.tags} onChange={next => up({ tags: next })} presets={M.DIETS} title="Diet & tags" />
 
         {/* remove confirm — container-transform morph in */}
         {removeAsk && (
