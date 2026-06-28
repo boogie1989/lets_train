@@ -15,7 +15,7 @@ class ScreenShaderBackground extends StatefulWidget {
   const ScreenShaderBackground({
     super.key,
     this.opacity = 1.0,
-    this.speed = 1.0,
+    this.speed = .5,
   });
 
   /// Multiplier over each sphere's keyframe opacity (1 = identical to gradient).
