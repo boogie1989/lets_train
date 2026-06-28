@@ -1,0 +1,24 @@
+include: package:flutter_lints/flutter.yaml
+
+analyzer:
+  exclude:
+    - lib/**.g.dart
+    - lib/**.freezed.dart
+    - lib/**.mapper.dart
+    - lib/**.gr.dart
+
+linter:
+  rules:
+    prefer_collection_literals: false
+    prefer_const_constructors: true
+    prefer_const_declarations: true
+    always_use_package_imports: true
+    cancel_subscriptions: true
+    avoid_relative_lib_imports: true
+    avoid_unnecessary_containers: true
+    directives_ordering: true
+    require_trailing_commas: true
+    overridden_fields: false
+
+formatter:
+  trailing_commas: preserve

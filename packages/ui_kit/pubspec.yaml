@@ -1,0 +1,25 @@
+name: ui_kit
+description: "A new Flutter package project."
+
+version: 0.0.1
+publish_to: 'none'
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints:
+
+flutter:
+  shaders:
+    - shaders/screen_shader_background.frag
+

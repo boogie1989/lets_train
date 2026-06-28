@@ -1,0 +1,24 @@
+name: app
+description: "A new Flutter project."
+
+version: 0.0.1
+publish_to: 'none'
+resolution: workspace
+
+environment:
+  sdk: ^3.12.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  ui_kit:
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+    
+  flutter_lints:
+
+flutter:
+  uses-material-design: true
