@@ -8,10 +8,11 @@ import SectionLabel from '../../components/SectionLabel.jsx'
 import FabMenu from '../../components/FabMenu.jsx'
 import Segmented from '../../components/Segmented.jsx'
 import ConfirmDialog from '../../components/ConfirmDialog.jsx'
+import Stepper from '../../components/Stepper.jsx'
 import { LibrariesView, WorkoutPreviewView, MealPreviewView } from '../libraries/index.js'
 import WeekGrid from './WeekGrid.jsx'
 import * as M from './planModel.js'
-import { ChevLeftIcon, CheckIcon, PlusIcon, MinusIcon, XIcon, CopyIcon, GridIcon, CalendarPlusIcon } from './icons.jsx'
+import { ChevLeftIcon, CheckIcon, PlusIcon, XIcon, CopyIcon, GridIcon, CalendarPlusIcon } from './icons.jsx'
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
 const DAY_FULL = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
@@ -23,7 +24,6 @@ const chipSt = on => ({
   border: on ? '1px solid rgba(var(--cs-primary-rgb),0.40)' : '1px solid rgba(var(--cs-outline-rgb),0.35)',
   fontSize: 12, fontWeight: on ? 500 : 400, color: on ? 'var(--cs-primary)' : 'var(--cs-on-surface-variant)',
 })
-const stepBtnSt = { ...TT, width: 32, height: 32, borderRadius: 'var(--radius-lg)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0, background: 'rgba(var(--overlay-rgb),0.06)', border: '1px solid rgba(var(--overlay-rgb),0.09)', color: 'var(--cs-on-surface-variant)' }
 const primaryBtnSt = {
   ...TT, fontWeight: 500, color: 'var(--cs-on-primary)', cursor: 'pointer',
   background: 'linear-gradient(180deg, rgba(var(--raise-rgb),0.09) 0%, rgba(var(--cs-shadow-rgb),0.08) 100%), var(--cs-primary)',
@@ -144,11 +144,8 @@ export default function PlanBuilderScreen({ initialStep = 'plan' }) {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
               {M.WEEK_PRESETS.map(n => <button key={n} onClick={() => setPlan(p => M.setDurationWeeks(p, n))} style={chipSt(plan.weeks === n)}>{n}</button>)}
               <div style={{ flex: 1 }} />
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <button onClick={() => setPlan(p => M.setDurationWeeks(p, p.weeks - 1))} style={stepBtnSt}><MinusIcon size={15} /></button>
-                <span style={{ ...TT, fontSize: 14, fontWeight: 500, color: 'var(--cs-on-surface)', minWidth: 56, textAlign: 'center' }}>{plan.weeks} wk</span>
-                <button onClick={() => setPlan(p => M.setDurationWeeks(p, p.weeks + 1))} style={stepBtnSt}><PlusIcon size={13} /></button>
-              </div>
+              <Stepper btnSize={32} value={plan.weeks} suffix=" wk" valueStyle={{ flex: 'none', minWidth: 56 }}
+                onChange={n => setPlan(p => M.setDurationWeeks(p, n))} />
             </div>
           </GlassCard>
 

@@ -4,6 +4,8 @@ import StatusBar from '../../components/StatusBar.jsx'
 import DateCell from '../../components/DateCell.jsx'
 import TaskItem from '../../components/TaskItem.jsx'
 import FabMenu from '../../components/FabMenu.jsx'
+import EmptyState from '../../components/EmptyState.jsx'
+import Snackbar from '../../components/Snackbar.jsx'
 import { LibrariesView } from '../libraries/index.js'
 import {
   MONTH_LABEL, TODAY, WEEKS, WD, WEEKDAY_FULL, weekIndexOf, dateLabel, PLAN, NEIGHBOR_MONTHS,
@@ -338,7 +340,7 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
           </>
         ) : (
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <EmptyState />
+            <EmptyState icon={<CalendarOffIcon />} title="No workouts scheduled" caption="Press + to add a workout" style={{ transform: 'translateY(-50%)' }} />
           </div>
         )}
       </div>
@@ -355,25 +357,7 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
       </div>
 
       {/* ── Undo snackbar — move / delete / eaten ops are reversible ── */}
-      {snack && (
-        <div style={{ position: 'absolute', left: 16, right: 16, bottom: 96, zIndex: 46, display: 'flex', justifyContent: 'center', pointerEvents: 'none' }}>
-          <div style={{
-            pointerEvents: 'auto', display: 'flex', alignItems: 'center', gap: 16,
-            padding: '10px 16px', borderRadius: 'var(--radius-xl)',
-            background: 'var(--glass-popover)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-            border: '1px solid rgba(var(--cs-outline-rgb),0.5)',
-            boxShadow: '0 12px 32px rgba(var(--cs-shadow-rgb),0.6)',
-          }}>
-            <span style={{ ...TT, fontSize: 13, fontWeight: 400, color: 'var(--cs-on-surface)' }}>{snack.msg}</span>
-            <button onClick={undo} style={{
-              ...TT, fontSize: 13, fontWeight: 600, color: 'var(--cs-primary)',
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-            }}>
-              Undo
-            </button>
-          </div>
-        </div>
-      )}
+      <Snackbar open={!!snack} message={snack?.msg} onAction={undo} />
 
       {/* ── Item detail dialog — container transform per the FabMenu recipe ── */}
       <ItemDetailDialog item={detailItem} tense={day.tense} month={month} dayN={selected} {...detailHandlers} />
@@ -462,47 +446,6 @@ function ChevR() {
 }
 function ChevDown() {
   return <svg width="12" height="12" viewBox="0 0 24 24" {...glyph}><polyline points="6 9 12 15 18 9" /></svg>
-}
-
-function EmptyState() {
-  return (
-    <div style={{
-      width: 366,   // 85% of 430px screen width
-      flexShrink: 0,
-      borderRadius: 'var(--radius-2xl)',
-      border: '1px solid rgba(var(--cs-outline-rgb),0.25)',
-      background: 'var(--glass-slab)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      paddingTop: 80,
-      paddingBottom: 52,
-      gap: 8,
-      transform: 'translateY(-50%)',
-    }}>
-      <div style={{ opacity: 0.25, marginBottom: 4 }}>
-        <CalendarOffIcon />
-      </div>
-      <span style={{
-        fontFamily: 'var(--tt-font-family)',
-        fontSize: 'var(--tt-title-small-size)',
-        fontWeight: 'var(--tt-title-small-weight)',
-        color: 'var(--cs-on-surface)',
-        opacity: 0.40,
-      }}>
-        No workouts scheduled
-      </span>
-      <span style={{
-        fontFamily: 'var(--tt-font-family)',
-        fontSize: 'var(--tt-body-small-size)',
-        fontWeight: 'var(--tt-body-small-weight)',
-        color: 'var(--cs-on-surface-variant)',
-        opacity: 0.30,
-      }}>
-        Press + to add a workout
-      </span>
-    </div>
-  )
 }
 
 function MenuIcon() {

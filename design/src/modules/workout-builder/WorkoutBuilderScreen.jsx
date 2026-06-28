@@ -9,6 +9,7 @@ import IconButton from '../../components/IconButton.jsx'
 import SectionLabel from '../../components/SectionLabel.jsx'
 import TitleDescription from '../../components/TitleDescription.jsx'
 import TagField, { TagPickerSheet } from '../../components/TagField.jsx'
+import Snackbar from '../../components/Snackbar.jsx'
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
 
@@ -1604,21 +1605,7 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
         )}
 
         {/* undo snackbar — 4s window after deleting an exercise */}
-        {lastDeleted && (
-          <div style={{
-            position: 'absolute', left: 16, right: 16, bottom: 96, zIndex: 46,
-            display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px',
-            borderRadius: 'var(--radius-xl)', background: 'var(--glass-popover)',
-            border: '1px solid rgba(var(--overlay-rgb),0.10)',
-            backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
-            boxShadow: '0 8px 24px rgba(var(--cs-shadow-rgb),0.55)',
-          }}>
-            <span style={{ ...TT, flex: 1, fontSize: 13, color: 'var(--cs-on-surface)' }}>Exercise deleted</span>
-            <button onClick={undoDelete} style={{ ...TT, background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--cs-primary)', padding: 0 }}>
-              Undo
-            </button>
-          </div>
-        )}
+        <Snackbar open={!!lastDeleted} message="Exercise deleted" onAction={undoDelete} />
 
         {/* ── Tag picker — shared bottom sheet (search · create · multi-select) ── */}
         <TagPickerSheet open={tagDialogOpen} onClose={() => setTagDialogOpen(false)}

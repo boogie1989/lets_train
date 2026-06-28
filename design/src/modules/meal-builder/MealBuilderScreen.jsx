@@ -10,8 +10,9 @@ import Segmented from '../../components/Segmented.jsx'
 import ConfirmDialog from '../../components/ConfirmDialog.jsx'
 import TitleDescription from '../../components/TitleDescription.jsx'
 import TagField, { TagPickerSheet } from '../../components/TagField.jsx'
+import Stepper from '../../components/Stepper.jsx'
 import * as M from './mealModel.js'
-import { ChevLeftIcon, CheckIcon, PlusIcon, MinusIcon, XIcon, ChevDownIcon, GripIcon, CameraIcon } from './icons.jsx'
+import { ChevLeftIcon, CheckIcon, PlusIcon, XIcon, ChevDownIcon, GripIcon, CameraIcon } from './icons.jsx'
 
 const TT = { fontFamily: 'var(--tt-font-family)' }
 const MORPH = 'cubic-bezier(0.4,0,0.2,1)'
@@ -22,7 +23,6 @@ const MACROS = [
 ]
 
 const labelSt = { ...TT, display: 'block', marginBottom: 8, fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.45 }
-const stepBtnSt = { width: 30, height: 30, borderRadius: 'var(--radius-lg)', flexShrink: 0, padding: 0, cursor: 'pointer', background: 'rgba(var(--overlay-rgb),0.06)', border: '1px solid rgba(var(--overlay-rgb),0.09)', color: 'var(--cs-on-surface-variant)', display: 'flex', alignItems: 'center', justifyContent: 'center' }
 const addBtnSt = { ...TT, width: '100%', height: 44, borderRadius: 'var(--radius-2xl)', border: '1.5px dashed rgba(var(--overlay-rgb),0.14)', background: 'rgba(var(--overlay-rgb),0.02)', color: 'var(--cs-on-surface-variant)', opacity: 0.75, fontSize: 13, fontWeight: 500, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }
 const fieldBoxSt = { display: 'flex', alignItems: 'baseline', gap: 4, padding: '9px 11px', borderRadius: 'var(--radius-lg)', background: 'rgba(var(--overlay-rgb),0.05)', boxShadow: 'var(--shadow-glass-low)' }
 const bareInputSt = { ...TT, width: '100%', minWidth: 0, fontSize: 14, fontWeight: 500, color: 'var(--cs-on-surface)', background: 'none', border: 'none', outline: 'none', padding: 0 }
@@ -86,9 +86,9 @@ export default function MealBuilderScreen({ initialStep = 'edit' }) {
             </div>
 
             <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-              <MetaStepper label="Servings" value={meal.servings} onChange={n => setMeal(m => M.setServings(m, n))} />
-              <MetaStepper label="Prep" value={meal.prepMin} suffix="m" step={5} onChange={n => setMeal(m => M.setMinutes(m, 'prepMin', n))} />
-              <MetaStepper label="Cook" value={meal.cookMin} suffix="m" step={5} onChange={n => setMeal(m => M.setMinutes(m, 'cookMin', n))} />
+              <Stepper label="Servings" value={meal.servings} onChange={n => setMeal(m => M.setServings(m, n))} />
+              <Stepper label="Prep" value={meal.prepMin} suffix="m" step={5} onChange={n => setMeal(m => M.setMinutes(m, 'prepMin', n))} />
+              <Stepper label="Cook" value={meal.cookMin} suffix="m" step={5} onChange={n => setMeal(m => M.setMinutes(m, 'cookMin', n))} />
             </div>
 
             <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '0 0 14px' }} />
@@ -192,19 +192,6 @@ export default function MealBuilderScreen({ initialStep = 'edit' }) {
 }
 
 // ── meta stepper (servings / prep / cook) ──
-function MetaStepper({ label, value, onChange, step = 1, suffix }) {
-  return (
-    <div style={{ flex: 1, minWidth: 0 }}>
-      <span style={labelSt}>{label}</span>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <button onClick={() => onChange(value - step)} style={stepBtnSt}><MinusIcon size={14} /></button>
-        <span style={{ ...TT, flex: 1, fontSize: 14, fontWeight: 500, color: 'var(--cs-on-surface)', textAlign: 'center', fontVariantNumeric: 'tabular-nums' }}>{value}{suffix || ''}</span>
-        <button onClick={() => onChange(value + step)} style={stepBtnSt}><PlusIcon size={12} /></button>
-      </div>
-    </div>
-  )
-}
-
 // ── ingredient row (collapsed summary → expandable editor) ──
 function IngredientRow({ ing, open, onToggle, onChange, onRemove, ...drag }) {
   return (
