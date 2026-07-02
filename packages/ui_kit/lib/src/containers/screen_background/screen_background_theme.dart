@@ -2,6 +2,7 @@ import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
+import 'package:ui_kit/src/extensions/color_extension.dart';
 import 'package:ui_kit/src/theme/theme.dart';
 
 /// Theming for `ScreenBackground` / `ScreenShaderBackground` — the base surface
@@ -31,17 +32,21 @@ class ScreenBackgroundExtension
     required this.opacityMultiplier,
   });
 
-  factory ScreenBackgroundExtension.dark() => const ScreenBackgroundExtension(
+  factory ScreenBackgroundExtension.dark() => ScreenBackgroundExtension(
     baseColor: Colors.black,
-    // Neutral grays (no blue tint), darker than the old slate palette but still
-    // light enough to read as haze over the black base.
+    // The --smoke-1..6 dark tokens, uniformly darkened: at full token
+    // lightness the haze read too bright over the black base (user decision,
+    // 2026-07).
     smokeColors: [
-      Color(0xFF475569),
-      Color(0xFF4B5563),
-      Color(0xFF52525B),
-      Color(0xFF525252),
-      Color(0xFF64748B),
-      Color(0xFF94A3B8),
+      for (final color in const [
+        Color(0xFF475569),
+        Color(0xFF4B5563),
+        Color(0xFF52525B),
+        Color(0xFF525252),
+        Color(0xFF64748B),
+        Color(0xFF94A3B8),
+      ])
+        color.darken(.2),
     ],
     opacityMultiplier: 1.0,
   );

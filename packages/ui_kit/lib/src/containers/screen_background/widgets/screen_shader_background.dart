@@ -1,6 +1,8 @@
 import 'dart:ui' as ui;
 
+import 'package:flutter/foundation.dart' show ValueListenable;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart' show Ticker;
 import 'package:ui_kit/src/containers/screen_background/widgets/screen_smoke_field.dart';
 import 'package:ui_kit/src/theme/theme.dart';
 
@@ -16,13 +18,20 @@ class ScreenShaderBackground extends StatefulWidget {
     super.key,
     this.opacity = 1.0,
     this.speed = 1,
+    this.time,
   });
 
   /// Multiplier over each sphere's keyframe opacity (1 = identical to gradient).
   final double opacity;
 
-  /// Time multiplier (1 = default, 0 = frozen).
+  /// Time multiplier (1 = default, 0 = frozen). Ignored when [time] is set.
   final double speed;
+
+  /// External smoke clock (elapsed seconds, any speed already applied). When
+  /// set the widget renders that shared time verbatim instead of running its
+  /// own ticker — `ScreenBackground` passes its [SmokeFieldClock] time here so
+  /// every field consumer is frame-locked.
+  final ValueListenable<double>? time;
 
   @override
   State<ScreenShaderBackground> createState() => _ScreenShaderBackgroundState();
@@ -34,14 +43,22 @@ class _ScreenShaderBackgroundState extends State<ScreenShaderBackground>
       'packages/ui_kit/shaders/screen_shader_background.frag';
 
   ui.FragmentShader? _shader;
-  late final _ticker = createTicker(_onTick);
+
+  /// Own clock — only when no external [ScreenShaderBackground.time] drives
+  /// the repaints.
+  Ticker? _ticker;
   double _elapsedSeconds = 0;
 
   @override
   void initState() {
     super.initState();
+    if (widget.time == null) {
+      _ticker = createTicker(_onTick);
+    }
     _loadShader().then((_) {
-      _ticker.start();
+      if (mounted) {
+        _ticker?.start();
+      }
     });
   }
 
@@ -66,7 +83,7 @@ class _ScreenShaderBackgroundState extends State<ScreenShaderBackground>
 
   @override
   void dispose() {
-    _ticker.dispose();
+    _ticker?.dispose();
     _shader?.dispose();
     super.dispose();
   }
@@ -83,6 +100,24 @@ class _ScreenShaderBackgroundState extends State<ScreenShaderBackground>
     final shader = _shader;
     if (shader == null) {
       return const SizedBox.expand();
+    }
+
+    final externalTime = widget.time;
+    if (externalTime != null) {
+      return IgnorePointer(
+        child: ValueListenableBuilder<double>(
+          valueListenable: externalTime,
+          builder: (context, time, _) => CustomPaint(
+            size: Size.infinite,
+            painter: _ShaderSmokePainter(
+              shader: shader,
+              time: time,
+              opacity: widget.opacity * opacityMultiplier,
+              colors: smokeColors,
+            ),
+          ),
+        ),
+      );
     }
 
     return IgnorePointer(

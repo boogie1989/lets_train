@@ -4,6 +4,23 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:ui_kit/src/theme/theme.dart';
 
+/// How a [SurfaceContainer] level blurs its backdrop.
+enum SurfaceBlurMode {
+  /// No blur — plain translucent fill.
+  none,
+
+  /// Real [BackdropFilter] — correct over arbitrary content (scrolling lists,
+  /// other cards), but costs a saveLayer + framebuffer readback per container.
+  backdrop,
+
+  /// Analytic blur of the smoke field, computed in the container's own
+  /// fragment shader (`surface_glass.frag`) — free (no saveLayer), visually
+  /// identical over `ScreenBackground`, but blurs ONLY the smoke: content
+  /// passing under the glass stays sharp. Degrades to [none] outside a
+  /// `ScreenBackground`.
+  smoke,
+}
+
 /// Visual recipe of one [SurfaceContainer] elevation level, ported from the
 /// design's `SurfaceContainer` levels (`design/src/components/SurfaceContainer.jsx`):
 /// glass fill + backdrop blur + hairline border + elevation shadows
@@ -13,6 +30,7 @@ class SurfaceContainerStyle {
   const SurfaceContainerStyle({
     required this.backgroundColor,
     required this.blur,
+    required this.blurMode,
     required this.borderColor,
     required this.shadows,
     required this.innerHighlightColor,
@@ -23,6 +41,9 @@ class SurfaceContainerStyle {
 
   /// Backdrop blur sigma (CSS `backdrop-filter: blur(Npx)` — N is the sigma).
   final double blur;
+
+  /// How [blur] is realised — see [SurfaceBlurMode].
+  final SurfaceBlurMode blurMode;
 
   /// 1px hairline border color.
   final Color borderColor;
@@ -44,6 +65,7 @@ class SurfaceContainerStyle {
           Color.lerp(a.backgroundColor, b.backgroundColor, t) ??
           b.backgroundColor,
       blur: lerpDouble(a.blur, b.blur, t) ?? b.blur,
+      blurMode: t < 0.5 ? a.blurMode : b.blurMode,
       borderColor: Color.lerp(a.borderColor, b.borderColor, t) ?? b.borderColor,
       shadows: BoxShadow.lerpList(a.shadows, b.shadows, t) ?? b.shadows,
       innerHighlightColor:
@@ -59,6 +81,7 @@ class SurfaceContainerStyle {
           runtimeType == other.runtimeType &&
           backgroundColor == other.backgroundColor &&
           blur == other.blur &&
+          blurMode == other.blurMode &&
           borderColor == other.borderColor &&
           listEquals(other.shadows, shadows) &&
           innerHighlightColor == other.innerHighlightColor;
@@ -67,6 +90,7 @@ class SurfaceContainerStyle {
   int get hashCode => Object.hash(
     backgroundColor,
     blur,
+    blurMode,
     borderColor,
     Object.hashAll(shadows),
     innerHighlightColor,
@@ -111,6 +135,7 @@ class SurfaceContainerExtension
           blue: 28 / 255,
         ),
         blur: 16,
+        blurMode: SurfaceBlurMode.smoke,
         borderColor: overlay.withValues(alpha: 0.04),
         shadows: [
           BoxShadow(
@@ -128,9 +153,16 @@ class SurfaceContainerExtension
         innerHighlightColor: raise.withValues(alpha: 0.05),
       ),
       mid: SurfaceContainerStyle(
-        // --glass-mid-bg: surfaceContainer (zinc-900) @ 72%.
-        backgroundColor: colorScheme.surfaceContainer.withValues(alpha: 0.72),
+        // Darkened from --glass-mid-bg rgba(24,24,27,.72): the design token
+        // read too light in the app (user decision, 2026-07).
+        backgroundColor: const Color.from(
+          alpha: 0.72,
+          red: 21 / 255,
+          green: 21 / 255,
+          blue: 24 / 255,
+        ),
         blur: 24,
+        blurMode: SurfaceBlurMode.smoke,
         borderColor: overlay.withValues(alpha: 0.06),
         shadows: [
           BoxShadow(
@@ -148,11 +180,22 @@ class SurfaceContainerExtension
         innerHighlightColor: raise.withValues(alpha: 0.06),
       ),
       high: SurfaceContainerStyle(
-        // --glass-high-bg: surfaceContainerHigh @ 88%.
-        backgroundColor: colorScheme.surfaceContainerHigh.withValues(
-          alpha: 0.88,
+        // Darkened from --glass-high-bg rgba(31,31,35,.88): the design token
+        // read too light in the app (user decision, 2026-07).
+        // backgroundColor: const Color.from(
+        //   alpha: 0.88,
+        //   red: 26 / 255,
+        //   green: 26 / 255,
+        //   blue: 30 / 255,
+        // ),
+        backgroundColor: const Color.from(
+          alpha: 0.72,
+          red: 21 / 255,
+          green: 21 / 255,
+          blue: 24 / 255,
         ),
         blur: 32,
+        blurMode: SurfaceBlurMode.backdrop,
         borderColor: overlay.withValues(alpha: 0.08),
         shadows: [
           BoxShadow(
@@ -183,6 +226,7 @@ class SurfaceContainerExtension
       low: SurfaceContainerStyle(
         backgroundColor: glass.withValues(alpha: 0.62),
         blur: 16,
+        blurMode: SurfaceBlurMode.smoke,
         borderColor: overlay.withValues(alpha: 0.04),
         shadows: [
           BoxShadow(
@@ -202,6 +246,7 @@ class SurfaceContainerExtension
       mid: SurfaceContainerStyle(
         backgroundColor: glass.withValues(alpha: 0.78),
         blur: 24,
+        blurMode: SurfaceBlurMode.smoke,
         borderColor: overlay.withValues(alpha: 0.06),
         shadows: [
           BoxShadow(
@@ -219,8 +264,10 @@ class SurfaceContainerExtension
         innerHighlightColor: raise.withValues(alpha: 0.85),
       ),
       high: SurfaceContainerStyle(
-        backgroundColor: glass.withValues(alpha: 0.92),
+        //  backgroundColor: glass.withValues(alpha: 0.92),
+        backgroundColor: glass.withValues(alpha: 0.78),
         blur: 32,
+        blurMode: SurfaceBlurMode.backdrop,
         borderColor: overlay.withValues(alpha: 0.08),
         shadows: [
           BoxShadow(

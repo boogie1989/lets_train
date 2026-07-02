@@ -1,8 +1,11 @@
-import 'dart:ui';
+import 'dart:ui' show ImageFilter;
 
 import 'package:flutter/material.dart';
+import 'package:ui_kit/src/containers/screen_background/screen_background.dart';
 import 'package:ui_kit/src/containers/surface_container/surface_container_theme.dart';
+import 'package:ui_kit/src/containers/surface_container/widgets/smoke_glass_backdrop.dart';
 import 'package:ui_kit/src/effects/contour_shadow.dart';
+import 'package:ui_kit/src/theme/theme.dart';
 
 export 'package:ui_kit/src/containers/surface_container/surface_container_theme.dart';
 
@@ -21,12 +24,14 @@ class SurfaceContainer extends StatelessWidget {
   const SurfaceContainer({
     super.key,
     this.level = SurfaceLevel.mid,
+    this.mode,
     this.padding,
     this.borderRadius,
     this.child,
   });
 
   final SurfaceLevel level;
+  final SurfaceBlurMode? mode;
 
   final EdgeInsetsGeometry? padding;
 
@@ -69,17 +74,41 @@ class SurfaceContainer extends StatelessWidget {
       ),
     );
 
-    if (level == SurfaceLevel.high) {
-      body = ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: style.blur, sigmaY: style.blur),
-          child: body,
-        ),
-      );
+    switch (mode ?? style.blurMode) {
+      case SurfaceBlurMode.none:
+        break;
+
+      case SurfaceBlurMode.backdrop:
+        body = ClipRRect(
+          borderRadius: radius,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: style.blur, sigmaY: style.blur),
+            child: body,
+          ),
+        );
+
+      case SurfaceBlurMode.smoke:
+        // Analytic blur of the smoke field, painted behind the glass fill by
+        // the container's own shader — no saveLayer (see SmokeGlassBackdrop).
+        // Without a ScreenBackground clock it degrades to no blur.
+        final clock = SmokeFieldClock.maybeOf(context);
+        if (clock != null) {
+          final background = ScreenBackgroundExtension.of(context);
+          body = SmokeGlassBackdrop(
+            time: clock.time,
+            backgroundBox: clock.backgroundBox,
+            blurSigma: style.blur,
+            borderRadius: radius,
+            baseColor: background.baseColor,
+            smokeColors: background.smokeColors,
+            opacityMultiplier: background.opacityMultiplier,
+            child: body,
+          );
+        }
     }
-    // ContourShadow keeps the elevation ring outside the footprint so the
-    // BackdropFilter below samples only the real backdrop, not the shadow.
+
+    // ContourShadow keeps the elevation ring outside the footprint so a
+    // backdrop blur samples only the real backdrop, not the shadow.
     return ContourShadow(
       shadows: style.shadows,
       borderRadius: radius,

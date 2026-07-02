@@ -26,4 +26,5 @@ flutter:
   shaders:
     - shaders/screen_shader_background.frag
     - shaders/box_shadow.frag
+    - shaders/surface_glass.frag
 
