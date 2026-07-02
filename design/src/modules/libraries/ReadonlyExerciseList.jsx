@@ -2,7 +2,7 @@
 // cards (collapsed summary → expand to sets / supersets / drop sets) but with no
 // editing. Sample set content is generated from the exercises library data.
 import { useState } from 'react'
-import GlassCard from '../../components/GlassCard.jsx'
+import SurfaceContainer from '../../components/SurfaceContainer.jsx'
 import exercisesConfig from './configs/exercises.jsx'
 import { Thumb, THUMB_COLORS } from './shared.jsx'
 
@@ -77,7 +77,7 @@ function SoloCard({ item }) {
   const ex = byId(item.exerciseId)
   if (!ex) return null
   return (
-    <GlassCard level="Low" style={{ display: 'flex', overflow: 'hidden' }}>
+    <SurfaceContainer level="Low" style={{ display: 'flex', overflow: 'hidden' }}>
       <div style={{ width: 4, flexShrink: 0, background: 'var(--cs-primary)', opacity: 0.55 }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <button onClick={() => setOpen(o => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 12px 12px 14px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
@@ -106,7 +106,7 @@ function SoloCard({ item }) {
           </div>
         </Expandable>
       </div>
-    </GlassCard>
+    </SurfaceContainer>
   )
 }
 

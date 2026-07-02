@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import NavBar from '../../components/NavBar.jsx'
-import GlassCard from '../../components/GlassCard.jsx'
+import SurfaceContainer from '../../components/SurfaceContainer.jsx'
 import IconButton from '../../components/IconButton.jsx'
 import SectionLabel from '../../components/SectionLabel.jsx'
 import FabMenu from '../../components/FabMenu.jsx'
@@ -122,7 +122,7 @@ export default function PlanBuilderScreen({ initialStep = 'plan' }) {
 
         <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 90px' }}>
           {/* details card */}
-          <GlassCard level="Low" style={{ padding: '14px 16px', marginBottom: 14 }}>
+          <SurfaceContainer level="Low" style={{ padding: '14px 16px', marginBottom: 14 }}>
             <input value={plan.name} onChange={e => setPlan(p => M.setName(p, e.target.value))} placeholder="Plan name"
               style={{ ...TT, fontSize: 'var(--tt-title-medium-size)', fontWeight: 500, color: 'var(--cs-on-surface)', background: 'none', border: 'none', outline: 'none', padding: 0, width: '100%', boxSizing: 'border-box' }} />
             <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '11px 0' }} />
@@ -147,7 +147,7 @@ export default function PlanBuilderScreen({ initialStep = 'plan' }) {
               <Stepper btnSize={32} value={plan.weeks} suffix=" wk" valueStyle={{ flex: 'none', minWidth: 56 }}
                 onChange={n => setPlan(p => M.setDurationWeeks(p, n))} />
             </div>
-          </GlassCard>
+          </SurfaceContainer>
 
           <p style={{ ...TT, fontSize: 'var(--tt-body-small-size)', color: 'var(--cs-on-surface-variant)', opacity: 0.45, margin: '0 2px 14px' }}>
             {plan.weeks} weeks · {stats.sessionsPerWeek}×/wk{stats.avgKcalPerDay ? ` · ~${stats.avgKcalPerDay} kcal/day` : ''}

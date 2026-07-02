@@ -1,4 +1,4 @@
-import GlassCard from './GlassCard.jsx'
+import SurfaceContainer from './SurfaceContainer.jsx'
 
 // 398×88, r=16, accent strip 5px left, content pad 20/18 gap 10
 // kind: 'workout' (meta = N exercises) | 'meal' (meta = N kcal)
@@ -24,7 +24,7 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
     : 'var(--cs-status-planned)'
 
   return (
-    <GlassCard level="Low" onClick={onClick} style={{
+    <SurfaceContainer level="Low" onClick={onClick} style={{
       width: '100%',
       height: 88,
       display: 'flex',
@@ -128,7 +128,7 @@ export default function TaskItem({ title, time, exerciseCount, kcal, kind = 'wor
           {onClick && <span style={{ display: 'flex', color: 'var(--cs-on-surface-variant)', opacity: 0.3 }}><ChevronIcon /></span>}
         </div>
       )}
-    </GlassCard>
+    </SurfaceContainer>
   )
 }
 

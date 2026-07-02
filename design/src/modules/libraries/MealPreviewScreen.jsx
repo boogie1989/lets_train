@@ -1,6 +1,6 @@
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
-import GlassCard from '../../components/GlassCard.jsx'
+import SurfaceContainer from '../../components/SurfaceContainer.jsx'
 import SectionLabel from '../../components/SectionLabel.jsx'
 import mealsConfig from './configs/meals.jsx'
 
@@ -51,7 +51,7 @@ export function MealPreviewView({ meal = DEFAULT_MEAL, onClose, cta = '+ Add to 
         </div>
 
         {/* macro block */}
-        <GlassCard level="Low" style={{ padding: '16px' }}>
+        <SurfaceContainer level="Low" style={{ padding: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, marginBottom: 14 }}>
             <span style={{ ...TT, fontSize: 30, fontWeight: 500, color: 'var(--cs-on-surface)', lineHeight: 1 }}>{meal.kcal}</span>
             <span style={{ ...TT, fontSize: 13, color: 'var(--cs-on-surface-variant)' }}>kcal</span>
@@ -61,7 +61,7 @@ export function MealPreviewView({ meal = DEFAULT_MEAL, onClose, cta = '+ Add to 
             <Macro label="Carbs"   g={meal.c} color={MACRO_COLORS.c} total={meal.p + meal.c + meal.f} />
             <Macro label="Fat"     g={meal.f} color={MACRO_COLORS.f} total={meal.p + meal.c + meal.f} />
           </div>
-        </GlassCard>
+        </SurfaceContainer>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
           <span style={chip}>{meal.diet}</span>

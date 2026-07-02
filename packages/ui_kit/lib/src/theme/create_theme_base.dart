@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ui_kit/src/containers/screen_background/screen_background_theme.dart';
+import 'package:ui_kit/src/containers/surface_container/surface_container_theme.dart';
 import 'package:ui_kit/src/theme/extensions/custom_colors_extension.dart';
 
 ThemeData createThemeBase(
@@ -12,19 +13,27 @@ ThemeData createThemeBase(
     colorScheme: colorScheme,
   );
 
+  const appBarTheme = AppBarThemeData(
+    backgroundColor: Colors.transparent,
+    surfaceTintColor: Colors.transparent,
+  );
+
   return ThemeData(
     useMaterial3: true,
     colorScheme: colorScheme,
     brightness: colorScheme.brightness,
     scaffoldBackgroundColor: scaffoldBackgroundColor,
     textTheme: textTheme,
+    appBarTheme: appBarTheme,
     extensions: {
       if (isDark) ...[
         ScreenBackgroundExtension.dark(),
         CustomColorsExtension.dark(),
+        SurfaceContainerExtension.dark(colorScheme),
       ] else ...[
         ScreenBackgroundExtension.light(),
         CustomColorsExtension.light(),
+        SurfaceContainerExtension.light(colorScheme),
       ],
     },
   );

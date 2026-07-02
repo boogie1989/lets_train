@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { PhoneFrame, GlassCard, Button, IconButton, ConfirmDialog, DropdownMenu, NavBar, TitleDescription, TagField, TagPickerSheet, Stepper, EmptyState, Snackbar } from '../components/index.js'
+import { PhoneFrame, SurfaceContainer, Button, IconButton, ConfirmDialog, DropdownMenu, NavBar, TitleDescription, TagField, TagPickerSheet, Stepper, EmptyState, Snackbar } from '../components/index.js'
 import AnimatedSmokeLayer from '../components/AnimatedSmokeLayer.jsx'
 
 // ── Config ────────────────────────────────────────────────────────
@@ -79,9 +79,9 @@ export default function UiKitPage() {
         <Section title="Containers">
           <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', alignItems: 'flex-start' }}>
             {GLASS_LEVELS.map(({ level, desc }) => (
-              <GlassContainerThumbnail
+              <SurfaceContainerThumbnail
                 key={level}
-                label={`GlassCard · ${level}`}
+                label={`SurfaceContainer · ${level}`}
                 desc={desc}
                 level={level}
                 onPreview={() => setPreview({ type: 'glass', payload: level })}
@@ -330,7 +330,7 @@ function ButtonShowcase({ onPreview }) {
   )
 }
 
-// ── Animated smoke stage — one GlassCard level per instance ──────
+// ── Animated smoke stage — one SurfaceContainer level per instance ──────
 
 function GlassStage({ width = 480, height = 320, level = 'Mid' }) {
   return (
@@ -347,7 +347,7 @@ function GlassStage({ width = 480, height = 320, level = 'Mid' }) {
       boxShadow: '0 0 0 1px rgba(var(--overlay-rgb),0.07)',
     }}>
       <AnimatedSmokeLayer />
-      <GlassCard
+      <SurfaceContainer
         level={level}
         style={{
           position: 'relative',
@@ -381,7 +381,7 @@ const GLASS_THUMB_SCALE = 0.45
 const STAGE_W = 480
 const STAGE_H = 320
 
-function GlassContainerThumbnail({ label, desc, level, onPreview }) {
+function SurfaceContainerThumbnail({ label, desc, level, onPreview }) {
   const tw = Math.round(STAGE_W * GLASS_THUMB_SCALE)
   const th = Math.round(STAGE_H * GLASS_THUMB_SCALE)
   return (
@@ -563,14 +563,14 @@ function FormFieldsShowcase() {
         }}>
           <AnimatedSmokeLayer />
           <div style={{ position: 'relative', zIndex: 1, padding: 16 }}>
-            <GlassCard level="Low" style={{ padding: '14px 16px' }}>
+            <SurfaceContainer level="Low" style={{ padding: '14px 16px' }}>
               <TitleDescription
                 name={name} onNameChange={setName} namePlaceholder="Workout name"
                 description={desc} onDescriptionChange={setDesc} descriptionPlaceholder="Add a description…"
               />
               <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '11px 0' }} />
               <TagField tags={tags} onOpen={() => setOpen(true)} />
-            </GlassCard>
+            </SurfaceContainer>
           </div>
           <TagPickerSheet open={open} onClose={() => setOpen(false)} tags={tags} onChange={setTags} presets={SHOWCASE_TAG_PRESETS} />
         </div>

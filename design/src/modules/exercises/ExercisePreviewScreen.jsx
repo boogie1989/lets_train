@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
-import { Button, GlassCard, IconButton, SectionLabel } from '../../components/index.js'
+import { Button, SurfaceContainer, IconButton, SectionLabel } from '../../components/index.js'
 
 const stepTint = ch => `linear-gradient(160deg, rgba(var(${ch}),0.22) 0%, rgba(var(${ch}),0.04) 100%), var(--cs-surface-container)`
 const MEDIA = [
@@ -90,7 +90,7 @@ export default function ExercisePreviewScreen() {
         </div>
 
         {/* Quick stats */}
-        <GlassCard level="Low" style={{
+        <SurfaceContainer level="Low" style={{
           display: 'flex', alignItems: 'center', justifyContent: 'space-around',
           padding: '12px 8px',
         }}>
@@ -99,7 +99,7 @@ export default function ExercisePreviewScreen() {
           <StatItem icon={<EquipmentIcon />} label="3 items" />
           <Divider />
           <StatItem icon={<SetsIcon />} label="3–5 sets" />
-        </GlassCard>
+        </SurfaceContainer>
 
         {/* Instructions */}
         <Block title="Instructions">

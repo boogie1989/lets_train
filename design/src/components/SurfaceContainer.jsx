@@ -9,7 +9,7 @@ const LEVELS = {
   High: { bg: 'var(--glass-high-bg)', blur: 32, border: 'rgba(var(--overlay-rgb),0.08)', shadow: 'var(--shadow-glass-high)' },
 }
 
-export default function GlassCard({ level = 'Mid', children, style: extra, ...rest }) {
+export default function SurfaceContainer({ level = 'Mid', children, style: extra, ...rest }) {
   const { bg, blur, border, shadow } = LEVELS[level]
   return (
     <div

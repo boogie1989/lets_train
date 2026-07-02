@@ -10,7 +10,7 @@ The user's account tab — identity, very-basic workout + nutrition stats, and a
 
 ## Structure (top → bottom)
 1. **Glass-slab header** (`NavBar`): "Profile" + a settings gear (stub).
-2. **Identity hero** (`GlassCard`):
+2. **Identity hero** (`SurfaceContainer`):
    - **Authed:** gradient-ring avatar with initials · name · email · plan chip · edit button.
    - **Anon:** muted glyph avatar · "You're a guest" · sync pitch · **Create account** (primary) + **Log in** (ghost).
 3. **Workouts · this week** card: 3 `StatTile`s (Workouts / Streak / Active time) + a 7-bar `WeekBars` mini-chart.
@@ -25,7 +25,7 @@ For the **anonymous** state the stat values render muted as `—` (and bars/macr
 - All colors are tokens (`var(--…)` / `rgba(var(--…-rgb), α)`) — works in dark + light, no hardcoded colors (see [[feedback_color_tokens]]).
 
 ## Shared deps
-`../../components`: `PhoneFrame`, `StatusBar`, `NavBar`, `GlassCard`. Icons local. Reuses `--gradient-slate-accent`, category channels (`--cat-*-rgb`), `--cs-tertiary` for nutrition.
+`../../components`: `PhoneFrame`, `StatusBar`, `NavBar`, `SurfaceContainer`. Icons local. Reuses `--gradient-slate-accent`, category channels (`--cat-*-rgb`), `--cs-tertiary` for nutrition.
 
 ## Scope
 Static demo user + stats. Auth is a local state toggle (no real backend). Settings / Edit / Help rows are stubs.

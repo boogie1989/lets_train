@@ -6,7 +6,7 @@ const descSt = { ...TT, fontSize: 'var(--tt-body-small-size)', lineHeight: 'var(
 
 /**
  * Shared title + description form fields (name input · hairline · description textarea).
- * Render inside a GlassCard. Used by Workout Builder and Meal Builder.
+ * Render inside a SurfaceContainer. Used by Workout Builder and Meal Builder.
  */
 export default function TitleDescription({
   name, onNameChange, namePlaceholder = 'Name',

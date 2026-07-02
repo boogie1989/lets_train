@@ -24,7 +24,7 @@ A unified browse hub for the app's content libraries — **Exercises, Workouts, 
 The shell's `matchItem` + `FilterControl` are fully generic — they read the active config. Filter/search state resets when switching library.
 
 ## Reuse / consistency
-Glass-slab header recipe, quick-chip style, **filter-sheet overlay** (slides over the list, doesn't shrink it), and **selection-bar** pattern are all mirrored from `../exercises/ExerciseSearchScreen.jsx`. Uses shared `SearchInput`, `GlassCard`, `StatusBar`, `PhoneFrame` and `tokens.css`. Slate accent, dark only.
+Glass-slab header recipe, quick-chip style, **filter-sheet overlay** (slides over the list, doesn't shrink it), and **selection-bar** pattern are all mirrored from `../exercises/ExerciseSearchScreen.jsx`. Uses shared `SearchInput`, `SurfaceContainer`, `StatusBar`, `PhoneFrame` and `tokens.css`. Slate accent, dark only.
 
 ## Relationship to the `exercises` module
 This **coexists** with `../exercises/` (the add-to-workout picker flow with its own edit/group overlay). Libraries is the general browse hub + a reusable picker (`mode='multi'|'single'`). If flows converge later, the exercises picker could be re-expressed as `<LibrariesScreen initialLibrary="exercises" mode="multi" />`.

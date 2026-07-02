@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, Fragment } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import NavBar from '../../components/NavBar.jsx'
-import GlassCard from '../../components/GlassCard.jsx'
+import SurfaceContainer from '../../components/SurfaceContainer.jsx'
 import DropdownMenu from '../../components/DropdownMenu.jsx'
 import FabMenu from '../../components/FabMenu.jsx'
 import IconButton from '../../components/IconButton.jsx'
@@ -736,7 +736,7 @@ function WorkoutDefaultsCard({ defaults, setDefaults }) {
   )
 
   return (
-    <GlassCard level="Low" style={{ padding: '12px 16px 6px', marginBottom: 14 }}>
+    <SurfaceContainer level="Low" style={{ padding: '12px 16px 6px', marginBottom: 14 }}>
       <SectionLabel style={{ margin: '0 0 2px' }}>Workout defaults</SectionLabel>
       {row('w', 'Load unit', defaults.weightUnit,
         <UnitListPopover options={WEIGHT_UNITS} value={defaults.weightUnit}
@@ -753,7 +753,7 @@ function WorkoutDefaultsCard({ defaults, setDefaults }) {
       {row('rg', 'Rest between exercises', fmtRest(defaults.restGap),
         <RestPickerPopover align="right" value={defaults.restGap}
           onChange={v => upd({ restGap: v })} onClose={close} />)}
-    </GlassCard>
+    </SurfaceContainer>
   )
 }
 
@@ -1259,7 +1259,7 @@ function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit, onDuplicat
   if (!ex) return null
 
   return (
-    <GlassCard level="Low" style={{ display: 'flex', overflow: lifted ? 'visible' : 'hidden', position: 'relative', zIndex: lifted ? 30 : 'auto' }}>
+    <SurfaceContainer level="Low" style={{ display: 'flex', overflow: lifted ? 'visible' : 'hidden', position: 'relative', zIndex: lifted ? 30 : 'auto' }}>
       <div style={{ width: 4, flexShrink: 0, background: 'var(--cs-primary)', opacity: 0.55, borderRadius: 'var(--radius-2xl) 0 0 var(--radius-2xl)' }} />
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* Header (tap to expand) */}
@@ -1303,7 +1303,7 @@ function SoloCard({ item, open, onToggle, onChange, onDelete, onEdit, onDuplicat
           </div>
         </Expandable>
       </div>
-    </GlassCard>
+    </SurfaceContainer>
   )
 }
 
@@ -1525,14 +1525,14 @@ export default function WorkoutBuilderScreen({ initialStep = 'list' }) {
 
         <div style={{ flex: 1, overflowY: 'auto', padding: '12px 16px 90px' }}>
           {/* Workout details card — name · description · tags grouped as a form */}
-          <GlassCard level="Low" style={{ padding: '14px 16px', marginBottom: 14 }}>
+          <SurfaceContainer level="Low" style={{ padding: '14px 16px', marginBottom: 14 }}>
             <TitleDescription
               name={workoutName} onNameChange={setWorkoutName} namePlaceholder="Workout name"
               description={description} onDescriptionChange={setDescription} descriptionPlaceholder="Add a description…"
             />
             <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '11px 0' }} />
             <TagField tags={tags} onOpen={() => setTagDialogOpen(true)} />
-          </GlassCard>
+          </SurfaceContainer>
 
           {/* Workout defaults — base units + rests that sets/exercises inherit */}
           <WorkoutDefaultsCard defaults={defaults} setDefaults={setDefaults} />

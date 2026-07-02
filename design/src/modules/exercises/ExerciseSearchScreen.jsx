@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import SearchInput from '../../components/SearchInput.jsx'
-import { GlassCard, IconButton, SectionLabel } from '../../components/index.js'
+import { SurfaceContainer, IconButton, SectionLabel } from '../../components/index.js'
 
 
 const EXERCISES = [
@@ -238,7 +238,7 @@ export default function ExerciseSearchScreen() {
         ) : results.map(ex => {
           const isSel = selected.has(ex.id)
           return (
-            <GlassCard key={ex.id} level="Low" onClick={() => toggleSelect(ex.id)}
+            <SurfaceContainer key={ex.id} level="Low" onClick={() => toggleSelect(ex.id)}
               style={{
                 display: 'flex', overflow: 'hidden', cursor: 'pointer',
                 ...(isSel && { background: 'rgba(var(--cs-primary-rgb),0.14)' }),
@@ -269,7 +269,7 @@ export default function ExerciseSearchScreen() {
                 </div>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: DIFF_COLORS[ex.difficulty] ?? 'var(--cs-on-surface-variant)', opacity: 0.75 }} />
               </div>
-            </GlassCard>
+            </SurfaceContainer>
           )
         })}
       </div>
@@ -532,14 +532,14 @@ export default function ExerciseSearchScreen() {
                   ? <div style={{ width: 22, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, cursor: 'grab' }}><DragHandleIcon /></div>
                   : <RowCheckbox checked={checked} onChange={() => toggleCheckedId(entry.id)} />
                 return (
-                  <GlassCard key={entry.id} level="Low" style={{
+                  <SurfaceContainer key={entry.id} level="Low" style={{
                     display: 'flex', overflow: 'hidden',
                     ...(checked && { background: 'rgba(var(--cs-primary-rgb),0.14)' }),
                     transition: 'background 0.15s',
                   }}>
                     <div style={{ width: 5, flexShrink: 0, background: checked ? 'var(--cs-primary)' : 'transparent', transition: 'background 0.15s' }} />
                     <ExerciseRow id={entry.id} leading={leading} />
-                  </GlassCard>
+                  </SurfaceContainer>
                 )
               }
               const groupKey = entry.ids.join('-')

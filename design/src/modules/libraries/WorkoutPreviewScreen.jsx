@@ -1,6 +1,6 @@
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
-import GlassCard from '../../components/GlassCard.jsx'
+import SurfaceContainer from '../../components/SurfaceContainer.jsx'
 import SectionLabel from '../../components/SectionLabel.jsx'
 import workoutsConfig from './configs/workouts.jsx'
 import ReadonlyExerciseList, { buildSampleContent } from './ReadonlyExerciseList.jsx'
@@ -41,13 +41,13 @@ export function WorkoutPreviewView({ workout = DEFAULT_WORKOUT, onClose, cta = '
           <span style={{ ...TT, padding: '5px 12px', borderRadius: 'var(--radius-2xl)', flexShrink: 0, background: d.bg, border: `1px solid ${d.border}`, fontSize: 12, fontWeight: 500, color: d.color }}>{workout.difficulty}</span>
         </div>
 
-        <GlassCard level="Low" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '12px 8px' }}>
+        <SurfaceContainer level="Low" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '12px 8px' }}>
           <Stat label="Focus" value={workout.focus} />
           <Divider />
           <Stat label="Exercises" value={workout.exercises} />
           <Divider />
           <Stat label="Duration" value={`~${workout.minutes}m`} />
-        </GlassCard>
+        </SurfaceContainer>
 
         {workout.tags?.length > 0 && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>

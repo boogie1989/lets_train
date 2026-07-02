@@ -2,7 +2,7 @@ import { useState } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import NavBar from '../../components/NavBar.jsx'
-import GlassCard from '../../components/GlassCard.jsx'
+import SurfaceContainer from '../../components/SurfaceContainer.jsx'
 import { IconButton, SectionLabel } from '../../components/index.js'
 import { GearIcon, UserGlyph, DumbbellIcon, FlameIcon, ClockIcon, ChevRightIcon, EditIcon, HelpIcon, LogOutIcon } from './icons.jsx'
 
@@ -98,7 +98,7 @@ export default function ProfileScreen({ initialAuthed = true }) {
         <div style={{ flex: 1, overflowY: 'auto', padding: '14px 16px 28px' }}>
 
           {/* ── Identity hero (anon vs authed) ── */}
-          <GlassCard level="Low" style={{ padding: authed ? '16px' : '22px 16px 16px', marginBottom: 18 }}>
+          <SurfaceContainer level="Low" style={{ padding: authed ? '16px' : '22px 16px 16px', marginBottom: 18 }}>
             {authed ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                 <Avatar authed />
@@ -118,22 +118,22 @@ export default function ProfileScreen({ initialAuthed = true }) {
                 <button onClick={() => setAuthed(true)} style={{ ...ghostBtnSt, width: '100%', height: 46, borderRadius: 'var(--radius-2xl)', fontSize: 14, marginTop: 8 }}>Log in</button>
               </div>
             )}
-          </GlassCard>
+          </SurfaceContainer>
 
           {/* ── Workout stats ── */}
           <SectionLabel style={sectionLabelSt}>Workouts · this week</SectionLabel>
-          <GlassCard level="Low" style={{ padding: 14, marginBottom: 18 }}>
+          <SurfaceContainer level="Low" style={{ padding: 14, marginBottom: 18 }}>
             <div style={{ display: 'flex', gap: 10, marginBottom: 14 }}>
               <StatTile icon={<DumbbellIcon />} ch="--cs-primary-rgb" value={WK.workouts} label="Workouts" muted={!authed} />
               <StatTile icon={<FlameIcon />} ch="--cat-amber-rgb" value={`${WK.streak}d`} label="Streak" muted={!authed} />
               <StatTile icon={<ClockIcon />} ch="--cat-blue-rgb" value={WK.time} label="Active time" muted={!authed} />
             </div>
             <WeekBars bars={WK.bars} muted={!authed} />
-          </GlassCard>
+          </SurfaceContainer>
 
           {/* ── Nutrition stats ── */}
           <SectionLabel style={sectionLabelSt}>Nutrition · today</SectionLabel>
-          <GlassCard level="Low" style={{ padding: 16, marginBottom: authed ? 18 : 6 }}>
+          <SurfaceContainer level="Low" style={{ padding: 16, marginBottom: authed ? 18 : 6 }}>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
                 <span style={{ ...TT, fontSize: 28, fontWeight: 500, lineHeight: 1, color: authed ? 'var(--cs-on-surface)' : 'var(--cs-on-surface-variant)', opacity: authed ? 1 : 0.5 }}>{authed ? NUT.kcal.toLocaleString() : '—'}</span>
@@ -149,13 +149,13 @@ export default function ProfileScreen({ initialAuthed = true }) {
               <MacroBar label="Carbs" g={NUT.c} ch="--cat-amber-rgb" total={macroTotal} muted={!authed} />
               <MacroBar label="Fat" g={NUT.f} ch="--cat-pink-rgb" total={macroTotal} muted={!authed} />
             </div>
-          </GlassCard>
+          </SurfaceContainer>
 
           {/* ── Account (authed) / sign-in nudge (anon) ── */}
           {authed ? (
             <>
               <SectionLabel style={sectionLabelSt}>Account</SectionLabel>
-              <GlassCard level="Low" style={{ padding: 4, overflow: 'hidden' }}>
+              <SurfaceContainer level="Low" style={{ padding: 4, overflow: 'hidden' }}>
                 <AccountRow icon={<EditIcon />} label="Edit profile" onClick={() => {}} />
                 <Divider />
                 <AccountRow icon={<GearIcon size={16} />} label="Settings" onClick={() => {}} />
@@ -163,7 +163,7 @@ export default function ProfileScreen({ initialAuthed = true }) {
                 <AccountRow icon={<HelpIcon />} label="Help & support" onClick={() => {}} />
                 <Divider />
                 <AccountRow icon={<LogOutIcon />} label="Log out" danger onClick={() => setAuthed(false)} />
-              </GlassCard>
+              </SurfaceContainer>
             </>
           ) : (
             <p style={{ ...TT, textAlign: 'center', fontSize: 11.5, lineHeight: 1.5, color: 'var(--cs-on-surface-variant)', opacity: 0.45, margin: '8px 12px 0' }}>

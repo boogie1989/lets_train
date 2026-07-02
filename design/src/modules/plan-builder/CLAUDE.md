@@ -32,7 +32,7 @@ All ops are **pure** (take `plan`, return a new `plan`); the screen holds `plan`
 ## Reuse
 - **Add picker = `LibrariesView`** mounted full-overlay: workouts/meals `mode='multi'`, `lockLibrary` hides the switcher; `onConfirm(ids)` appends to the day, `onClose` dismisses.
 - **Item preview = `WorkoutPreviewView` / `MealPreviewView`** (from `../libraries/`) — opened as an overlay when tapping an added workout/meal.
-- Shared `Segmented` (`components/Segmented.jsx`) for the Level control; `NavBar`, `GlassCard`, `StatusBar`, `PhoneFrame`, tokens. Details card + week sheet mirror `workout-builder`.
+- Shared `Segmented` (`components/Segmented.jsx`) for the Level control; `NavBar`, `SurfaceContainer`, `StatusBar`, `PhoneFrame`, tokens. Details card + week sheet mirror `workout-builder`.
 - Control radii match the list tiles (`radius-2xl`); grid day-cells stay at `radius-lg`.
 
 ## Scope

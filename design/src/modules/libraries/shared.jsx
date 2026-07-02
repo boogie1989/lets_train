@@ -1,6 +1,6 @@
 // Shared primitives + styles for the Libraries module (used by the shell and
 // every library config). No imports from configs — keeps the graph acyclic.
-import GlassCard from '../../components/GlassCard.jsx'
+import SurfaceContainer from '../../components/SurfaceContainer.jsx'
 import SectionLabel from '../../components/SectionLabel.jsx'
 import { ThumbGlyph } from './icons.jsx'
 
@@ -17,12 +17,12 @@ export const THUMB_COLORS = {
   meal: thumbTint('--cs-tertiary-rgb'), plan: thumbTint('--cat-violet-rgb'), workout: thumbTint('--cat-blue-rgb'),
 }
 
-// ── Card chrome — GlassCard + accent strip + selected highlight ──────────────
+// ── Card chrome — SurfaceContainer + accent strip + selected highlight ──────────────
 // Library cards differ only in their inner content; the chrome is shared so
 // the selection visuals (multi/single) live in one place.
 export function Card({ accent = 'transparent', selected = false, onClick, children }) {
   return (
-    <GlassCard level="Low" onClick={onClick} style={{
+    <SurfaceContainer level="Low" onClick={onClick} style={{
       display: 'flex', overflow: 'hidden', cursor: 'pointer',
       ...(selected && { background: 'rgba(var(--cs-primary-rgb),0.14)' }),
       transition: 'background 0.15s',
@@ -31,7 +31,7 @@ export function Card({ accent = 'transparent', selected = false, onClick, childr
       <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12, padding: '13px 14px' }}>
         {children}
       </div>
-    </GlassCard>
+    </SurfaceContainer>
   )
 }
 

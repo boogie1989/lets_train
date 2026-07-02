@@ -2,7 +2,7 @@ import { useState } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import NavBar from '../../components/NavBar.jsx'
-import GlassCard from '../../components/GlassCard.jsx'
+import SurfaceContainer from '../../components/SurfaceContainer.jsx'
 import IconButton from '../../components/IconButton.jsx'
 import SectionLabel from '../../components/SectionLabel.jsx'
 import FabMenu from '../../components/FabMenu.jsx'
@@ -73,7 +73,7 @@ export default function MealBuilderScreen({ initialStep = 'edit' }) {
           </button>
 
           {/* ── Details ── */}
-          <GlassCard level="Low" style={{ padding: '14px 16px', margin: '14px 0' }}>
+          <SurfaceContainer level="Low" style={{ padding: '14px 16px', margin: '14px 0' }}>
             <TitleDescription
               name={meal.name} onNameChange={v => up({ name: v })} namePlaceholder="Meal name"
               description={meal.description} onDescriptionChange={v => up({ description: v })} descriptionPlaceholder="Add a short description…"
@@ -93,10 +93,10 @@ export default function MealBuilderScreen({ initialStep = 'edit' }) {
 
             <div style={{ height: 1, background: 'rgba(var(--overlay-rgb),0.06)', margin: '0 0 14px' }} />
             <TagField tags={meal.tags} onOpen={() => setTagOpen(true)} />
-          </GlassCard>
+          </SurfaceContainer>
 
           {/* ── Nutrition (auto) ── */}
-          <GlassCard level="Low" style={{ padding: 16, marginBottom: 18 }}>
+          <SurfaceContainer level="Low" style={{ padding: 16, marginBottom: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
               <span style={{ ...TT, fontSize: 13, fontWeight: 500, color: 'var(--cs-on-surface)' }}>Nutrition</span>
               <div style={{ display: 'flex', gap: 2, padding: 2, borderRadius: 'var(--radius-2xl)', background: 'rgba(var(--overlay-rgb),0.05)', border: '1px solid rgba(var(--overlay-rgb),0.08)' }}>
@@ -125,7 +125,7 @@ export default function MealBuilderScreen({ initialStep = 'edit' }) {
                 )
               })}
             </div>
-          </GlassCard>
+          </SurfaceContainer>
 
           {/* ── Ingredients ── */}
           <SectionLabel count={meal.ingredients.length} style={{ display: 'flex', margin: '0 2px 10px' }}>Ingredients</SectionLabel>
@@ -146,14 +146,14 @@ export default function MealBuilderScreen({ initialStep = 'edit' }) {
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginBottom: 12 }}>
             {meal.steps.map((s, i) => (
-              <GlassCard level="Low" key={i} draggable onDragStart={() => setDragStep(i)} onDragEnter={() => { if (dragStep != null && dragStep !== i) { setMeal(m => M.moveStep(m, dragStep, i)); setDragStep(i) } }} onDragOver={e => e.preventDefault()} onDrop={() => setDragStep(null)}
+              <SurfaceContainer level="Low" key={i} draggable onDragStart={() => setDragStep(i)} onDragEnter={() => { if (dragStep != null && dragStep !== i) { setMeal(m => M.moveStep(m, dragStep, i)); setDragStep(i) } }} onDragOver={e => e.preventDefault()} onDrop={() => setDragStep(null)}
                 style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '11px 10px 11px 8px' }}>
                 <span style={{ color: 'rgba(var(--cs-primary-rgb),0.4)', flexShrink: 0, marginTop: 4 }}><GripIcon /></span>
                 <span style={{ width: 24, height: 24, flexShrink: 0, marginTop: 1, borderRadius: '50%', border: '1.5px solid rgba(var(--cs-primary-rgb),0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', ...TT, fontSize: 11, fontWeight: 500, color: 'var(--cs-primary)' }}>{i + 1}</span>
                 <textarea value={s} onChange={e => setMeal(m => M.updateStep(m, i, e.target.value))} placeholder="Describe this step…" rows={2}
                   style={{ ...TT, flex: 1, minWidth: 0, fontSize: 13, lineHeight: 1.5, color: 'var(--cs-on-surface)', background: 'none', border: 'none', outline: 'none', resize: 'none', padding: '2px 0' }} />
                 <button onClick={() => setMeal(m => M.removeStep(m, i))} style={{ width: 26, height: 26, borderRadius: 'var(--radius-sm)', flexShrink: 0, padding: 0, background: 'none', border: 'none', cursor: 'pointer', color: 'rgba(var(--cs-primary-rgb),0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><XIcon size={12} /></button>
-              </GlassCard>
+              </SurfaceContainer>
             ))}
           </div>
           <button onClick={() => setMeal(m => M.addStep(m))} style={addBtnSt}><PlusIcon size={12} /> Add step</button>
@@ -195,7 +195,7 @@ export default function MealBuilderScreen({ initialStep = 'edit' }) {
 // ── ingredient row (collapsed summary → expandable editor) ──
 function IngredientRow({ ing, open, onToggle, onChange, onRemove, ...drag }) {
   return (
-    <GlassCard level="Low" {...drag} onDragOver={e => e.preventDefault()} style={{ overflow: 'hidden', transition: 'box-shadow 0.2s' }}>
+    <SurfaceContainer level="Low" {...drag} onDragOver={e => e.preventDefault()} style={{ overflow: 'hidden', transition: 'box-shadow 0.2s' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 8px 11px 8px' }}>
         <span style={{ color: 'rgba(var(--cs-primary-rgb),0.4)', flexShrink: 0, padding: '0 2px' }}><GripIcon /></span>
         <button onClick={onToggle} style={{ flex: 1, minWidth: 0, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -236,7 +236,7 @@ function IngredientRow({ ing, open, onToggle, onChange, onRemove, ...drag }) {
           </div>
         </div>
       </div>
-    </GlassCard>
+    </SurfaceContainer>
   )
 }
 

@@ -20,7 +20,7 @@ Playbook shows: Choice, Preview, Countdown, Running, Rest, Timer, Done.
 - Primary action button: `var(--cs-primary)` + top-light gradient + inner highlight + slate glow.
 
 ## Shared deps
-`../../components`: `PhoneFrame`, `StatusBar`, `NavBar`, `GlassCard`, `DateCell`, `TaskItem`. Icons are local to the screen.
+`../../components`: `PhoneFrame`, `StatusBar`, `NavBar`, `SurfaceContainer`, `DateCell`, `TaskItem`. Icons are local to the screen.
 
 ## Scope
 Static/mock timers (driven by `useEffect` setTimeout). Slate accent, dark only.

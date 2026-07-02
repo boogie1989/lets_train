@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import GlassCard from '../../components/GlassCard.jsx'
+import SurfaceContainer from '../../components/SurfaceContainer.jsx'
 import IconButton from '../../components/IconButton.jsx'
 import { DAYS, cellInfo, cellHasMeals, getWorkout, getMeal, FOCUS_COLORS } from './planModel.js'
 import { DotsIcon, PlusIcon, XIcon, GripIcon } from './icons.jsx'
@@ -75,7 +75,7 @@ function DayPanel({ plan, week, day, on }) {
     .filter(x => x.data)
 
   return (
-    <GlassCard level="Low" style={{ padding: '14px 14px 16px', marginTop: 8 }}>
+    <SurfaceContainer level="Low" style={{ padding: '14px 14px 16px', marginTop: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px' }}>
         <p style={{ ...TT, flex: 1, fontSize: 13, fontWeight: 500, color: 'var(--cs-on-surface)', margin: 0 }}>
           {DAY_FULL[day]} <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--cs-on-surface-variant)', opacity: 0.55 }}>· Week {week + 1}</span>
@@ -101,7 +101,7 @@ function DayPanel({ plan, week, day, on }) {
         <button onClick={() => on.addWorkout(week, day)} style={addBtnSt}><PlusIcon size={12} /> Workout</button>
         <button onClick={() => on.addMeal(week, day)} style={addBtnSt}><PlusIcon size={12} /> Meal</button>
       </div>
-    </GlassCard>
+    </SurfaceContainer>
   )
 }
 

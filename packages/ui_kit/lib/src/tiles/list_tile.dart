@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:ui_kit/src/containers/surface_container/surface_container.dart';
 
 class MyWidget extends StatelessWidget {
   const MyWidget({super.key});
@@ -54,10 +55,9 @@ class ListTileBase extends ListTile {
 
   @override
   Widget build(BuildContext context) {
-    // return SurfaceContainer(
-    //   level: SurfaceLevel.low,
-    //   child: super.build(context),
-    // );
-    return super.build(context);
+    return SurfaceContainer(
+      level: SurfaceLevel.low,
+      child: super.build(context),
+    );
   }
 }

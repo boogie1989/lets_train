@@ -19,13 +19,15 @@ class ScreenBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: <Widget>[
-        // ColoredBox(color: context.screenBackground.baseColor),
-        const ScreenShaderBackground(),
-        child,
-      ],
+    return ColoredBox(
+      color: ScreenBackgroundExtension.of(context).baseColor,
+      child: Stack(
+        fit: StackFit.expand,
+        children: <Widget>[
+          const ScreenShaderBackground(),
+          child,
+        ],
+      ),
     );
   }
 }

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import PhoneFrame from '../../components/PhoneFrame.jsx'
 import StatusBar from '../../components/StatusBar.jsx'
 import NavBar from '../../components/NavBar.jsx'
-import GlassCard from '../../components/GlassCard.jsx'
+import SurfaceContainer from '../../components/SurfaceContainer.jsx'
 import DateCell from '../../components/DateCell.jsx'
 import TaskItem from '../../components/TaskItem.jsx'
 import { IconButton, SectionLabel } from '../../components/index.js'
@@ -401,7 +401,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
               if (item.type === 'solo') {
                 const ex = DEMO_EXERCISES.find(e => e.id === item.id)
                 return (
-                  <GlassCard key={idx} level="Low" style={{ display: 'flex', overflow: 'hidden' }}>
+                  <SurfaceContainer key={idx} level="Low" style={{ display: 'flex', overflow: 'hidden' }}>
                     <div style={{ width: 5, flexShrink: 0, background: 'var(--cs-primary)', opacity: 0.50 }} />
                     <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px' }}>
                       <div style={{ width: 40, height: 40, borderRadius: 10, flexShrink: 0, background: THUMB_COLORS[ex?.muscle] ?? thumbTint('--cs-primary-rgb'), display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(var(--cs-outline-rgb),0.25)' }}>
@@ -413,7 +413,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
                       </div>
                       <span style={{ ...TT, fontSize: 12, color: 'var(--cs-on-surface-variant)', opacity: 0.45, flexShrink: 0 }}>{item.sets} sets</span>
                     </div>
-                  </GlassCard>
+                  </SurfaceContainer>
                 )
               }
               return (
@@ -557,7 +557,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
               </div>
             )}
 
-            <GlassCard level="Low" style={{ display: 'flex', overflow: 'hidden', flexShrink: 0 }}>
+            <SurfaceContainer level="Low" style={{ display: 'flex', overflow: 'hidden', flexShrink: 0 }}>
               <div style={{ width: 5, flexShrink: 0, background: 'var(--cs-primary)' }} />
               <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 12, padding: '14px 14px' }}>
                 <div style={{ width: 48, height: 48, borderRadius: 12, flexShrink: 0, background: THUMB_COLORS[currentEx?.muscle] ?? thumbTint('--cs-primary-rgb'), display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid rgba(var(--cs-outline-rgb),0.25)' }}>
@@ -569,7 +569,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
                 </div>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: DIFF_COLORS[currentEx?.difficulty] ?? 'var(--cs-on-surface-variant)', flexShrink: 0 }} />
               </div>
-            </GlassCard>
+            </SurfaceContainer>
 
             {loggedSets.length > 0 && (
               <div>
@@ -838,7 +838,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
               <span style={{ ...TT, fontSize: 24, fontWeight: 500, color: 'var(--cs-on-surface)' }}>Workout Complete!</span>
               <span style={{ ...TT, fontSize: 14, color: 'var(--cs-on-surface-variant)', opacity: 0.50 }}>{DEMO_WORKOUT.title}</span>
             </div>
-            <GlassCard level="Low" style={{ width: '100%', overflow: 'hidden' }}>
+            <SurfaceContainer level="Low" style={{ width: '100%', overflow: 'hidden' }}>
               {[
                 { label: 'Duration',    value: '~24 min'    },
                 { label: 'Exercises',   value: flatExCount  },
@@ -852,7 +852,7 @@ export default function WorkoutRunnerScreen({ initialStep = 'calendar' }) {
                   </div>
                 </div>
               ))}
-            </GlassCard>
+            </SurfaceContainer>
             <button
               onClick={resetAll}
               style={{
