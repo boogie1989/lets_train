@@ -1,4 +1,4 @@
-import 'dart:ui' show ImageFilter;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:ui_kit/src/containers/surface_container/surface_container_theme.dart';
@@ -51,34 +51,39 @@ class SurfaceContainer extends StatelessWidget {
       content = Padding(padding: padding!, child: content);
     }
 
+    Widget body = CustomPaint(
+      foregroundPainter: _InnerTopHighlightPainter(
+        color: style.innerHighlightColor,
+        radius: radius,
+      ),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: style.backgroundColor,
+          borderRadius: radius,
+          border: Border.all(
+            color: style.borderColor,
+            width: theme.borderWidth,
+          ),
+        ),
+        child: content,
+      ),
+    );
+
+    if (level == SurfaceLevel.high) {
+      body = ClipRRect(
+        borderRadius: radius,
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: style.blur, sigmaY: style.blur),
+          child: body,
+        ),
+      );
+    }
     // ContourShadow keeps the elevation ring outside the footprint so the
     // BackdropFilter below samples only the real backdrop, not the shadow.
     return ContourShadow(
       shadows: style.shadows,
       borderRadius: radius,
-      child: ClipRRect(
-        borderRadius: radius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: style.blur, sigmaY: style.blur),
-          child: CustomPaint(
-            foregroundPainter: _InnerTopHighlightPainter(
-              color: style.innerHighlightColor,
-              radius: radius,
-            ),
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                color: style.backgroundColor,
-                borderRadius: radius,
-                border: Border.all(
-                  color: style.borderColor,
-                  width: theme.borderWidth,
-                ),
-              ),
-              child: content,
-            ),
-          ),
-        ),
-      ),
+      child: body,
     );
   }
 }

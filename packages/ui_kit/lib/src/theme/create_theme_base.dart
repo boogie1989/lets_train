@@ -18,6 +18,10 @@ ThemeData createThemeBase(
     surfaceTintColor: Colors.transparent,
   );
 
+  const listTileTheme = ListTileThemeData(
+    minTileHeight: 75,
+  );
+
   return ThemeData(
     useMaterial3: true,
     colorScheme: colorScheme,
@@ -25,6 +29,7 @@ ThemeData createThemeBase(
     scaffoldBackgroundColor: scaffoldBackgroundColor,
     textTheme: textTheme,
     appBarTheme: appBarTheme,
+    listTileTheme: listTileTheme,
     extensions: {
       if (isDark) ...[
         ScreenBackgroundExtension.dark(),
