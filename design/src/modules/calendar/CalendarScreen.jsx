@@ -162,9 +162,10 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
         <StatusBar />
 
         <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 18 }}>
-          {/* Top Bar */}
-          <div style={{ height: 56, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <button onClick={() => setMenuOpen(true)} style={{ ...iconBtn, cursor: 'pointer' }} aria-label="Open menu">
+          {/* Top Bar — grid (1fr auto 1fr) keeps the title optically centered
+              regardless of whether the right-side Today button is present */}
+          <div style={{ height: 56, display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
+            <button onClick={() => setMenuOpen(true)} style={{ ...iconBtn, cursor: 'pointer', justifySelf: 'start' }} aria-label="Open menu">
               <MenuIcon />
             </button>
 
@@ -196,8 +197,22 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
               </button>
             </div>
 
-            <div style={iconBtn}>
-              <SettingsIcon />
+            {/* Today — text pill in the right cell; shown only off-today. The grid
+                keeps the title centered when it's absent, so no spacer is needed.
+                Text + return arrow reads as an action, not a status label. */}
+            <div style={{ justifySelf: 'end' }}>
+              {!isToday && (
+                <button onClick={() => selectDay(TODAY)} aria-label="Jump to today" style={{
+                  ...TT, display: 'inline-flex', alignItems: 'center', gap: 6,
+                  height: 38, padding: '0 14px', borderRadius: 'var(--radius-pill)', cursor: 'pointer',
+                  background: 'rgba(var(--cs-primary-rgb),0.14)',
+                  border: '1px solid rgba(var(--cs-primary-rgb),0.30)',
+                  color: 'var(--cs-primary)',
+                  fontSize: 13, fontWeight: 500,
+                }}>
+                  <ReturnIcon /> Today
+                </button>
+              )}
             </div>
           </div>
 
@@ -261,17 +276,6 @@ export default function CalendarScreen({ initialDay = TODAY, initialMonthOpen = 
           }}>
             {WEEKDAY_FULL[day.weekday]}, {dateLabel(selected)}
           </span>
-          {!isToday && (
-            <button onClick={() => selectDay(TODAY)} style={{
-              ...TT, fontSize: 11, fontWeight: 500, padding: '4px 12px', cursor: 'pointer',
-              borderRadius: 'var(--radius-pill)',
-              background: 'rgba(var(--overlay-rgb),0.05)',
-              border: '1px solid rgba(var(--cs-outline-rgb),0.25)',
-              color: 'var(--cs-on-surface-variant)',
-            }}>
-              Today
-            </button>
-          )}
         </div>
 
         {/* readiness — interactive check-in today, read-only history on past days */}
@@ -447,6 +451,10 @@ function ChevR() {
 function ChevDown() {
   return <svg width="12" height="12" viewBox="0 0 24 24" {...glyph}><polyline points="6 9 12 15 18 9" /></svg>
 }
+function ReturnIcon() {
+  // curved return arrow — signals "jump back to today", reads as an action
+  return <svg width="15" height="15" viewBox="0 0 24 24" {...glyph}><polyline points="9 14 4 9 9 4" /><path d="M20 20v-5a4 4 0 0 0-4-4H4" /></svg>
+}
 
 function MenuIcon() {
   return (
@@ -455,16 +463,6 @@ function MenuIcon() {
       <line x1="3" y1="7" x2="21" y2="7" />
       <line x1="3" y1="12" x2="21" y2="12" />
       <line x1="3" y1="17" x2="21" y2="17" />
-    </svg>
-  )
-}
-
-function SettingsIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-      stroke="var(--cs-on-surface)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   )
 }

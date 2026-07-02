@@ -55,7 +55,9 @@
       "Bash(perl -0pi -e \"s/\\\\s*backdropFilter:\\\\s*'blur\\\\\\([^\\)]*\\\\\\)',//g; s/\\\\s*WebkitBackdropFilter:\\\\s*'blur\\\\\\([^\\)]*\\\\\\)',//g;\" SelectDialog.jsx DropdownMenu.jsx MultiSelectDialog.jsx NavBar.jsx ConfirmDialog.jsx)",
       "Bash(grep -nE '#[0-9a-fA-F]{3,8}' src/modules/profile/ProfileScreen.jsx)",
       "Bash(fvm flutter *)",
-      "Bash(fvm dart *)"
+      "Bash(fvm dart *)",
+      "Bash(dart format *)",
+      "Bash(dart analyze *)"
     ],
     "additionalDirectories": [
       "/tmp",

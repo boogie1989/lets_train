@@ -1,8 +1,8 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:ui_kit/src/containers/screen_background/variants/screen_smoke_field.dart';
+import 'package:ui_kit/src/containers/screen_background/widgets/screen_smoke_field.dart';
+import 'package:ui_kit/src/theme/theme.dart';
 
 /// GPU shader smoke background — the animated, single-draw-call variant.
 ///
@@ -15,7 +15,7 @@ class ScreenShaderBackground extends StatefulWidget {
   const ScreenShaderBackground({
     super.key,
     this.opacity = 1.0,
-    this.speed = .5,
+    this.speed = 1,
   });
 
   /// Multiplier over each sphere's keyframe opacity (1 = identical to gradient).
@@ -34,14 +34,15 @@ class _ScreenShaderBackgroundState extends State<ScreenShaderBackground>
       'packages/ui_kit/shaders/screen_shader_background.frag';
 
   ui.FragmentShader? _shader;
-  late final Ticker _ticker;
+  late final _ticker = createTicker(_onTick);
   double _elapsedSeconds = 0;
 
   @override
   void initState() {
     super.initState();
-    _ticker = createTicker(_onTick);
-    _loadShader();
+    _loadShader().then((_) {
+      _ticker.start();
+    });
   }
 
   Future<void> _loadShader() async {
@@ -51,7 +52,6 @@ class _ScreenShaderBackgroundState extends State<ScreenShaderBackground>
         return;
       }
       setState(() => _shader = program.fragmentShader());
-      _ticker.start();
     } catch (_) {
       // No shader support / asset missing → render nothing (graceful), the
       // ScreenBackground base color still shows.
@@ -73,17 +73,26 @@ class _ScreenShaderBackgroundState extends State<ScreenShaderBackground>
 
   @override
   Widget build(BuildContext context) {
+    final ScreenBackgroundExtension(:smokeColors, :opacityMultiplier) =
+        ScreenBackgroundExtension.of(context);
+
+    if (smokeColors.length < 6) {
+      return const Offstage();
+    }
+
     final shader = _shader;
     if (shader == null) {
       return const SizedBox.expand();
     }
+
     return IgnorePointer(
       child: CustomPaint(
         size: Size.infinite,
         painter: _ShaderSmokePainter(
           shader: shader,
           time: _elapsedSeconds * widget.speed,
-          opacity: widget.opacity,
+          opacity: widget.opacity * opacityMultiplier,
+          colors: smokeColors,
         ),
       ),
     );
@@ -95,11 +104,13 @@ class _ShaderSmokePainter extends CustomPainter {
     required this.shader,
     required this.time,
     required this.opacity,
+    required this.colors,
   });
 
   final ui.FragmentShader shader;
   final double time;
   final double opacity;
+  final List<Color> colors;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -111,17 +122,19 @@ class _ShaderSmokePainter extends CustomPainter {
     // Uniforms must be set in declaration order (see the .frag): for each
     // sphere a (center.x, center.y, radius, sigma) vec4 then an (r,g,b,opacity)
     // vec4, all pre-scaled to the canvas' logical px (FlutterFragCoord space).
+    // Colors come from the theme (ScreenBackgroundExtension.smokeColors).
     var i = 0;
     for (final blob in smokeBlobsAt(time)) {
       final center = blob.center * scale;
+      final color = colors[blob.colorIndex];
       shader
         ..setFloat(i++, center.dx)
         ..setFloat(i++, center.dy)
         ..setFloat(i++, blob.radius * scale)
         ..setFloat(i++, blob.blur * scale)
-        ..setFloat(i++, blob.color.r)
-        ..setFloat(i++, blob.color.g)
-        ..setFloat(i++, blob.color.b)
+        ..setFloat(i++, color.r)
+        ..setFloat(i++, color.g)
+        ..setFloat(i++, color.b)
         ..setFloat(i++, (blob.opacity * opacity).clamp(0.0, 1.0));
     }
 
@@ -135,5 +148,6 @@ class _ShaderSmokePainter extends CustomPainter {
   bool shouldRepaint(_ShaderSmokePainter oldDelegate) =>
       oldDelegate.time != time ||
       oldDelegate.opacity != opacity ||
+      oldDelegate.colors != colors ||
       oldDelegate.shader != shader;
 }

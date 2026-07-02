@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:ui_kit/src/containers/screen_background/variants/screen_smoke_palette.dart';
 
 /// Shared smoke "field" definition — the single source of truth for sphere
-/// placement and motion used by BOTH [ScreenBackground] variants, so the GPU
-/// shader and the gradient/blur renderer composite an identical layout.
+/// placement and motion used by `ScreenShaderBackground`.
 ///
 /// Ported from design/src/components/AnimatedSmokeLayer.jsx. Coordinates are
-/// authored in px against the [smokeDesignWidth]-wide design frame; each
-/// painter scales them to its own size.
+/// authored in px against the [smokeDesignWidth]-wide design frame; the painter
+/// scales them to its own size. Colors are theme-driven: a [SmokeBlob] carries
+/// only a [SmokeBlob.colorIndex] into `ScreenBackgroundExtension.smokeColors`.
 
 /// One smoke sphere's static placement (px on the design frame).
 class SmokeSphere {
@@ -49,7 +48,7 @@ class SmokeBlob {
     required this.center,
     required this.radius,
     required this.blur,
-    required this.color,
+    required this.colorIndex,
     required this.opacity,
   });
 
@@ -62,7 +61,9 @@ class SmokeBlob {
   /// Blur sigma in design-space px.
   final double blur;
 
-  final Color color;
+  /// Index into `ScreenBackgroundExtension.smokeColors`.
+  final int colorIndex;
+
   final double opacity;
 }
 
@@ -155,7 +156,7 @@ SmokeBlob _blobAt(SmokeSphere sphere, SmokeMotion motion, double time) {
     ),
     radius: sphere.size / 2,
     blur: sphere.blur,
-    color: ScreenSmokePalette.smokeColors[sphere.colorIndex],
+    colorIndex: sphere.colorIndex,
     opacity: opacity,
   );
 }

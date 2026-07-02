@@ -13,6 +13,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  flutter_hooks:
+  hooks_riverpod:
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -22,4 +25,5 @@ dev_dependencies:
 flutter:
   shaders:
     - shaders/screen_shader_background.frag
+    - shaders/box_shadow.frag
 

@@ -225,7 +225,7 @@ export function MonthGrid({ month, selected, onSelect, ghost }) {
                 background: isSel ? 'var(--gradient-slate-accent)' : 'transparent',
                 border: isToday && !isSel ? '1px solid rgba(var(--cs-primary-rgb),0.35)' : '1px solid transparent',
                 boxShadow: isSel
-                  ? '0 3px 10px rgba(var(--cs-primary-rgb),0.25), inset 0 1px 0 rgba(var(--raise-rgb),0.20)'
+                  ? 'var(--shadow-glass-mid), 0 2px 10px rgba(var(--cs-primary-rgb),0.30)'
                   : 'none',
               }}>
                 <span style={{ fontSize: 15, fontWeight: 'var(--tt-title-medium-weight)', lineHeight: 1, color: isSel ? 'rgba(var(--raise-rgb),1)' : 'var(--cs-on-surface)' }}>{n}</span>
