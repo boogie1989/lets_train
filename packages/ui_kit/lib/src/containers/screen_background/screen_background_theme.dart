@@ -46,7 +46,7 @@ class ScreenBackgroundExtension
         Color(0xFF64748B),
         Color(0xFF94A3B8),
       ])
-        color.darken(.2),
+        color.darken(.1),
     ],
     opacityMultiplier: 1.0,
   );

@@ -20,14 +20,14 @@ export 'package:ui_kit/src/containers/screen_background/widgets/screen_shader_ba
 class ScreenBackground extends StatefulWidget {
   const ScreenBackground({
     super.key,
-    this.speed = 1,
-    required this.child,
+    this.speed = .5,
+    this.child,
   });
 
   /// Time multiplier for the smoke motion (1 = default, 0 = frozen).
   final double speed;
 
-  final Widget child;
+  final Widget? child;
 
   @override
   State<ScreenBackground> createState() => _ScreenBackgroundState();
@@ -76,7 +76,7 @@ class _ScreenBackgroundState extends State<ScreenBackground>
           fit: StackFit.expand,
           children: <Widget>[
             ScreenShaderBackground(time: _time),
-            widget.child,
+            ?widget.child,
           ],
         ),
       ),

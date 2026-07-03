@@ -5,6 +5,7 @@ import 'package:ui_kit/src/containers/screen_background/screen_background.dart';
 import 'package:ui_kit/src/containers/surface_container/surface_container_theme.dart';
 import 'package:ui_kit/src/containers/surface_container/widgets/smoke_glass_backdrop.dart';
 import 'package:ui_kit/src/effects/contour_shadow.dart';
+import 'package:ui_kit/src/effects/inner_top_highlight_painter.dart';
 import 'package:ui_kit/src/theme/theme.dart';
 
 export 'package:ui_kit/src/containers/surface_container/surface_container_theme.dart';
@@ -57,7 +58,7 @@ class SurfaceContainer extends StatelessWidget {
     }
 
     Widget body = CustomPaint(
-      foregroundPainter: _InnerTopHighlightPainter(
+      foregroundPainter: InnerTopHighlightPainter(
         color: style.innerHighlightColor,
         radius: radius,
       ),
@@ -117,28 +118,3 @@ class SurfaceContainer extends StatelessWidget {
   }
 }
 
-/// Paints the 1px specular highlight along the inner top edge — the CSS
-/// `inset 0 1px 0` shadow, which [BoxShadow] cannot express.
-class _InnerTopHighlightPainter extends CustomPainter {
-  _InnerTopHighlightPainter({required this.color, required this.radius});
-
-  final Color color;
-  final BorderRadius radius;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final rrect = radius.toRRect(Offset.zero & size);
-    // The sliver between the rrect and itself shifted down 1px = the top
-    // inner pixel row, following the corner curves.
-    final sliver = Path.combine(
-      PathOperation.difference,
-      Path()..addRRect(rrect),
-      Path()..addRRect(rrect.shift(const Offset(0, 1))),
-    );
-    canvas.drawPath(sliver, Paint()..color = color);
-  }
-
-  @override
-  bool shouldRepaint(_InnerTopHighlightPainter old) =>
-      old.color != color || old.radius != radius;
-}

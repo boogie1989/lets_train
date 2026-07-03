@@ -17,10 +17,7 @@ class MainApp extends StatelessWidget {
       darkTheme: createDarkTheme(context),
       home: const MyScreen(),
       builder: (_, child) => ScreenBackground(
-        child: ColoredBox(
-          color: Colors.transparent,
-          child: child ?? const Offstage(),
-        ),
+        child: child,
       ),
     );
   }
@@ -41,7 +38,7 @@ class MyScreen extends HookWidget {
                 level: SurfaceLevel.high,
                 borderRadius: BorderRadius.zero,
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 200),
+                  constraints: const BoxConstraints(minHeight: 400),
                   child: Column(
                     children: [
                       AppBar(

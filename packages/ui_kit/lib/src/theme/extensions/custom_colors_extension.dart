@@ -35,6 +35,8 @@ class CustomColorsExtension extends ThemeExtension<CustomColorsExtension> {
     required this.catPink,
     required this.catViolet,
     required this.catCyan,
+    required this.accentGradientStart,
+    required this.accentGradientEnd,
   });
 
   factory CustomColorsExtension.dark() => const CustomColorsExtension(
@@ -68,6 +70,9 @@ class CustomColorsExtension extends ThemeExtension<CustomColorsExtension> {
     catPink: Color(0xFFF472B6), // push
     catViolet: Color(0xFFA78BFA), // pull
     catCyan: Color(0xFF22D3EE), // core
+    // --gradient-slate-accent stops (135deg, slate-400 → slate-600)
+    accentGradientStart: Color(0xFF94A3B8),
+    accentGradientEnd: Color(0xFF475569),
   );
 
   factory CustomColorsExtension.light() => const CustomColorsExtension(
@@ -98,6 +103,9 @@ class CustomColorsExtension extends ThemeExtension<CustomColorsExtension> {
     catPink: Color(0xFFDB2777),
     catViolet: Color(0xFF7C3AED),
     catCyan: Color(0xFF0891B2),
+    // --gradient-slate-accent stops (light: slate-500 → slate-700)
+    accentGradientStart: Color(0xFF64748B),
+    accentGradientEnd: Color(0xFF334155),
   );
 
   /// Completed-status accent (task accent strip, checkmarks).
@@ -147,6 +155,11 @@ class CustomColorsExtension extends ThemeExtension<CustomColorsExtension> {
   final Color catViolet;
   final Color catCyan;
 
+  /// `--gradient-slate-accent` stops (135° linear) — the accent gradient
+  /// used by the gradient-style FAB and the selected date cell.
+  final Color accentGradientStart;
+  final Color accentGradientEnd;
+
   @override
   CustomColorsExtension copyWith({
     Color? statusCompleted,
@@ -171,6 +184,8 @@ class CustomColorsExtension extends ThemeExtension<CustomColorsExtension> {
     Color? catPink,
     Color? catViolet,
     Color? catCyan,
+    Color? accentGradientStart,
+    Color? accentGradientEnd,
   }) {
     return CustomColorsExtension(
       statusCompleted: statusCompleted ?? this.statusCompleted,
@@ -195,6 +210,8 @@ class CustomColorsExtension extends ThemeExtension<CustomColorsExtension> {
       catPink: catPink ?? this.catPink,
       catViolet: catViolet ?? this.catViolet,
       catCyan: catCyan ?? this.catCyan,
+      accentGradientStart: accentGradientStart ?? this.accentGradientStart,
+      accentGradientEnd: accentGradientEnd ?? this.accentGradientEnd,
     );
   }
 
@@ -231,6 +248,11 @@ class CustomColorsExtension extends ThemeExtension<CustomColorsExtension> {
       catPink: mix(catPink, other.catPink),
       catViolet: mix(catViolet, other.catViolet),
       catCyan: mix(catCyan, other.catCyan),
+      accentGradientStart: mix(
+        accentGradientStart,
+        other.accentGradientStart,
+      ),
+      accentGradientEnd: mix(accentGradientEnd, other.accentGradientEnd),
     );
   }
 }
