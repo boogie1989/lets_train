@@ -215,17 +215,20 @@ export function MonthHeader({ monthOffset = 0, onShiftMonth, isToday, onToday })
       <button
         onClick={() => !disabled && onShiftMonth(dir)}
         aria-label={dir < 0 ? 'Previous month' : 'Next month'}
+        // same lifted-glass block recipe as the calendar day tiles
         style={{
-          width: 30, height: 30, padding: 0,
+          width: 44, height: 44, padding: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          background: 'rgba(var(--overlay-rgb),0.06)', border: 'none',
-          borderRadius: 'var(--radius-lg)',
-          color: 'var(--cs-on-surface-variant)',
+          background: 'var(--glass-low-bg)',
+          border: '1px solid rgba(var(--cs-outline-rgb),0.20)',
+          boxShadow: 'var(--shadow-glass-low)',
+          borderRadius: 'var(--radius-xl)',
+          color: 'var(--cs-on-surface)',
           cursor: disabled ? 'default' : 'pointer',
           opacity: disabled ? 0.35 : 1,
         }}
       >
-        <span style={{ display: 'flex', transform: dir < 0 ? 'rotate(180deg)' : 'none' }}>
+        <span style={{ display: 'flex', transform: dir < 0 ? 'rotate(180deg) scale(1.25)' : 'scale(1.25)' }}>
           <ChevR />
         </span>
       </button>

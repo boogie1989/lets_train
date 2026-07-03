@@ -57,7 +57,7 @@ export default function CalendarDesktopScreen({ initialDay = TODAY }) {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <MonthHeader monthOffset={cal.monthOffset} onShiftMonth={cal.shiftMonth}
                   isToday={cal.isToday} onToday={() => cal.selectDay(TODAY)} />
-                <MonthGrid size="large" month={cal.month} selected={cal.selected} onSelect={cal.selectDay}
+                <MonthGrid size="tiles" month={cal.month} selected={cal.selected} onSelect={cal.selectDay}
                   ghost={cal.monthOffset !== 0 ? NEIGHBOR_MONTHS[cal.monthOffset] : null} />
               </div>
               <DateCaption weekday={cal.day.weekday} dayN={cal.selected} />

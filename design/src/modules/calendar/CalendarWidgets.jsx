@@ -192,6 +192,21 @@ const GRID_SIZES = {
       boxShadow: 'var(--shadow-glass-low)',
     },
   },
+  // every day is its own lifted glass block (no shared card): SurfaceContainer
+  // Low language per cell — glass fill + outline hairline + --shadow-glass-low
+  // (its inset top-highlight gives each block the volume). No per-tile backdrop
+  // blur on purpose: 35 blurs would chug, and over the soft smoke the fill
+  // alone reads as glass.
+  tiles: {
+    cell: 64, font: 17, rowGap: 8, padding: 0,
+    radius: 'var(--radius-xl)', dot: { 1: 4, 2: 5, 3: 6 }, dotSlot: 6,
+    container: {},
+    tile: {
+      background: 'var(--glass-low-bg)',
+      border: '1px solid rgba(var(--cs-outline-rgb),0.20)',
+      boxShadow: 'var(--shadow-glass-low)',
+    },
+  },
 }
 
 const chunkMonth = (lead, days) => {
@@ -234,6 +249,8 @@ export function MonthGrid({ month, selected, onSelect, ghost, size = 'default' }
                 <span key={n} style={{
                   ...TT, height: S.cell, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: S.font, fontWeight: 'var(--tt-title-medium-weight)',
+                  borderRadius: S.radius,
+                  ...(S.tile ?? {}),
                   color: 'var(--cs-on-surface)', opacity: 0.35,
                 }}>{n}</span>
               )
@@ -246,11 +263,14 @@ export function MonthGrid({ month, selected, onSelect, ghost, size = 'default' }
                 ...TT, height: S.cell, padding: 0, cursor: 'pointer',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
                 borderRadius: S.radius,
-                background: isSel ? 'var(--gradient-slate-accent)' : 'transparent',
-                border: isToday && !isSel ? '1px solid rgba(var(--cs-primary-rgb),0.35)' : '1px solid transparent',
+                ...(S.tile ?? {}),
+                background: isSel ? 'var(--gradient-slate-accent)' : (S.tile?.background ?? 'transparent'),
+                border: isToday && !isSel
+                  ? '1px solid rgba(var(--cs-primary-rgb),0.35)'
+                  : (S.tile?.border ?? '1px solid transparent'),
                 boxShadow: isSel
                   ? 'var(--shadow-glass-mid), 0 2px 10px rgba(var(--cs-primary-rgb),0.30)'
-                  : 'none',
+                  : (S.tile?.boxShadow ?? 'none'),
               }}>
                 <span style={{ fontSize: S.font, fontWeight: 'var(--tt-title-medium-weight)', lineHeight: 1, color: isSel ? 'rgba(var(--raise-rgb),1)' : 'var(--cs-on-surface)' }}>{n}</span>
                 {/* fixed slot keeps the numbers aligned across dot sizes */}
