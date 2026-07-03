@@ -1,7 +1,7 @@
-export default function StatusBar() {
+export default function StatusBar({ width = 430 }) {
   return (
     <div style={{
-      width: 430,
+      width,
       height: 44,
       display: 'flex',
       alignItems: 'center',

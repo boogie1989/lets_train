@@ -27,6 +27,8 @@ src/
 3. Re-export the page from `src/modules/index.js`, then add it to the `NAV` array in `App.jsx`.
 4. Reuse `components/` + `tokens/` — don't duplicate primitives into a module. Match the **Calendar** module's visual language (it's the reference).
 
+**Frames:** screens are phone-first (`PhoneFrame`, iPhone 15 Pro Max). The Calendar module additionally carries approved tablet-portrait (`TabletFrame`, iPad Pro 12.9") and desktop (`DesktopFrame`, 1512×982) variants — an explicit scope exception (2026-07); other modules stay phone-only unless approved.
+
 The rest of this document covers the Figma side of the system.
 
 ## 1. What this is

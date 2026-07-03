@@ -1,4 +1,6 @@
 import CalendarScreen from './CalendarScreen.jsx'
+import CalendarTabletScreen from './CalendarTabletScreen.jsx'
+import CalendarDesktopScreen from './CalendarDesktopScreen.jsx'
 import { StyleInspector } from '../../components/index.js'
 
 // Each phone starts on a different selected day; the calendar is interactive:
@@ -15,6 +17,12 @@ const STATES = [
   { id: 'detail', label: 'Detail open', props: { initialDay: 13, initialDetailId: 'd13-0' } },
 ]
 
+// Large canvases — full-size after the phone reference columns
+const LARGE = [
+  { id: 'tablet', label: 'Tablet — portrait', Comp: CalendarTabletScreen, props: { initialDay: 13 } },
+  { id: 'desktop', label: 'Desktop', Comp: CalendarDesktopScreen, props: { initialDay: 13 } },
+]
+
 export default function CalendarPage() {
   return (
     <StyleInspector>
@@ -23,6 +31,12 @@ export default function CalendarPage() {
           <div key={id} style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center', flexShrink: 0 }}>
             <span style={{ fontFamily: 'var(--tt-font-family)', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.45 }}>{label}</span>
             <CalendarScreen {...props} />
+          </div>
+        ))}
+        {LARGE.map(({ id, label, Comp, props }) => (
+          <div key={id} style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'center', flexShrink: 0 }}>
+            <span style={{ fontFamily: 'var(--tt-font-family)', fontSize: 11, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--cs-on-surface-variant)', opacity: 0.45 }}>{label}</span>
+            <Comp {...props} />
           </div>
         ))}
       </div>

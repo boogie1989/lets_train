@@ -21,7 +21,10 @@ const EASE = 'cubic-bezier(0.4, 0, 0.2, 1)'
 const lbl = { ...TT, fontSize: 'var(--tt-title-small-size)', fontWeight: 'var(--tt-title-small-weight)', letterSpacing: 'var(--tt-title-small-tracking)', color: 'var(--cs-on-surface)' }
 const val = { ...TT, fontSize: 'var(--tt-body-small-size)', fontWeight: 'var(--tt-body-small-weight)', letterSpacing: 'var(--tt-body-small-tracking)', color: 'var(--cs-on-surface-variant)' }
 
-export default function ItemDetailDialog({ item, tense, month, dayN, onClose, onMove, onDelete, onSetEaten, onSetNote }) {
+// anchor — panel geometry within the frame; the phone default (left/right 16,
+// bottom 104) is overridden by the tablet / desktop screens to dock the panel
+// bottom-right (e.g. { right: 24, bottom: 104, width: 430 }).
+export default function ItemDetailDialog({ item, tense, month, dayN, onClose, onMove, onDelete, onSetEaten, onSetNote, anchor = { left: 16, right: 16, bottom: 104 } }) {
   const [shown, setShown] = useState(false)
   const [kept, setKept] = useState(null)      // snapshot rendered during the exit morph
   const [picking, setPicking] = useState(false)
@@ -83,7 +86,7 @@ export default function ItemDetailDialog({ item, tense, month, dayN, onClose, on
       {/* morphing panel — height follows measured content, capped to the screen;
           when capped, the inner scroller takes over */}
       <div style={{
-        position: 'absolute', left: 16, right: 16, bottom: 104, zIndex: 55,
+        position: 'absolute', zIndex: 55, ...anchor,
         height: shown ? Math.min(height, 716) : 54,
         borderRadius: shown ? 'var(--radius-2xl)' : 'var(--radius-xl)',
         background: shown ? 'var(--glass-popover)' : 'var(--glass-control)',

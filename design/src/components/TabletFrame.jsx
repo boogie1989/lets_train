@@ -2,14 +2,16 @@ import SmokeLayer from './SmokeLayer.jsx'
 import AnimatedSmokeLayer from './AnimatedSmokeLayer.jsx'
 import ShaderSmokeLayer from './ShaderSmokeLayer.jsx'
 
-// iPhone 15 Pro Max — 430 × 932, corner-radius 55, Dynamic Island 126×37 @ y=11
-// smokeVariant: 'center' | 'slate' | 'bottom' | 'scattered' | 'minimal' | 'animated' | 'shader'
-export default function PhoneFrame({ children, smokeVariant = 'slate' }) {
+// iPad Pro 12.9" portrait — 1024 × 1366 pt, thin uniform bezel (no Dynamic
+// Island). Same device language as PhoneFrame: surface fill, ring + deep drop
+// shadow, smoke background, clipped content column.
+// smokeVariant: same values as PhoneFrame.
+export default function TabletFrame({ children, smokeVariant = 'slate' }) {
   return (
-    <div data-phone-frame style={{
-      width: 430,
-      height: 932,
-      borderRadius: 55,
+    <div data-tablet-frame style={{
+      width: 1024,
+      height: 1366,
+      borderRadius: 24,
       background: 'var(--cs-surface)',
       position: 'relative',
       overflow: 'hidden',
@@ -23,20 +25,6 @@ export default function PhoneFrame({ children, smokeVariant = 'slate' }) {
           : <SmokeLayer variant={smokeVariant} />
       }
 
-      {/* Dynamic Island */}
-      <div style={{
-        position: 'absolute',
-        top: 11,
-        left: '50%',
-        transform: 'translateX(-50%)',
-        width: 126,
-        height: 37,
-        borderRadius: 20,
-        background: 'rgba(var(--cs-shadow-rgb),1)',
-        zIndex: 100,
-      }} />
-
-      {/* Content */}
       <div style={{
         position: 'absolute',
         inset: 0,

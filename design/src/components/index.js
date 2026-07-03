@@ -1,5 +1,7 @@
 export { default as Button }         from './Button.jsx'
 export { default as PhoneFrame }     from './PhoneFrame.jsx'
+export { default as TabletFrame }    from './TabletFrame.jsx'
+export { default as DesktopFrame }   from './DesktopFrame.jsx'
 export { default as StatusBar }      from './StatusBar.jsx'
 export { default as TopAppBar }      from './TopAppBar.jsx'
 export { default as SurfaceContainer }      from './SurfaceContainer.jsx'

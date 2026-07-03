@@ -169,7 +169,30 @@ const DOT_COLOR = {
   missed: 'rgba(var(--cs-error-rgb),0.75)',
   has: 'var(--cs-status-planned)',
 }
-const DOT_SIZE = { 1: 3, 2: 4, 3: 5 }
+
+// size variants — 'default' is the phone slab grid (quiet surface panel: it
+// sits INSIDE the glass slab, which already carries the lift); 'large' is the
+// standalone big-screen month card, so it wears the full glass recipe itself —
+// glass fill + blur, outline hairline, --shadow-glass-low (ambient + key +
+// inner top-highlight), like every lifted card in the system. One map, no
+// forked component.
+const GRID_SIZES = {
+  default: {
+    cell: 46, font: 15, rowGap: 2, padding: '12px 8px 8px',
+    radius: 'var(--radius-lg)', dot: { 1: 3, 2: 4, 3: 5 }, dotSlot: 5,
+    container: { background: 'var(--cs-surface-container)' },
+  },
+  large: {
+    cell: 64, font: 17, rowGap: 4, padding: '20px 16px 16px',
+    radius: 'var(--radius-xl)', dot: { 1: 4, 2: 5, 3: 6 }, dotSlot: 6,
+    container: {
+      background: 'var(--glass-low-bg)',
+      backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)',
+      border: '1px solid rgba(var(--cs-outline-rgb),0.20)',
+      boxShadow: 'var(--shadow-glass-low)',
+    },
+  },
+}
 
 const chunkMonth = (lead, days) => {
   const cells = [...Array(lead).fill(null), ...Array.from({ length: days }, (_, i) => i + 1)]
@@ -177,14 +200,15 @@ const chunkMonth = (lead, days) => {
   return Array.from({ length: cells.length / 7 }, (_, i) => cells.slice(i * 7, i * 7 + 7))
 }
 
-export function MonthGrid({ month, selected, onSelect, ghost }) {
+export function MonthGrid({ month, selected, onSelect, ghost, size = 'default' }) {
   const weeks = ghost ? chunkMonth(ghost.lead, ghost.days) : WEEKS
+  const S = GRID_SIZES[size] ?? GRID_SIZES.default
   return (
     <div style={{
-      background: 'var(--cs-surface-container)',
+      ...S.container,
       borderRadius: 'var(--radius-2xl)',
-      padding: '12px 8px 8px',
-      display: 'flex', flexDirection: 'column', gap: 2,
+      padding: S.padding,
+      display: 'flex', flexDirection: 'column', gap: S.rowGap,
     }}>
       {/* weekday header — same type as the DateCell weekday label */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', marginBottom: 6 }}>
@@ -202,14 +226,14 @@ export function MonthGrid({ month, selected, onSelect, ghost }) {
       </div>
 
       {weeks.map((week, wi) => (
-        <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 2 }}>
+        <div key={wi} style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: S.rowGap }}>
           {week.map((n, i) => {
-            if (n == null) return <span key={`b${i}`} style={{ height: 46 }} />
+            if (n == null) return <span key={`b${i}`} style={{ height: S.cell }} />
             if (ghost) {
               return (
                 <span key={n} style={{
-                  ...TT, height: 46, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 15, fontWeight: 'var(--tt-title-medium-weight)',
+                  ...TT, height: S.cell, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: S.font, fontWeight: 'var(--tt-title-medium-weight)',
                   color: 'var(--cs-on-surface)', opacity: 0.35,
                 }}>{n}</span>
               )
@@ -219,19 +243,19 @@ export function MonthGrid({ month, selected, onSelect, ghost }) {
             const isToday = n === TODAY
             return (
               <button key={n} onClick={() => onSelect(n)} style={{
-                ...TT, height: 46, padding: 0, cursor: 'pointer',
+                ...TT, height: S.cell, padding: 0, cursor: 'pointer',
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
-                borderRadius: 'var(--radius-lg)',
+                borderRadius: S.radius,
                 background: isSel ? 'var(--gradient-slate-accent)' : 'transparent',
                 border: isToday && !isSel ? '1px solid rgba(var(--cs-primary-rgb),0.35)' : '1px solid transparent',
                 boxShadow: isSel
                   ? 'var(--shadow-glass-mid), 0 2px 10px rgba(var(--cs-primary-rgb),0.30)'
                   : 'none',
               }}>
-                <span style={{ fontSize: 15, fontWeight: 'var(--tt-title-medium-weight)', lineHeight: 1, color: isSel ? 'rgba(var(--raise-rgb),1)' : 'var(--cs-on-surface)' }}>{n}</span>
-                {/* fixed 5px slot keeps the numbers aligned across dot sizes */}
-                <span style={{ height: 5, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {dot && <span style={{ width: DOT_SIZE[dot.tier], height: DOT_SIZE[dot.tier], borderRadius: '50%', background: DOT_COLOR[dot.kind] }} />}
+                <span style={{ fontSize: S.font, fontWeight: 'var(--tt-title-medium-weight)', lineHeight: 1, color: isSel ? 'rgba(var(--raise-rgb),1)' : 'var(--cs-on-surface)' }}>{n}</span>
+                {/* fixed slot keeps the numbers aligned across dot sizes */}
+                <span style={{ height: S.dotSlot, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {dot && <span style={{ width: S.dot[dot.tier], height: S.dot[dot.tier], borderRadius: '50%', background: DOT_COLOR[dot.kind] }} />}
                 </span>
               </button>
             )
