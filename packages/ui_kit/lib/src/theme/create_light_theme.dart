@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:ui_kit/src/hooks/use_breakpoint_hook/use_breakpoint_hook.dart';
 import 'package:ui_kit/src/theme/create_theme_base.dart';
 
 /// Light [ColorScheme], ported 1:1 from the `--cs-*` light tokens in
 /// `design/src/tokens/tokens.css` (soft-neutral: zinc-50/100 surfaces,
 /// slate accent).
-ThemeData createLightTheme(BuildContext context) {
+ThemeData createLightTheme(
+  BuildContext context, {
+  Breakpoint breakpoint = Breakpoint.small,
+}) {
   const colorScheme = ColorScheme(
     brightness: Brightness.light,
     // Primary (slate-600 so tints read on light)
@@ -52,6 +56,7 @@ ThemeData createLightTheme(BuildContext context) {
 
   return createThemeBase(
     context,
+    breakpoint: breakpoint,
     colorScheme: colorScheme,
   );
 }

@@ -1,4 +1,4 @@
-name: ui_kit
+name: core
 description: "A new Flutter package project."
 
 version: 0.0.1
@@ -13,18 +13,8 @@ dependencies:
   flutter:
     sdk: flutter
 
-  hooks_riverpod:
-  flutter_hooks:
-
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
   flutter_lints:
-
-flutter:
-  shaders:
-    - shaders/screen_shader_background.frag
-    - shaders/box_shadow.frag
-    - shaders/surface_glass.frag
-

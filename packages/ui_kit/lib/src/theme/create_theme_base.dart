@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:ui_kit/src/containers/screen_background/screen_background_theme.dart';
 import 'package:ui_kit/src/containers/surface_container/surface_container_theme.dart';
+import 'package:ui_kit/src/hooks/use_breakpoint_hook/use_breakpoint_hook.dart';
 import 'package:ui_kit/src/theme/extensions/custom_colors_extension.dart';
+import 'package:ui_kit/src/theme/extensions/dimensions_extension.dart';
 
 ThemeData createThemeBase(
   BuildContext context, {
+  required Breakpoint breakpoint,
   required ColorScheme colorScheme,
   Color scaffoldBackgroundColor = Colors.transparent,
 }) {
@@ -31,6 +34,7 @@ ThemeData createThemeBase(
     appBarTheme: appBarTheme,
     listTileTheme: listTileTheme,
     extensions: {
+      const DimensionsExtension(),
       if (isDark) ...[
         ScreenBackgroundExtension.dark(),
         CustomColorsExtension.dark(),

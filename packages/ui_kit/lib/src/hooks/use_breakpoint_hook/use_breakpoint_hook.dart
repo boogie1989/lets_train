@@ -46,10 +46,10 @@ class _BreakpointHookState extends HookState<Breakpoint, _BreakpointHook>
   /// device pixel ratio) instead of `MediaQuery`, so no context is needed.
   /// Returns `null` when there is no implicit view yet.
   Breakpoint? _measure() {
-    final view = WidgetsBinding.instance.platformDispatcher.implicitView;
-    if (view == null) return null;
-    final width = view.physicalSize.width / view.devicePixelRatio;
-    return Breakpoint.fromWidth(width);
+    final view = View.of(context);
+    return Breakpoint.fromWidth(
+      view.physicalSize.width / view.devicePixelRatio,
+    );
   }
 
   @override

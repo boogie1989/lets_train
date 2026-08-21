@@ -1,21 +1,19 @@
-name: app
-description: "A new Flutter project."
-
+name: calendar
+description: "A new Flutter package project."
 version: 0.0.1
 publish_to: 'none'
 resolution: workspace
 
 environment:
   sdk: ^3.12.2
+  flutter: ">=1.17.0"
 
 dependencies:
   flutter:
     sdk: flutter
 
   ui_kit:
-  calendar:
 
-  auto_route:
   flutter_hooks:
   riverpod:
   flutter_riverpod:
@@ -24,13 +22,5 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-    
+
   flutter_lints:
-  auto_route_generator:
-  # lean_builder:
-
-flutter:
-  uses-material-design: true
-
-  assets:
-    - assets/

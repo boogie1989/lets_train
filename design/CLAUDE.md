@@ -31,6 +31,31 @@ src/
 
 The rest of this document covers the Figma side of the system.
 
+## 0.5 CURRENT Figma target — "Let's Train" file (2026-07, supersedes the Library scheme below)
+
+The design system + calendar screens were rebuilt from scratch in the single Figma file **"Let's Train"** via the **Figmosha bridge** (local plugin + HTTP server on `127.0.0.1:8787/exec`; POST `{"code": js}` executes in the Figma plugin context; the plugin window must stay open in Figma Desktop). The old multi-file Library scheme described in §1–§14 below is **legacy** — kept for reference only; do not resume its migration plan.
+
+Build scripts + shared helper prelude live in the session scratchpad (`lib.js`, `s0_*..s7_*.js`) — each script is idempotent (deletes its own output by name before rebuilding).
+
+**Pages**
+- `01 — Foundations` — color swatch boards (fills bound to variables), typography ramp, dimensions chips, effect/gradient specimens. Labels carry the Flutter accessor strings.
+- `02 — UiKit` — 20 icon components (`Icon/*`) + 13 variant sets + singles: SurfaceContainer, IconButton, DateCell, MonthDayCell, TaskItem (16 variants, text props title/time/meta/planName), FabMenu, StatusBar, Snackbar, EmptyState, SectionLabel, Button (24), FAB, Checkbox, Segmented, ViewToggle, Stepper, SearchInput, TagChip, DropdownMenu, ConfirmDialog, NavBar, TitleDescription, StatusBadge, SmokeLayer, PhoneFrame.
+- `03 — Calendar` — 4 phone screens (430×932): `Screen / Today — week`, `Month open`, `Empty day`, `Detail open` (clones of Today with swapped sections). Tablet/desktop intentionally NOT transferred (user decision, 2026-07).
+
+**Naming contract (Dev Mode ↔ Flutter, the whole point)**
+- Variables collection `Color` (single **Dark** mode — the file's Figma plan does not allow a second mode; light values live only in code): `colorScheme/*` (34 M3 roles), `customColors/*` (24, incl. the shipped deviation dark `glassMid`=`glassHigh`=rgba(21,21,24,.72)), `screenBackground/*` (base + smoke1..6, dark = tokens.css × 0.9 per `darken(.1)`).
+- Collection `Dimensions`: `dimensions/radius*`, `dimensions/space*` — ONLY the steps that exist in `DimensionsExtension`. Off-grid values (TaskItem pad 18/20, timeline gap 14, cells 46/52/76) are deliberately raw numbers.
+- Text styles `textTheme/displayLarge…labelSmall` = Flutter `textTheme.*`. Effect styles `surface/glassLow|Mid|High` (BG blur + 2 shadows + inner highlight), `shadow/card|header|fab`. Paint styles `gradient/slateAccent` (stops bound to accentGradient vars), `gradient/carbonBase`.
+- `rgba(var(--x-rgb),α)` composites = variable-bound paint + paint `opacity` (Dev Mode shows `customColors/overlay · 6%` → Flutter `token.withValues(alpha: .06)`).
+
+**Figmosha/plugin-API gotchas discovered during the build (in addition to §8 below)**
+1. `setBoundVariableForPaint` drops paint `opacity`, and the fills/strokes SETTER re-initializes opacity from the variable's alpha on FIRST bind-assignment. Fix: assign twice — bind, then re-assign the stored paint with the intended opacity (`SETF`/`SETS` in lib.js).
+2. `node.clone()` re-normalizes bound-paint opacity the same way — walk source & clone in parallel and re-assign (`CLONE_FIX`).
+3. Absolutely-positioned children of an auto-layout frame DRIFT when the frame reflows (slab hairlines) — re-anchor after any height change.
+4. Variable modes beyond 1 are plan-gated ("Limited to 1 modes only" on free plan).
+5. Instance children can't be removed; recolor icons by re-assigning their strokes/fills (allowed as overrides).
+6. The Figmosha plugin window closing = "plugin not connected" — reopen it in Figma Desktop; scripts are idempotent, re-run the last one.
+
 ## 1. What this is
 
 `Fitness_Mobile_App_Design/` is a React + Tailwind reference codebase for a fitness mobile app. Its visual language has been translated into a structured Figma design system that follows **Flutter's Material 3 ColorScheme + TextTheme contracts**.

@@ -1,7 +1,9 @@
 part of 'use_breakpoint_hook.dart';
 
-const _small = 768.0;
-const _medium = 1280.0;
+// const _small = 768.0;
+// const _medium = 1280.0;
+const _small = 900.0;
+const _medium = 1400.0;
 const _large = double.infinity;
 
 /// Viewport size buckets, named by size (not device) since they measure width.
@@ -94,13 +96,13 @@ enum Breakpoint {
   /// final gutter  = bp.resolve(small: 16.0, large: 24.0); // medium → 16
   /// ```
   R resolve<R>({
-    required R small,
-    R? medium,
-    R? large,
+    required R Function() small,
+    R? Function()? medium,
+    R? Function()? large,
   }) => switch (this) {
-    Breakpoint.small => small,
-    Breakpoint.medium => medium ?? small,
-    Breakpoint.large => large ?? medium ?? small,
+    Breakpoint.small => small(),
+    Breakpoint.medium => medium?.call() ?? small(),
+    Breakpoint.large => large?.call() ?? medium?.call() ?? small(),
   };
 
   List<R> resolveList<R>({

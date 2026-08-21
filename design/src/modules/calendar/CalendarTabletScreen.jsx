@@ -36,9 +36,11 @@ export default function CalendarTabletScreen({ initialDay = TODAY }) {
         </div>
       </div>
 
-      {/* Two columns: one app-style month + selected-day stats | timeline */}
+      {/* Two columns: one app-style month + selected-day stats | centered
+          timeline. The timeline CARDS match the calendar width (430); the
+          block itself is wider by the 74px time-gutter + rail. */}
       <div style={{ flex: 1, minHeight: 0, display: 'flex', gap: 24, padding: '24px 24px 24px' }}>
-        <div style={{ width: 488, flexShrink: 0, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ width: 430, flexShrink: 0, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <MonthHeader monthOffset={cal.monthOffset} onShiftMonth={cal.shiftMonth}
               isToday={cal.isToday} onToday={() => cal.selectDay(TODAY)} />
@@ -50,9 +52,11 @@ export default function CalendarTabletScreen({ initialDay = TODAY }) {
           {cal.items.length > 0 && <SummaryBlock stats={cal.stats} load={cal.dayLoad} nut={cal.nut} />}
         </div>
 
-        <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', paddingBottom: 96, display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div style={{ flex: 1, minWidth: 0, overflowY: 'auto', paddingBottom: 96, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           {cal.items.length > 0 ? (
-            <ScheduleBlock items={cal.items} isPast={cal.isPast} onOpen={cal.setDetailId} />
+            <div style={{ width: 430 + 74, maxWidth: '100%' }}>
+              <ScheduleBlock items={cal.items} isPast={cal.isPast} onOpen={cal.setDetailId} />
+            </div>
           ) : (
             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ScheduleEmpty />

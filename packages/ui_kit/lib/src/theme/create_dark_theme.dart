@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:ui_kit/src/theme/create_theme_base.dart';
+import 'package:ui_kit/ui_kit.dart';
 
 /// Dark [ColorScheme], ported 1:1 from the `--cs-*` dark tokens in
 /// `design/src/tokens/tokens.css` (seed: Slate #64748B; primitives:
 /// Tailwind Slate / Zinc / Emerald).
-ThemeData createDarkTheme(BuildContext context) {
+ThemeData createDarkTheme(
+  BuildContext context, {
+  Breakpoint breakpoint = Breakpoint.small,
+}) {
   const colorScheme = ColorScheme(
     brightness: Brightness.dark,
     // Primary (slate-400 accent)
@@ -52,6 +56,7 @@ ThemeData createDarkTheme(BuildContext context) {
 
   return createThemeBase(
     context,
+    breakpoint: breakpoint,
     colorScheme: colorScheme,
   );
 }
